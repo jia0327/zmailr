@@ -9,9 +9,23 @@ import {
   getEmail, 
   deleteEmail,
   getAttachments,
-  getAttachment
+  getAttachment,
+  findLatestEmailWithCode,
+  findLatestEmail,
+  listApiTokens,
+  createApiToken,
+  deleteApiToken,
+  listExtractRules,
+  createExtractRule,
+  updateExtractRule,
+  deleteExtractRule,
+  listSentEmails,
+  getAdminStats,
 } from './database';
-import { generateRandomAddress, } from './utils';
+import { generateRandomAddress, getMailDomain, parseMailboxAddress, getCurrentTimestamp } from './utils';
+import { authenticateApiToken, isAdminAuthenticated, verifyAdminPassword, createAdminSessionCookie, clearAdminSessionCookie } from './auth';
+import { sendMail } from './sender';
+import { getAdminHtml } from './admin';
 
 // 创建 Hono 应用
 const app = new Hono<{ Bindings: Env }>();
@@ -20,7 +34,7 @@ const app = new Hono<{ Bindings: Env }>();
 app.use('/*', cors({
   origin: '*',
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type'],
+  allowHeaders: ['Content-Type', 'Authorization'],
   maxAge: 86400,
 }));
 
@@ -268,6 +282,248 @@ app.delete('/api/emails/:id', async (c) => {
       message: error instanceof Error ? error.message : String(error)
     }, 500);
   }
+});
+
+// ─── 程序化 API（需 Bearer Token 鉴权，不影响现有 Web 前端路由） ───
+
+async function requireApiToken(c: any): Promise<Response | null> {
+  const ok = await authenticateApiToken(c.env.DB, c.req.raw);
+  if (!ok) {
+    return c.json({ success: false, error: '未授权，请提供有效的 Bearer Token' }, 401);
+  }
+  return null;
+}
+
+// 租用临时邮箱
+app.post('/api/lease', async (c) => {
+  const authErr = await requireApiToken(c);
+  if (authErr) return authErr;
+
+  try {
+    const domain = getMailDomain(c.env);
+    const address = generateRandomAddress();
+    const ip = c.req.header('CF-Connecting-IP') || 'api';
+
+    const mailbox = await createMailbox(c.env.DB, {
+      address,
+      expiresInHours: 24,
+      ipAddress: ip,
+    });
+
+    return c.json({
+      success: true,
+      email: `${address}@${domain}`,
+      address: mailbox.address,
+      expiresAt: mailbox.expiresAt,
+    });
+  } catch (error) {
+    console.error('租用邮箱失败:', error);
+    return c.json({
+      success: false,
+      error: '租用邮箱失败',
+      message: error instanceof Error ? error.message : String(error),
+    }, 500);
+  }
+});
+
+// 长轮询等待邮件并返回 extracted_code
+app.get('/api/mail', async (c) => {
+  const authErr = await requireApiToken(c);
+  if (authErr) return authErr;
+
+  try {
+    const toParam = c.req.query('to');
+    if (!toParam) {
+      return c.json({ success: false, error: '缺少 to 参数' }, 400);
+    }
+
+    const timeoutSec = Math.min(Math.max(parseInt(c.req.query('timeout') || '60'), 1), 55);
+    const sinceParam = c.req.query('since');
+    const sinceTimestamp = sinceParam ? parseInt(sinceParam, 10) : getCurrentTimestamp();
+    const requireCode = c.req.query('require_code') !== 'false';
+
+    const localPart = parseMailboxAddress(toParam);
+    const mailbox = await getMailbox(c.env.DB, localPart);
+    if (!mailbox) {
+      return c.json({ success: false, error: '邮箱不存在或已过期' }, 404);
+    }
+
+    const pollInterval = 2000;
+    const deadline = Date.now() + timeoutSec * 1000;
+
+    while (Date.now() < deadline) {
+      const email = requireCode
+        ? await findLatestEmailWithCode(c.env.DB, mailbox.id, sinceTimestamp)
+        : await findLatestEmail(c.env.DB, mailbox.id, sinceTimestamp);
+
+      if (email) {
+        return c.json({
+          success: true,
+          code: email.extractedCode,
+          email: {
+            id: email.id,
+            subject: email.subject,
+            from: email.fromAddress,
+            receivedAt: email.receivedAt,
+          },
+        });
+      }
+
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+    }
+
+    return c.json({ success: false, error: 'timeout', message: '等待邮件超时' }, 408);
+  } catch (error) {
+    console.error('轮询邮件失败:', error);
+    return c.json({
+      success: false,
+      error: '轮询邮件失败',
+      message: error instanceof Error ? error.message : String(error),
+    }, 500);
+  }
+});
+
+// 发送邮件
+app.post('/api/send', async (c) => {
+  const authErr = await requireApiToken(c);
+  if (authErr) return authErr;
+
+  try {
+    const body = await c.req.json();
+    if (!body.to || !body.subject) {
+      return c.json({ success: false, error: '缺少 to 或 subject 参数' }, 400);
+    }
+    if (!body.text && !body.html) {
+      return c.json({ success: false, error: '缺少 text 或 html 内容' }, 400);
+    }
+
+    const result = await sendMail(c.env.DB, c.env, {
+      to: body.to,
+      subject: body.subject,
+      text: body.text,
+      html: body.html,
+    });
+
+    if (!result.success) {
+      return c.json({ success: false, error: result.error }, 502);
+    }
+
+    return c.json({ success: true, sentEmailId: result.sentEmailId });
+  } catch (error) {
+    console.error('发送邮件失败:', error);
+    return c.json({
+      success: false,
+      error: '发送邮件失败',
+      message: error instanceof Error ? error.message : String(error),
+    }, 500);
+  }
+});
+
+// ─── 管理后台 ────────────────────────────────────────────────
+
+async function requireAdmin(c: any): Promise<Response | null> {
+  if (!(await isAdminAuthenticated(c.req.raw, c.env))) {
+    return c.json({ success: false, error: '未授权' }, 401);
+  }
+  return null;
+}
+
+app.get('/admin', async (c) => {
+  if (!(await isAdminAuthenticated(c.req.raw, c.env))) {
+    return c.html(getAdminHtml());
+  }
+  return c.html(getAdminHtml());
+});
+
+app.post('/admin/login', async (c) => {
+  try {
+    if (!c.env.ADMIN_PASSWORD) {
+      return c.json({ success: false, error: '未配置 ADMIN_PASSWORD' }, 503);
+    }
+    const body = await c.req.json();
+    if (!verifyAdminPassword(c.env, body.password)) {
+      return c.json({ success: false, error: '密码错误' }, 401);
+    }
+    const cookie = await createAdminSessionCookie(c.env);
+    return c.json({ success: true }, 200, { 'Set-Cookie': cookie });
+  } catch (error) {
+    return c.json({ success: false, error: '登录失败' }, 500);
+  }
+});
+
+app.post('/admin/logout', (c) => {
+  return c.json({ success: true }, 200, { 'Set-Cookie': clearAdminSessionCookie() });
+});
+
+app.get('/admin/api/stats', async (c) => {
+  const authErr = await requireAdmin(c);
+  if (authErr) return authErr;
+  const stats = await getAdminStats(c.env.DB);
+  return c.json({ success: true, stats });
+});
+
+app.get('/admin/api/tokens', async (c) => {
+  const authErr = await requireAdmin(c);
+  if (authErr) return authErr;
+  const tokens = await listApiTokens(c.env.DB);
+  return c.json({ success: true, tokens });
+});
+
+app.post('/admin/api/tokens', async (c) => {
+  const authErr = await requireAdmin(c);
+  if (authErr) return authErr;
+  const body = await c.req.json();
+  const expiresInDays = Math.min(Math.max(parseInt(body.expiresInDays) || 30, 1), 365);
+  const token = await createApiToken(c.env.DB, { name: body.name, expiresInDays });
+  return c.json({ success: true, token });
+});
+
+app.delete('/admin/api/tokens/:id', async (c) => {
+  const authErr = await requireAdmin(c);
+  if (authErr) return authErr;
+  await deleteApiToken(c.env.DB, parseInt(c.req.param('id'), 10));
+  return c.json({ success: true });
+});
+
+app.get('/admin/api/rules', async (c) => {
+  const authErr = await requireAdmin(c);
+  if (authErr) return authErr;
+  const rules = await listExtractRules(c.env.DB);
+  return c.json({ success: true, rules });
+});
+
+app.post('/admin/api/rules', async (c) => {
+  const authErr = await requireAdmin(c);
+  if (authErr) return authErr;
+  const body = await c.req.json();
+  if (!body.regex) {
+    return c.json({ success: false, error: '缺少 regex' }, 400);
+  }
+  const rule = await createExtractRule(c.env.DB, body);
+  return c.json({ success: true, rule });
+});
+
+app.put('/admin/api/rules/:id', async (c) => {
+  const authErr = await requireAdmin(c);
+  if (authErr) return authErr;
+  const body = await c.req.json();
+  const rule = await updateExtractRule(c.env.DB, parseInt(c.req.param('id'), 10), body);
+  if (!rule) return c.json({ success: false, error: '规则不存在' }, 404);
+  return c.json({ success: true, rule });
+});
+
+app.delete('/admin/api/rules/:id', async (c) => {
+  const authErr = await requireAdmin(c);
+  if (authErr) return authErr;
+  await deleteExtractRule(c.env.DB, parseInt(c.req.param('id'), 10));
+  return c.json({ success: true });
+});
+
+app.get('/admin/api/sent-emails', async (c) => {
+  const authErr = await requireAdmin(c);
+  if (authErr) return authErr;
+  const emails = await listSentEmails(c.env.DB);
+  return c.json({ success: true, emails });
 });
 
 export default app;

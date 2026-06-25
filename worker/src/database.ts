@@ -7,12 +7,19 @@ import {
   EmailListItem,
   Attachment,
   AttachmentListItem,
-  SaveAttachmentParams
+  SaveAttachmentParams,
+  ApiToken,
+  CreateApiTokenParams,
+  ExtractRule,
+  SaveExtractRuleParams,
+  SentEmail,
+  AdminStats,
 } from './types';
 import { 
   generateId, 
   getCurrentTimestamp, 
-  calculateExpiryTimestamp 
+  calculateExpiryTimestamp,
+  generateApiToken,
 } from './utils';
 
 // 附件分块大小（字节）
@@ -44,12 +51,59 @@ export async function initializeDatabase(db: D1Database): Promise<void> {
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_attachments_email_id ON attachments(email_id);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_attachment_chunks_attachment_id ON attachment_chunks(attachment_id);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_attachment_chunks_chunk_index ON attachment_chunks(chunk_index);`);
+
+    // 迁移：为 emails 表添加 extracted_code 列
+    await migrateAddColumn(db, 'emails', 'extracted_code', 'TEXT');
+
+    // API Token 表
+    await db.exec(`CREATE TABLE IF NOT EXISTS api_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      token TEXT UNIQUE NOT NULL,
+      name TEXT,
+      expires_at INTEGER NOT NULL,
+      created_at INTEGER DEFAULT (unixepoch())
+    );`);
+
+    // 验证码提取规则表
+    await db.exec(`CREATE TABLE IF NOT EXISTS extract_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      domain TEXT NOT NULL DEFAULT '*',
+      regex TEXT NOT NULL,
+      priority INTEGER DEFAULT 0,
+      enabled INTEGER DEFAULT 1,
+      created_at INTEGER DEFAULT (unixepoch())
+    );`);
+
+    // 发信审计表
+    await db.exec(`CREATE TABLE IF NOT EXISTS sent_emails (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      to_email TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      status TEXT DEFAULT 'sent',
+      created_at INTEGER DEFAULT (unixepoch())
+    );`);
+
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_api_tokens_token ON api_tokens(token);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_extract_rules_domain ON extract_rules(domain);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_emails_extracted_code ON emails(extracted_code);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_sent_emails_created_at ON sent_emails(created_at);`);
     
     console.log('数据库初始化成功');
   } catch (error) {
     console.error('数据库初始化失败:', error);
     // 抛出错误，让上层处理
     throw new Error(`数据库初始化失败: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * 安全地为已有表添加列（列已存在时忽略）
+ */
+async function migrateAddColumn(db: D1Database, table: string, column: string, definition: string): Promise<void> {
+  try {
+    await db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition};`);
+  } catch {
+    // 列已存在，忽略
   }
 }
 
@@ -223,37 +277,6 @@ export async function cleanupReadMails(db: D1Database): Promise<number> {
 }
 
 /**
- * 清理指定邮件的所有附件
- * @param db 数据库实例
- * @param emailId 邮件ID
- */
-async function cleanupAttachments(db: D1Database, emailId: string): Promise<void> {
-  // [refactor] 利用 ON DELETE CASCADE，此函数在删除邮件时不再需要手动调用。
-  // 但保留此函数以备其他需要单独清理附件的场景。
-  try {
-    // 获取邮件的所有附件ID
-    const attachmentsResult = await db.prepare(`SELECT id FROM attachments WHERE email_id = ?`).bind(emailId).all<{ id: string }>();
-    
-    if (attachmentsResult.results && attachmentsResult.results.length > 0) {
-      const attachmentIds = attachmentsResult.results.map(row => row.id);
-      const placeholders = attachmentIds.map(() => '?').join(',');
-
-      console.log(`邮件 ${emailId} 有 ${attachmentIds.length} 个附件需要清理`);
-      
-      // 批量删除所有分块
-      await db.prepare(`DELETE FROM attachment_chunks WHERE attachment_id IN (${placeholders})`).bind(...attachmentIds).run();
-      console.log(`已清理附件的所有分块`);
-      
-      // 批量删除所有附件记录
-      await db.prepare(`DELETE FROM attachments WHERE id IN (${placeholders})`).bind(...attachmentIds).run();
-      console.log(`已清理邮件 ${emailId} 的所有附件`);
-    }
-  } catch (error) {
-    console.error(`清理邮件 ${emailId} 的附件时出错:`, error);
-  }
-}
-
-/**
  * 保存邮件
  * @param db 数据库实例
  * @param params 参数
@@ -276,11 +299,12 @@ export async function saveEmail(db: D1Database, params: SaveEmailParams): Promis
       receivedAt: now,
       hasAttachments: params.hasAttachments || false,
       isRead: false,
+      extractedCode: params.extractedCode ?? null,
     };
     
     console.log('准备插入邮件:', email.id);
     
-    await db.prepare(`INSERT INTO emails (id, mailbox_id, from_address, from_name, to_address, subject, text_content, html_content, received_at, has_attachments, is_read) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(email.id, email.mailboxId, email.fromAddress, email.fromName, email.toAddress, email.subject, email.textContent, email.htmlContent, email.receivedAt, email.hasAttachments ? 1 : 0, email.isRead ? 1 : 0).run();
+    await db.prepare(`INSERT INTO emails (id, mailbox_id, from_address, from_name, to_address, subject, text_content, html_content, received_at, has_attachments, is_read, extracted_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(email.id, email.mailboxId, email.fromAddress, email.fromName, email.toAddress, email.subject, email.textContent, email.htmlContent, email.receivedAt, email.hasAttachments ? 1 : 0, email.isRead ? 1 : 0, email.extractedCode).run();
     
     console.log('邮件保存成功:', email.id);
     
@@ -375,7 +399,7 @@ export async function saveAttachment(db: D1Database, params: SaveAttachmentParam
  * @returns 邮件列表
  */
 export async function getEmails(db: D1Database, mailboxId: string): Promise<EmailListItem[]> {
-  const results = await db.prepare(`SELECT id, mailbox_id, from_address, from_name, to_address, subject, received_at, has_attachments, is_read FROM emails WHERE mailbox_id = ? ORDER BY received_at DESC`).bind(mailboxId).all();
+  const results = await db.prepare(`SELECT id, mailbox_id, from_address, from_name, to_address, subject, received_at, has_attachments, is_read, extracted_code FROM emails WHERE mailbox_id = ? ORDER BY received_at DESC`).bind(mailboxId).all();
   
   if (!results.results) return [];
   
@@ -389,6 +413,7 @@ export async function getEmails(db: D1Database, mailboxId: string): Promise<Emai
     receivedAt: result.received_at as number,
     hasAttachments: !!result.has_attachments,
     isRead: !!result.is_read,
+    extractedCode: (result.extracted_code as string | null) ?? null,
   }));
 }
 
@@ -399,7 +424,7 @@ export async function getEmails(db: D1Database, mailboxId: string): Promise<Emai
  * @returns 邮件详情
  */
 export async function getEmail(db: D1Database, id: string): Promise<Email | null> {
-  const result = await db.prepare(`SELECT id, mailbox_id, from_address, from_name, to_address, subject, text_content, html_content, received_at, has_attachments, is_read FROM emails WHERE id = ?`).bind(id).first();
+  const result = await db.prepare(`SELECT id, mailbox_id, from_address, from_name, to_address, subject, text_content, html_content, received_at, has_attachments, is_read, extracted_code FROM emails WHERE id = ?`).bind(id).first();
   
   if (!result) return null;
   
@@ -418,6 +443,7 @@ export async function getEmail(db: D1Database, id: string): Promise<Email | null
     receivedAt: result.received_at as number,
     hasAttachments: !!result.has_attachments,
     isRead: true,
+    extractedCode: (result.extracted_code as string | null) ?? null,
   };
 }
 
@@ -506,4 +532,248 @@ async function getAttachmentContent(db: D1Database, attachmentId: string, chunks
 export async function deleteEmail(db: D1Database, id: string): Promise<void> {
   // [refactor] 由于外键设置了 ON DELETE CASCADE，直接删除邮件即可
   await db.prepare(`DELETE FROM emails WHERE id = ?`).bind(id).run();
+}
+
+// ─── API Token ───────────────────────────────────────────────
+
+export async function verifyApiToken(db: D1Database, token: string): Promise<boolean> {
+  const nowMs = Date.now();
+  const result = await db.prepare(
+    `SELECT id FROM api_tokens WHERE token = ? AND expires_at > ?`
+  ).bind(token, nowMs).first();
+  return !!result;
+}
+
+export async function listApiTokens(db: D1Database): Promise<ApiToken[]> {
+  const results = await db.prepare(
+    `SELECT id, token, name, expires_at, created_at FROM api_tokens ORDER BY created_at DESC`
+  ).all();
+  if (!results.results) return [];
+  return results.results.map(row => ({
+    id: row.id as number,
+    token: row.token as string,
+    name: row.name as string | null,
+    expiresAt: row.expires_at as number,
+    createdAt: row.created_at as number,
+  }));
+}
+
+export async function createApiToken(db: D1Database, params: CreateApiTokenParams): Promise<ApiToken> {
+  const token = generateApiToken();
+  const expiresAt = Date.now() + params.expiresInDays * 24 * 60 * 60 * 1000;
+  const result = await db.prepare(
+    `INSERT INTO api_tokens (token, name, expires_at) VALUES (?, ?, ?) RETURNING id, token, name, expires_at, created_at`
+  ).bind(token, params.name ?? null, expiresAt).first();
+  return {
+    id: result!.id as number,
+    token: result!.token as string,
+    name: result!.name as string | null,
+    expiresAt: result!.expires_at as number,
+    createdAt: result!.created_at as number,
+  };
+}
+
+export async function deleteApiToken(db: D1Database, id: number): Promise<void> {
+  await db.prepare(`DELETE FROM api_tokens WHERE id = ?`).bind(id).run();
+}
+
+// ─── Extract Rules ───────────────────────────────────────────
+
+export async function listExtractRules(db: D1Database): Promise<ExtractRule[]> {
+  const results = await db.prepare(
+    `SELECT id, domain, regex, priority, enabled, created_at FROM extract_rules ORDER BY priority DESC, id ASC`
+  ).all();
+  if (!results.results) return [];
+  return results.results.map(row => ({
+    id: row.id as number,
+    domain: row.domain as string,
+    regex: row.regex as string,
+    priority: row.priority as number,
+    enabled: !!row.enabled,
+    createdAt: row.created_at as number,
+  }));
+}
+
+export async function getEnabledExtractRules(db: D1Database, senderDomain: string): Promise<ExtractRule[]> {
+  const results = await db.prepare(
+    `SELECT id, domain, regex, priority, enabled, created_at FROM extract_rules
+     WHERE enabled = 1 AND (domain = ? OR domain = '*')
+     ORDER BY CASE WHEN domain = '*' THEN 0 ELSE 1 END DESC, priority DESC, id ASC`
+  ).bind(senderDomain).all();
+  if (!results.results) return [];
+  return results.results.map(row => ({
+    id: row.id as number,
+    domain: row.domain as string,
+    regex: row.regex as string,
+    priority: row.priority as number,
+    enabled: !!row.enabled,
+    createdAt: row.created_at as number,
+  }));
+}
+
+export async function createExtractRule(db: D1Database, params: SaveExtractRuleParams): Promise<ExtractRule> {
+  const result = await db.prepare(
+    `INSERT INTO extract_rules (domain, regex, priority, enabled) VALUES (?, ?, ?, ?)
+     RETURNING id, domain, regex, priority, enabled, created_at`
+  ).bind(
+    params.domain || '*',
+    params.regex,
+    params.priority ?? 0,
+    params.enabled !== false ? 1 : 0
+  ).first();
+  return {
+    id: result!.id as number,
+    domain: result!.domain as string,
+    regex: result!.regex as string,
+    priority: result!.priority as number,
+    enabled: !!result!.enabled,
+    createdAt: result!.created_at as number,
+  };
+}
+
+export async function updateExtractRule(db: D1Database, id: number, params: SaveExtractRuleParams): Promise<ExtractRule | null> {
+  const existing = await db.prepare(`SELECT id FROM extract_rules WHERE id = ?`).bind(id).first();
+  if (!existing) return null;
+  await db.prepare(
+    `UPDATE extract_rules SET domain = ?, regex = ?, priority = ?, enabled = ? WHERE id = ?`
+  ).bind(
+    params.domain || '*',
+    params.regex,
+    params.priority ?? 0,
+    params.enabled !== false ? 1 : 0,
+    id
+  ).run();
+  const result = await db.prepare(
+    `SELECT id, domain, regex, priority, enabled, created_at FROM extract_rules WHERE id = ?`
+  ).bind(id).first();
+  if (!result) return null;
+  return {
+    id: result.id as number,
+    domain: result.domain as string,
+    regex: result.regex as string,
+    priority: result.priority as number,
+    enabled: !!result.enabled,
+    createdAt: result.created_at as number,
+  };
+}
+
+export async function deleteExtractRule(db: D1Database, id: number): Promise<void> {
+  await db.prepare(`DELETE FROM extract_rules WHERE id = ?`).bind(id).run();
+}
+
+// ─── Sent Emails ─────────────────────────────────────────────
+
+export async function saveSentEmail(
+  db: D1Database,
+  toEmail: string,
+  subject: string,
+  status: string = 'sent'
+): Promise<SentEmail> {
+  const result = await db.prepare(
+    `INSERT INTO sent_emails (to_email, subject, status) VALUES (?, ?, ?)
+     RETURNING id, to_email, subject, status, created_at`
+  ).bind(toEmail, subject, status).first();
+  return {
+    id: result!.id as number,
+    toEmail: result!.to_email as string,
+    subject: result!.subject as string,
+    status: result!.status as string,
+    createdAt: result!.created_at as number,
+  };
+}
+
+export async function listSentEmails(db: D1Database, limit = 100): Promise<SentEmail[]> {
+  const results = await db.prepare(
+    `SELECT id, to_email, subject, status, created_at FROM sent_emails ORDER BY created_at DESC LIMIT ?`
+  ).bind(limit).all();
+  if (!results.results) return [];
+  return results.results.map(row => ({
+    id: row.id as number,
+    toEmail: row.to_email as string,
+    subject: row.subject as string,
+    status: row.status as string,
+    createdAt: row.created_at as number,
+  }));
+}
+
+// ─── Admin Stats & Polling ───────────────────────────────────
+
+export async function getAdminStats(db: D1Database): Promise<AdminStats> {
+  const now = getCurrentTimestamp();
+  const startOfDay = now - (now % 86400);
+
+  const received = await db.prepare(
+    `SELECT COUNT(*) as count FROM emails WHERE received_at >= ?`
+  ).bind(startOfDay).first<{ count: number }>();
+
+  const sent = await db.prepare(
+    `SELECT COUNT(*) as count FROM sent_emails WHERE created_at >= ?`
+  ).bind(startOfDay).first<{ count: number }>();
+
+  const tokens = await db.prepare(
+    `SELECT COUNT(*) as count FROM api_tokens WHERE expires_at > ?`
+  ).bind(Date.now()).first<{ count: number }>();
+
+  const rules = await db.prepare(
+    `SELECT COUNT(*) as count FROM extract_rules WHERE enabled = 1`
+  ).first<{ count: number }>();
+
+  return {
+    receivedToday: received?.count ?? 0,
+    sentToday: sent?.count ?? 0,
+    activeTokens: tokens?.count ?? 0,
+    activeRules: rules?.count ?? 0,
+  };
+}
+
+export interface PolledEmail {
+  id: string;
+  extractedCode: string | null;
+  subject: string;
+  fromAddress: string;
+  receivedAt: number;
+}
+
+export async function findLatestEmailWithCode(
+  db: D1Database,
+  mailboxId: string,
+  sinceTimestamp: number
+): Promise<PolledEmail | null> {
+  const result = await db.prepare(
+    `SELECT id, extracted_code, subject, from_address, received_at FROM emails
+     WHERE mailbox_id = ? AND received_at >= ? AND extracted_code IS NOT NULL
+     ORDER BY received_at DESC LIMIT 1`
+  ).bind(mailboxId, sinceTimestamp).first();
+
+  if (!result) return null;
+
+  return {
+    id: result.id as string,
+    extractedCode: result.extracted_code as string | null,
+    subject: result.subject as string,
+    fromAddress: result.from_address as string,
+    receivedAt: result.received_at as number,
+  };
+}
+
+export async function findLatestEmail(
+  db: D1Database,
+  mailboxId: string,
+  sinceTimestamp: number
+): Promise<PolledEmail | null> {
+  const result = await db.prepare(
+    `SELECT id, extracted_code, subject, from_address, received_at FROM emails
+     WHERE mailbox_id = ? AND received_at >= ?
+     ORDER BY received_at DESC LIMIT 1`
+  ).bind(mailboxId, sinceTimestamp).first();
+
+  if (!result) return null;
+
+  return {
+    id: result.id as string,
+    extractedCode: result.extracted_code as string | null,
+    subject: result.subject as string,
+    fromAddress: result.from_address as string,
+    receivedAt: result.received_at as number,
+  };
 }

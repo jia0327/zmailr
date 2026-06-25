@@ -1,6 +1,7 @@
 import * as PostalMimeModule from 'postal-mime';
 import { Env, ParsedEmail } from './types';
 import { getMailbox, saveEmail, saveAttachment } from './database';
+import { extractCode } from './extractor';
 
 const PostalMime = PostalMimeModule.default;
 
@@ -34,6 +35,19 @@ export async function handleEmail(message: any, env: Env): Promise<void> {
       throw new Error('邮箱不存在');
     }
 
+    // 提取验证码
+    const bodyText = email.text || stripHtml(email.html || '');
+    const extractedCode = await extractCode(
+      env.DB,
+      bodyText,
+      email.subject || '',
+      email.from.address
+    );
+
+    if (extractedCode) {
+      console.log('提取到验证码:', extractedCode);
+    }
+
     // 保存邮件
     const savedEmail = await saveEmail(env.DB, {
       mailboxId: mailbox.id,
@@ -44,6 +58,7 @@ export async function handleEmail(message: any, env: Env): Promise<void> {
       textContent: email.text || '',
       htmlContent: email.html || '',
       hasAttachments: !!email.attachments?.length,
+      extractedCode,
     });
 
     // 保存附件（如果有）
@@ -91,4 +106,8 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
     binary += String.fromCharCode(bytes[i]);
   }
   return btoa(binary);
+}
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }

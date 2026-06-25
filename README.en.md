@@ -127,13 +127,14 @@ We provide two deployment methods, you can choose according to your needs:
     <li>Fork this project to your GitHub account</li>
     <li>Create a D1 database in your Cloudflare Dashboard and note down the <strong>database_name</strong> and <strong>database_id</strong></li>
     <li>In your GitHub repository, go to <strong>Settings</strong> > <strong>Secrets and variables</strong> > <strong>Actions</strong></li>
-    <li>Click <strong>New repository secret</strong> and add the following five secrets:
+    <li>Click <strong>New repository secret</strong> and add the following six secrets:
       <ul>
         <li><code>CF_API_TOKEN</code>: Your Cloudflare API Token. You can create one <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">here</a> using the "Edit Cloudflare Workers" template.</li>
         <li><code>CF_ACCOUNT_ID</code>: Your Cloudflare Account ID. You can find it on the right side of the Workers page.</li>
         <li><code>D1_DATABASE_ID</code>: The ID of the D1 database you created in step 2.</li>
         <li><code>D1_DATABASE_NAME</code>: The name of the D1 database you created in step 2.</li>
         <li><code>VITE_EMAIL_DOMAIN</code>: Your list of domains, separated by commas (e.g., example.com,test.com).</li>
+        <li><code>ADMIN_PASSWORD</code>: Admin panel (<code>/admin</code>) login password for API token and extract-rule management.</li>
       </ul>
     </li>
     <li>After completing the steps above, the project will be automatically deployed on every push to the <code>main</code> branch. You can also trigger the deployment manually from the Actions page.</li>
@@ -217,6 +218,156 @@ pnpm run deploy
     </ul>
   </div>
 </div>
+
+---
+
+## 🔌 Programmatic API
+
+In addition to the Web frontend routes (`/api/mailboxes`, etc.), ZMAIL exposes Bearer-authenticated APIs for automation: registration flows, OTP retrieval, notifications, and more.
+
+### Obtain an API Token
+
+1. Configure `ADMIN_PASSWORD` in GitHub Secrets or `wrangler.toml`
+2. Visit `https://your-domain/admin` and sign in
+3. Create a token under **API Tokens** and copy it (shown once)
+
+All programmatic requests require:
+
+```
+Authorization: Bearer <your-api-token>
+```
+
+### POST /api/lease — Lease a temporary mailbox
+
+Creates a new 24-hour disposable address.
+
+```bash
+curl -X POST "https://your-domain/api/lease" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Example response:
+
+```json
+{
+  "success": true,
+  "email": "abc123@example.com",
+  "address": "abc123",
+  "expiresAt": 1719360000
+}
+```
+
+### GET /api/mail — Long-poll for incoming mail
+
+Waits for new mail on the given address and returns the auto-extracted verification code.
+
+| Param | Description |
+|-------|-------------|
+| `to` | Required — full address or local-part |
+| `timeout` | Optional — seconds, default 60, max 55 |
+| `since` | Optional — Unix timestamp (seconds) for emails received after this time |
+| `require_code` | Optional — default `true`; set `false` to return mail without a code |
+
+```bash
+curl "https://your-domain/api/mail?to=abc123@example.com&timeout=60" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Example response:
+
+```json
+{
+  "success": true,
+  "code": "123456",
+  "email": {
+    "id": "...",
+    "subject": "Your verification code",
+    "from": "noreply@service.com",
+    "receivedAt": 1719350000
+  }
+}
+```
+
+### POST /api/send — Send email
+
+Sends mail via MailChannels from `no-reply@your-domain` (requires DNS setup below).
+
+```bash
+curl -X POST "https://your-domain/api/send" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"to":"user@example.com","subject":"Hello","text":"Plain text body"}'
+```
+
+### extractedCode on Web API
+
+The standard mailbox endpoints also expose `extractedCode` when present:
+
+- `GET /api/mailboxes/:address/emails`
+- `GET /api/emails/:id`
+
+### Python example
+
+```python
+import requests
+
+BASE = "https://your-domain"
+TOKEN = "YOUR_TOKEN"
+headers = {"Authorization": f"Bearer {TOKEN}"}
+
+lease = requests.post(f"{BASE}/api/lease", headers=headers).json()
+email = lease["email"]
+
+mail = requests.get(
+    f"{BASE}/api/mail",
+    headers=headers,
+    params={"to": email, "timeout": 60},
+    timeout=65,
+).json()
+print(mail.get("code"))
+```
+
+---
+
+## 🛠 Admin Panel
+
+Open `https://your-domain/admin` to manage:
+
+- **API Tokens** — create/revoke programmatic API credentials
+- **Extract rules** — per-sender-domain regex rules for OTP extraction
+- **Sent logs** — audit trail for `/api/send`
+- **Stats** — daily receive/send counts and active tokens
+
+### ADMIN_PASSWORD
+
+Set the `ADMIN_PASSWORD` Worker variable:
+
+- **GitHub Actions**: add `ADMIN_PASSWORD` repository secret
+- **Manual deploy**: set in `wrangler.toml` `[vars]` or `wrangler secret put ADMIN_PASSWORD`
+
+Without it, admin login and UI token creation are disabled.
+
+---
+
+## 📤 MailChannels outbound DNS
+
+`/api/send` uses [MailChannels](https://www.mailchannels.com/). Your sending domain (same as `VITE_EMAIL_DOMAIN` / `MAIL_DOMAIN`) must be verified on Cloudflare.
+
+Add these DNS records:
+
+| Type | Name | Content | Notes |
+|------|------|---------|-------|
+| TXT | `_mailchannels` | `v=mc1 cfid=YOUR_CLOUDFLARE_ACCOUNT_ID` | MailChannels domain verification |
+| TXT | `@` | `v=spf1 a mx include:relay.mailchannels.net ~all` | SPF authorizing MailChannels |
+
+Steps:
+
+1. Cloudflare Dashboard → your domain → **DNS**
+2. Add both TXT records (merge `include:relay.mailchannels.net` into an existing SPF if you already have one — only one SPF record allowed)
+3. Ensure **Email Routing** is enabled for inbound mail on the same domain
+4. Test with `POST /api/send` or check **Sent logs** in `/admin`; inspect Worker logs on MailChannels errors
+
+> Outbound From address is fixed at `no-reply@your-domain`.
 
 ---
 

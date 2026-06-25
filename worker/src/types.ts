@@ -3,7 +3,10 @@ import { D1Database } from '@cloudflare/workers-types';
 // 环境变量类型
 export interface Env {
   DB: D1Database;
+  ASSETS?: Fetcher;
   VITE_EMAIL_DOMAIN?: string;
+  MAIL_DOMAIN?: string;
+  ADMIN_PASSWORD?: string;
 }
 
 // 邮箱类型
@@ -36,6 +39,7 @@ export interface Email {
   receivedAt: number;
   hasAttachments: boolean;
   isRead: boolean;
+  extractedCode?: string | null;
 }
 
 // 保存邮件参数
@@ -48,6 +52,55 @@ export interface SaveEmailParams {
   textContent?: string;
   htmlContent?: string;
   hasAttachments?: boolean;
+  extractedCode?: string | null;
+}
+
+// API Token
+export interface ApiToken {
+  id: number;
+  token: string;
+  name: string | null;
+  expiresAt: number;
+  createdAt: number;
+}
+
+export interface CreateApiTokenParams {
+  name?: string;
+  expiresInDays: number;
+}
+
+// 验证码提取规则
+export interface ExtractRule {
+  id: number;
+  domain: string;
+  regex: string;
+  priority: number;
+  enabled: boolean;
+  createdAt: number;
+}
+
+export interface SaveExtractRuleParams {
+  domain: string;
+  regex: string;
+  priority?: number;
+  enabled?: boolean;
+}
+
+// 发信审计
+export interface SentEmail {
+  id: number;
+  toEmail: string;
+  subject: string;
+  status: string;
+  createdAt: number;
+}
+
+// 管理后台统计
+export interface AdminStats {
+  receivedToday: number;
+  sentToday: number;
+  activeTokens: number;
+  activeRules: number;
 }
 
 // 邮件列表项（不包含内容）
@@ -61,6 +114,7 @@ export interface EmailListItem {
   receivedAt: number;
   hasAttachments: boolean;
   isRead: boolean;
+  extractedCode?: string | null;
 }
 
 // 附件类型

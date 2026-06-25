@@ -6,6 +6,7 @@
     "dev:frontend": "pnpm --filter frontend run dev",
     "dev:backend": "wrangler dev",
     "build": "pnpm --filter frontend run build",
+    "test": "pnpm --filter @zmail/worker run test",
     "deploy": "wrangler deploy"
   },
   "keywords": [],

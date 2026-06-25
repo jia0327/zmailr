@@ -76,3 +76,30 @@ export function generateRandomString(length: number): string {
     const date = new Date(timestamp * 1000);
     return date.toISOString();
   }
+
+  /**
+   * 获取邮件域名（优先 MAIL_DOMAIN，回退 VITE_EMAIL_DOMAIN 首项）
+   */
+  export function getMailDomain(env: { MAIL_DOMAIN?: string; VITE_EMAIL_DOMAIN?: string }): string {
+    if (env.MAIL_DOMAIN) {
+      return env.MAIL_DOMAIN.split(',')[0].trim();
+    }
+    const domains = (env.VITE_EMAIL_DOMAIN || '').split(',').map(d => d.trim()).filter(Boolean);
+    return domains[0] || 'example.com';
+  }
+
+  /**
+   * 生成 API Token（64 位 hex）
+   */
+  export function generateApiToken(): string {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  /**
+   * 从完整邮箱地址提取 local part
+   */
+  export function parseMailboxAddress(emailOrLocal: string): string {
+    return emailOrLocal.includes('@') ? emailOrLocal.split('@')[0] : emailOrLocal;
+  }
