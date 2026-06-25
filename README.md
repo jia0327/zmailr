@@ -60,13 +60,13 @@
 
 ![新建收件箱 — 点击「新建收件箱」生成地址](docs/screenshots/inbox-new-mailbox.png)
 
-![收信与 OTP — POST /api/send 测试邮件到达，验证码 847291 提取成功](docs/screenshots/inbox-received.png)
+![收信与 OTP — POST /api/send 测试邮件到达，验证码 847291 高亮](docs/screenshots/inbox-with-otp.png)
 
 #### 发件箱
 
 ![发件箱撰写 — 填写收件人/主题/正文（Brevo 出站）](docs/screenshots/outbox-send.png)
 
-![发信记录 — 已发送列表与今日配额计数](docs/screenshots/outbox-sent-list.png)
+![发信记录 — 已发送列表与今日配额计数](docs/screenshots/outbox-sent.png)
 
 #### API 密钥
 
@@ -76,7 +76,7 @@
 
 #### API 调试
 
-![API 调试 — GET /api/user/quota 返回 200 与速率限制头](docs/screenshots/api-debug-result.png)
+![API 调试 — GET /api/user/quota 返回 200 与速率限制头](docs/screenshots/api-debug-response.png)
 
 浏览器内直接调用 Bearer API，查看 JSON 响应与 `x-ratelimit-*` 头。
 
