@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import Container from '../components/Container';
 import ApiDocCodeBlock from '../components/ApiDocCodeBlock';
+import ApiEndpointParamTable from '../components/ApiEndpointParamTable';
 import {
   curlDeleteMailbox,
   curlLatestCode,
@@ -19,6 +20,7 @@ import {
   rateLimitHeaderExample,
   sendResponse,
 } from '../utils/apiDocExamples';
+import { getParamRowsByEndpointId } from '../utils/apiEndpointMeta';
 
 const ApiDocsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -67,44 +69,61 @@ const ApiDocsPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section id="lease" className="space-y-4">
           <h2 className="text-lg font-semibold">{t('apiDocs.lease.title')}</h2>
           <p className="text-sm text-muted-foreground">{t('apiDocs.lease.description')}</p>
+          <p className="text-xs text-muted-foreground italic">{t('apiDocs.lease.usageHint')}</p>
           <p className="text-sm font-medium">POST /api/lease</p>
           <ApiDocCodeBlock>{curlLease(baseUrl)}</ApiDocCodeBlock>
           <p className="text-sm text-muted-foreground">{t('apiDocs.responseExample')}</p>
           <ApiDocCodeBlock>{leaseResponse}</ApiDocCodeBlock>
         </section>
 
-        <section className="space-y-4">
+        <section id="list-mailboxes" className="space-y-4">
           <h2 className="text-lg font-semibold">{t('apiDocs.listMailboxes.title')}</h2>
           <p className="text-sm text-muted-foreground">{t('apiDocs.listMailboxes.description')}</p>
+          <p className="text-xs text-muted-foreground italic">{t('apiDocs.listMailboxes.usageHint')}</p>
           <p className="text-sm font-medium">GET /api/mailboxes</p>
+          <ApiEndpointParamTable rows={getParamRowsByEndpointId('mailboxes-list')} />
           <ApiDocCodeBlock>{curlMailboxes(baseUrl)}</ApiDocCodeBlock>
         </section>
 
-        <section className="space-y-4">
+        <section id="latest-code" className="space-y-4">
           <h2 className="text-lg font-semibold">{t('apiDocs.latestCode.title')}</h2>
           <p className="text-sm text-muted-foreground">{t('apiDocs.latestCode.description')}</p>
+          <p className="text-xs text-muted-foreground italic">{t('apiDocs.latestCode.usageHint')}</p>
           <p className="text-sm font-medium">GET /api/mailboxes/:address/latest-code</p>
+          <ApiEndpointParamTable rows={getParamRowsByEndpointId('mailboxes-latest-code')} />
           <ApiDocCodeBlock>{curlLatestCode(baseUrl)}</ApiDocCodeBlock>
         </section>
 
-        <section className="space-y-4">
+        <section id="latest-link" className="space-y-4">
           <h2 className="text-lg font-semibold">{t('apiDocs.latestLink.title')}</h2>
           <p className="text-sm text-muted-foreground">{t('apiDocs.latestLink.description')}</p>
+          <p className="text-xs text-muted-foreground italic">{t('apiDocs.latestLink.usageHint')}</p>
           <p className="text-sm font-medium">GET /api/mailboxes/:address/latest-link</p>
+          <ApiEndpointParamTable rows={getParamRowsByEndpointId('mailboxes-latest-link')} />
           <ApiDocCodeBlock>{curlLatestLink(baseUrl)}</ApiDocCodeBlock>
         </section>
 
-        <section className="space-y-4">
+        <section id="email-detail" className="space-y-4">
+          <h2 className="text-lg font-semibold">{t('apiDocs.emailDetail.title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('apiDocs.emailDetail.description')}</p>
+          <p className="text-xs text-muted-foreground italic">{t('apiDocs.emailDetail.usageHint')}</p>
+          <p className="text-sm font-medium">GET /api/emails/:id</p>
+          <ApiEndpointParamTable rows={getParamRowsByEndpointId('emails-get')} />
+        </section>
+
+        <section id="raw-email" className="space-y-4">
           <h2 className="text-lg font-semibold">{t('apiDocs.rawEmail.title')}</h2>
           <p className="text-sm text-muted-foreground">{t('apiDocs.rawEmail.description')}</p>
+          <p className="text-xs text-muted-foreground italic">{t('apiDocs.rawEmail.usageHint')}</p>
           <p className="text-sm font-medium">GET /api/emails/:id/raw</p>
+          <ApiEndpointParamTable rows={getParamRowsByEndpointId('emails-raw')} />
           <ApiDocCodeBlock>{curlRawEmail(baseUrl)}</ApiDocCodeBlock>
         </section>
 
-        <section className="space-y-4">
+        <section id="delete-mailbox" className="space-y-4">
           <h2 className="text-lg font-semibold">{t('apiDocs.mailboxOps.title')}</h2>
           <div className="text-sm text-muted-foreground space-y-3">
             <div>
@@ -131,6 +150,7 @@ const ApiDocsPage: React.FC = () => {
             </div>
           </div>
           <p className="text-sm font-medium">DELETE /api/mailboxes/:address</p>
+          <ApiEndpointParamTable rows={getParamRowsByEndpointId('mailboxes-delete')} />
           <ApiDocCodeBlock>{curlDeleteMailbox(baseUrl)}</ApiDocCodeBlock>
         </section>
 
@@ -140,75 +160,23 @@ const ApiDocsPage: React.FC = () => {
           <ApiDocCodeBlock>{rateLimitHeaderExample}</ApiDocCodeBlock>
         </section>
 
-        <section className="space-y-4">
+        <section id="mail" className="space-y-4">
           <h2 className="text-lg font-semibold">{t('apiDocs.mail.title')}</h2>
           <p className="text-sm text-muted-foreground">{t('apiDocs.mail.description')}</p>
+          <p className="text-xs text-muted-foreground italic">{t('apiDocs.mail.usageHint')}</p>
           <p className="text-sm font-medium">GET /api/mail</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 pr-4 font-medium">{t('apiDocs.param')}</th>
-                  <th className="text-left py-2 font-medium">{t('apiDocs.description')}</th>
-                </tr>
-              </thead>
-              <tbody className="text-muted-foreground">
-                <tr className="border-b border-border/50">
-                  <td className="py-2 pr-4 font-mono text-foreground">to</td>
-                  <td className="py-2">{t('apiDocs.mail.params.to')}</td>
-                </tr>
-                <tr className="border-b border-border/50">
-                  <td className="py-2 pr-4 font-mono text-foreground">timeout</td>
-                  <td className="py-2">{t('apiDocs.mail.params.timeout')}</td>
-                </tr>
-                <tr className="border-b border-border/50">
-                  <td className="py-2 pr-4 font-mono text-foreground">since</td>
-                  <td className="py-2">{t('apiDocs.mail.params.since')}</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-4 font-mono text-foreground">require_code</td>
-                  <td className="py-2">{t('apiDocs.mail.params.requireCode')}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <ApiEndpointParamTable rows={getParamRowsByEndpointId('mail-poll')} />
           <ApiDocCodeBlock>{curlMail(baseUrl)}</ApiDocCodeBlock>
           <p className="text-sm text-muted-foreground">{t('apiDocs.responseExample')}</p>
           <ApiDocCodeBlock>{mailResponse}</ApiDocCodeBlock>
         </section>
 
-        <section className="space-y-4">
+        <section id="send" className="space-y-4">
           <h2 className="text-lg font-semibold">{t('apiDocs.send.title')}</h2>
           <p className="text-sm text-muted-foreground">{t('apiDocs.send.description')}</p>
+          <p className="text-xs text-muted-foreground italic">{t('apiDocs.send.usageHint')}</p>
           <p className="text-sm font-medium">POST /api/send</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 pr-4 font-medium">{t('apiDocs.param')}</th>
-                  <th className="text-left py-2 font-medium">{t('apiDocs.description')}</th>
-                </tr>
-              </thead>
-              <tbody className="text-muted-foreground">
-                <tr className="border-b border-border/50">
-                  <td className="py-2 pr-4 font-mono text-foreground">to</td>
-                  <td className="py-2">{t('apiDocs.send.params.to')}</td>
-                </tr>
-                <tr className="border-b border-border/50">
-                  <td className="py-2 pr-4 font-mono text-foreground">subject</td>
-                  <td className="py-2">{t('apiDocs.send.params.subject')}</td>
-                </tr>
-                <tr className="border-b border-border/50">
-                  <td className="py-2 pr-4 font-mono text-foreground">text / html</td>
-                  <td className="py-2">{t('apiDocs.send.params.body')}</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-4 font-mono text-foreground">from</td>
-                  <td className="py-2">{t('apiDocs.send.params.from')}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <ApiEndpointParamTable rows={getParamRowsByEndpointId('send')} />
           <ApiDocCodeBlock>{curlSend(baseUrl)}</ApiDocCodeBlock>
           <p className="text-sm text-muted-foreground">{t('apiDocs.responseExample')}</p>
           <ApiDocCodeBlock>{sendResponse}</ApiDocCodeBlock>

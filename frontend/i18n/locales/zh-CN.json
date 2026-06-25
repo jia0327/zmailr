@@ -505,23 +505,48 @@
     },
     "lease": {
       "title": "POST /api/lease — 创建随机临时邮箱",
-      "description": "通过 Bearer Token 创建一个新的 24 小时随机临时邮箱地址，并关联到当前 Token 所属用户。"
+      "description": "通过 Bearer Token 创建一个新的 24 小时随机临时邮箱地址，并关联到当前 Token 所属用户。",
+      "usageHint": "需要 lease 权限。无需请求体，携带 Authorization 头发送空 POST 即可。"
     },
     "listMailboxes": {
       "title": "GET /api/mailboxes — 列出活跃邮箱",
-      "description": "列出未过期的邮箱。用户 Token 仅返回该用户创建的邮箱；Legacy Token 返回最近活跃的邮箱。"
+      "description": "列出未过期的邮箱。用户 Token 仅返回该用户创建的邮箱；Legacy Token 返回最近活跃的邮箱。",
+      "usageHint": "需要 mail 权限。租用邮箱后可用此接口确认当前活跃地址。",
+      "params": {
+        "limit": "可选。返回条数上限，默认 50。"
+      }
     },
     "latestCode": {
       "title": "GET /api/mailboxes/:address/latest-code — 最新验证码",
-      "description": "非阻塞即时查询最近一封邮件的提取验证码。"
+      "description": "非阻塞即时查询最近一封邮件的提取验证码。",
+      "usageHint": "需要 mail 权限。:address 填 local-part（如 abc123），立即返回，不等待新邮件。",
+      "params": {
+        "address": "必填。邮箱 local-part（如 abc123），非完整地址。"
+      }
     },
     "latestLink": {
       "title": "GET /api/mailboxes/:address/latest-link — 最新验证链接",
-      "description": "从最新邮件中提取常见格式的验证链接。"
+      "description": "从最新邮件中提取常见格式的验证链接。",
+      "usageHint": "需要 mail 权限。非阻塞查询，适用于需要点击验证链接而非数字验证码的场景。",
+      "params": {
+        "address": "必填。邮箱 local-part（如 abc123），非完整地址。"
+      }
+    },
+    "emailDetail": {
+      "title": "GET /api/emails/:id — 邮件详情",
+      "description": "以 JSON 返回解析后的邮件字段（主题、发件人、text/html 正文、receivedAt 等）。无需 Bearer Token。",
+      "usageHint": "使用 /api/mail 或邮箱列表响应中的邮件 id。公开读取，无需鉴权头。",
+      "params": {
+        "id": "必填。来自 API 或 Web 界面响应的邮件 UUID。"
+      }
     },
     "rawEmail": {
       "title": "GET /api/emails/:id/raw — 下载原始 .eml",
-      "description": "若已存储原始 MIME 则直接返回，否则从数据库字段重建。"
+      "description": "若已存储原始 MIME 则直接返回，否则从数据库字段重建。",
+      "usageHint": "使用 Bearer 鉴权时需要 mail 权限。将响应保存为 .eml 文件以便调试或归档。",
+      "params": {
+        "id": "必填。来自 API 或 Web 界面响应的邮件 UUID。"
+      }
     },
     "rateLimit": {
       "title": "速率限制",
@@ -530,6 +555,7 @@
     "mail": {
       "title": "GET /api/mail — 长轮询等待邮件",
       "description": "等待指定邮箱收到新邮件，并返回自动提取的验证码。同一邮箱多次轮询时，已成功返回过的邮件会自动跳过，无需手动递增 since。",
+      "usageHint": "需要 mail 权限。客户端 HTTP 超时需大于 timeout 参数（如 timeout=60 时建议 65 秒）。",
       "params": {
         "to": "必填。完整邮箱地址或 local-part。",
         "timeout": "可选。超时秒数，默认 60，最大 55。",
@@ -540,6 +566,7 @@
     "send": {
       "title": "POST /api/send — 发送邮件",
       "description": "通过 Brevo 发送邮件（需完成 DNS 与发信配置，见 docs/brevo-setup.md）。默认发件人为 no-reply@你的域名；传入 from 可使用已租用的临时邮箱地址作为发件人。",
+      "usageHint": "需要 send 权限。JSON 请求体提供 text 和/或 html；from 须为域名下已租用且未过期的邮箱。",
       "params": {
         "to": "必填。收件人邮箱地址。",
         "subject": "必填。邮件主题。",
@@ -577,7 +604,11 @@
       "customUserMailboxes": "POST /api/user/mailboxes — 登录会话，请求体 {\"address\": \"local-part\"}。",
       "deleteTitle": "删除邮箱",
       "deleteMailboxes": "DELETE /api/mailboxes/:address — 按 local-part 删除，无需 Bearer Token。",
-      "deleteUserNote": "尚无 DELETE /api/user/mailboxes 接口；Web 端删除请使用 DELETE /api/mailboxes/:address。"
+      "deleteUserNote": "尚无 DELETE /api/user/mailboxes 接口；Web 端删除请使用 DELETE /api/mailboxes/:address。",
+      "usageHint": "无需鉴权。URL 路径中传入邮箱 local-part（如 abc123）。",
+      "params": {
+        "address": "必填。要删除的邮箱 local-part（如 abc123）。"
+      }
     },
     "backHome": "← 返回仪表板"
   },
@@ -606,30 +637,38 @@
   "apiDebug": {
     "tokenSection": "Bearer Token",
     "baseUrl": "Base URL",
-    "tokenLoaded": "Loaded from localStorage",
-    "tokenMissing": "No token in localStorage. Create one on",
-    "useManualToken": "Paste token manually",
-    "useAutoToken": "Use auto-loaded token",
-    "manualTokenPlaceholder": "Paste Bearer token…",
-    "endpointLabel": "Endpoint",
-    "paramsLabel": "Parameters",
-    "pathParam": "Path",
-    "queryParam": "Query",
-    "bodyParam": "Body",
-    "send": "Send request",
-    "sending": "Sending…",
-    "responseSection": "Response",
-    "status": "Status",
-    "duration": "Duration",
-    "rateLimitHeaders": "Rate limit headers",
-    "responseBody": "Body",
-    "tokenRequired": "Bearer token is required for this endpoint",
-    "fieldRequired": "Field \"{{field}}\" is required",
-    "networkError": "Network error — check connection or CORS",
-    "networkTimeout": "Request timed out",
-    "error401": "Unauthorized — invalid or missing Bearer token",
-    "error502": "Send failed (Brevo / MailChannels)",
-    "supportedEndpoints": "Supported endpoints",
+    "tokenLoaded": "已从 localStorage 加载",
+    "tokenMissing": "localStorage 中无 Token，请前往",
+    "useManualToken": "手动粘贴 Token",
+    "useAutoToken": "使用自动加载的 Token",
+    "manualTokenPlaceholder": "粘贴 Bearer Token…",
+    "endpointLabel": "接口",
+    "paramsLabel": "请求参数值",
+    "paramsReference": "参数说明",
+    "pathParam": "路径",
+    "queryParam": "查询",
+    "bodyParam": "请求体",
+    "colName": "名称",
+    "colType": "类型",
+    "colRequired": "必填",
+    "colDescription": "说明",
+    "requiredYes": "是",
+    "requiredNo": "否",
+    "viewFullDocs": "详见完整文档 →",
+    "send": "发送请求",
+    "sending": "发送中…",
+    "responseSection": "响应",
+    "status": "状态码",
+    "duration": "耗时",
+    "rateLimitHeaders": "速率限制响应头",
+    "responseBody": "响应体",
+    "tokenRequired": "此接口需要 Bearer Token",
+    "fieldRequired": "字段「{{field}}」为必填",
+    "networkError": "网络错误 — 请检查连接或 CORS",
+    "networkTimeout": "请求超时",
+    "error401": "未授权 — Bearer Token 无效或缺失",
+    "error502": "发信失败（Brevo / MailChannels）",
+    "supportedEndpoints": "支持的接口",
     "categories": {
       "lease": "随机邮箱",
       "mailbox": "邮箱",
@@ -637,5 +676,8 @@
       "send": "发信",
       "email": "邮件"
     }
+  },
+  "apiEndpointMeta": {
+    "unknownParam": "详见 API 文档。"
   }
 }

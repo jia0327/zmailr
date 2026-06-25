@@ -505,23 +505,48 @@
     },
     "lease": {
       "title": "POST /api/lease — Create random mailbox",
-      "description": "Create a new random 24-hour temporary mailbox via Bearer Token, associated with the token owner."
+      "description": "Create a new random 24-hour temporary mailbox via Bearer Token, associated with the token owner.",
+      "usageHint": "Requires lease scope. No request body — send an empty POST with Authorization header."
     },
     "listMailboxes": {
       "title": "GET /api/mailboxes — List active mailboxes",
-      "description": "List non-expired mailboxes for the authenticated token. User tokens see only mailboxes they created; legacy tokens see recently active mailboxes."
+      "description": "List non-expired mailboxes for the authenticated token. User tokens see only mailboxes they created; legacy tokens see recently active mailboxes.",
+      "usageHint": "Requires mail scope. Use after leasing to confirm your active addresses.",
+      "params": {
+        "limit": "Optional. Max results to return, default 50."
+      }
     },
     "latestCode": {
       "title": "GET /api/mailboxes/:address/latest-code — Latest OTP",
-      "description": "Non-blocking instant query for the most recent extracted verification code."
+      "description": "Non-blocking instant query for the most recent extracted verification code.",
+      "usageHint": "Requires mail scope. Use local-part only in :address (e.g. abc123). Returns immediately without waiting.",
+      "params": {
+        "address": "Required. Mailbox local-part (e.g. abc123), not the full email."
+      }
     },
     "latestLink": {
       "title": "GET /api/mailboxes/:address/latest-link — Latest verification link",
-      "description": "Extract a verification URL from the latest email using common link patterns."
+      "description": "Extract a verification URL from the latest email using common link patterns.",
+      "usageHint": "Requires mail scope. Non-blocking — use when you need a clickable verify URL instead of a numeric code.",
+      "params": {
+        "address": "Required. Mailbox local-part (e.g. abc123), not the full email."
+      }
+    },
+    "emailDetail": {
+      "title": "GET /api/emails/:id — Email detail",
+      "description": "Returns parsed email fields (subject, from, text/html body, receivedAt) as JSON. No Bearer token required.",
+      "usageHint": "Use the email id from /api/mail or mailbox list responses. Public read — no auth header needed.",
+      "params": {
+        "id": "Required. Email UUID from a prior API or web UI response."
+      }
     },
     "rawEmail": {
       "title": "GET /api/emails/:id/raw — Raw .eml download",
-      "description": "Returns stored raw MIME when available, otherwise reconstructs from database fields."
+      "description": "Returns stored raw MIME when available, otherwise reconstructs from database fields.",
+      "usageHint": "Requires mail scope when using Bearer auth. Save response as .eml for debugging or archival.",
+      "params": {
+        "id": "Required. Email UUID from a prior API or web UI response."
+      }
     },
     "rateLimit": {
       "title": "Rate limiting",
@@ -530,6 +555,7 @@
     "mail": {
       "title": "GET /api/mail — Long-poll for mail",
       "description": "Wait for incoming mail and return the auto-extracted code. Repeated polls skip emails already returned—no manual since bump needed.",
+      "usageHint": "Requires mail scope. Set client HTTP timeout above the timeout query param (e.g. 65s for timeout=60).",
       "params": {
         "to": "Required. Full email address or local-part.",
         "timeout": "Optional. Timeout in seconds, default 60, max 55.",
@@ -540,6 +566,7 @@
     "send": {
       "title": "POST /api/send — Send email",
       "description": "Send email via Brevo (DNS and sender setup required; see docs/brevo-setup.md). Defaults to no-reply@your-domain; pass from with an active leased mailbox to send as that address.",
+      "usageHint": "Requires send scope. Provide text and/or html in JSON body; from must be an active leased mailbox on your domain.",
       "params": {
         "to": "Required. Recipient email address.",
         "subject": "Required. Email subject.",
@@ -577,7 +604,11 @@
       "customUserMailboxes": "POST /api/user/mailboxes — login session; body {\"address\": \"local-part\"}.",
       "deleteTitle": "Delete mailbox",
       "deleteMailboxes": "DELETE /api/mailboxes/:address — delete by local-part, no Bearer Token required.",
-      "deleteUserNote": "No DELETE /api/user/mailboxes endpoint yet; use DELETE /api/mailboxes/:address from the web UI."
+      "deleteUserNote": "No DELETE /api/user/mailboxes endpoint yet; use DELETE /api/mailboxes/:address from the web UI.",
+      "usageHint": "No auth required. Pass mailbox local-part in the URL path (e.g. abc123).",
+      "params": {
+        "address": "Required. Mailbox local-part to delete (e.g. abc123)."
+      }
     },
     "backHome": "← Back to dashboard"
   },
@@ -612,10 +643,18 @@
     "useAutoToken": "Use auto-loaded token",
     "manualTokenPlaceholder": "Paste Bearer token…",
     "endpointLabel": "Endpoint",
-    "paramsLabel": "Parameters",
+    "paramsLabel": "Request values",
+    "paramsReference": "Parameters",
     "pathParam": "Path",
     "queryParam": "Query",
     "bodyParam": "Body",
+    "colName": "Name",
+    "colType": "Type",
+    "colRequired": "Required",
+    "colDescription": "Description",
+    "requiredYes": "Yes",
+    "requiredNo": "No",
+    "viewFullDocs": "See full documentation →",
     "send": "Send request",
     "sending": "Sending…",
     "responseSection": "Response",
@@ -637,5 +676,8 @@
       "send": "Send mail",
       "email": "Email"
     }
+  },
+  "apiEndpointMeta": {
+    "unknownParam": "See API documentation for details."
   }
 }

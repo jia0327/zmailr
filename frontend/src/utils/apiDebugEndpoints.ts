@@ -92,7 +92,7 @@ export const API_DEBUG_ENDPOINTS: ApiEndpointDef[] = [
     requiresAuth: true,
     responseType: 'json',
     fields: [
-      { name: 'to', kind: 'query', type: 'string', required: true, placeholder: 'abc123@example.com' },
+      { name: 'to', kind: 'query', type: 'string', required: true, defaultValue: 'abc123@example.com', placeholder: 'abc123@example.com' },
       { name: 'timeout', kind: 'query', type: 'number', defaultValue: '60', placeholder: '60' },
       { name: 'since', kind: 'query', type: 'number', placeholder: '1719350000' },
       {
@@ -112,10 +112,10 @@ export const API_DEBUG_ENDPOINTS: ApiEndpointDef[] = [
     requiresAuth: true,
     responseType: 'json',
     fields: [
-      { name: 'to', kind: 'body', type: 'string', required: true, placeholder: 'user@example.com' },
-      { name: 'subject', kind: 'body', type: 'string', required: true, placeholder: 'Hello' },
-      { name: 'text', kind: 'body', type: 'string', required: true, placeholder: 'Plain text body' },
-      { name: 'from', kind: 'body', type: 'string', placeholder: 'abc123@example.com' },
+      { name: 'to', kind: 'body', type: 'string', required: true, defaultValue: 'user@qq.com', placeholder: 'user@example.com' },
+      { name: 'subject', kind: 'body', type: 'string', required: true, defaultValue: 'Hello', placeholder: 'Hello' },
+      { name: 'text', kind: 'body', type: 'string', required: true, defaultValue: 'Plain text body', placeholder: 'Plain text body' },
+      { name: 'from', kind: 'body', type: 'string', defaultValue: 'abc123@example.com', placeholder: 'abc123@example.com' },
     ],
   },
   {

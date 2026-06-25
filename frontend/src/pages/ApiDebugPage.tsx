@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import DashboardPageHeader from '../components/DashboardPageHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiBaseUrl } from '../utils/apiDocExamples';
+import ApiEndpointParamTable from '../components/ApiEndpointParamTable';
 import {
   API_DEBUG_CATEGORIES,
   API_DEBUG_ENDPOINTS,
@@ -13,6 +14,7 @@ import {
   defaultFieldValues,
   getEndpointById,
 } from '../utils/apiDebugEndpoints';
+import { fieldDescriptionKey, getDocsHref, getEndpointMeta, getParamRows } from '../utils/apiEndpointMeta';
 import { loadStoredTokens, migrateLegacySessionTokens } from '../utils/apiTokenSession';
 
 interface FetchResult {
@@ -44,6 +46,8 @@ const ApiDebugPage: React.FC = () => {
   const [result, setResult] = useState<FetchResult | null>(null);
 
   const endpoint = getEndpointById(selectedId) ?? API_DEBUG_ENDPOINTS[0];
+  const endpointMeta = getEndpointMeta(endpoint.id);
+  const paramRows = useMemo(() => getParamRows(endpoint), [endpoint]);
   const effectiveToken = useManualToken ? manualToken.trim() : autoToken;
 
   const loadAutoToken = useCallback(async () => {
@@ -298,6 +302,29 @@ const ApiDebugPage: React.FC = () => {
           </select>
         </div>
 
+        {endpointMeta && (
+          <div className="rounded-md border bg-muted/30 p-4 space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold">{t(endpointMeta.titleKey)}</h3>
+              <p className="text-sm text-muted-foreground mt-1">{t(endpointMeta.descriptionKey)}</p>
+              <p className="text-xs text-muted-foreground mt-2 italic">{t(endpointMeta.usageHintKey)}</p>
+            </div>
+
+            {paramRows.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">{t('apiDebug.paramsReference')}</p>
+                <ApiEndpointParamTable rows={paramRows} />
+              </div>
+            )}
+
+            <p className="text-xs">
+              <Link to={getDocsHref(endpoint.id)} className="text-primary hover:underline">
+                {t('apiDebug.viewFullDocs')}
+              </Link>
+            </p>
+          </div>
+        )}
+
         {endpoint.fields.length > 0 && (
           <div className="space-y-3">
             <p className="text-sm font-medium">{t('apiDebug.paramsLabel')}</p>
@@ -310,6 +337,7 @@ const ApiDebugPage: React.FC = () => {
                   <span className="font-mono text-foreground">{field.name}</span>
                   {field.required && <span className="text-destructive"> *</span>}
                 </label>
+                <p className="text-xs text-muted-foreground mb-1.5">{t(fieldDescriptionKey(endpoint.id, field))}</p>
                 {field.type === 'boolean' ? (
                   <select
                     id={`field-${field.name}`}
