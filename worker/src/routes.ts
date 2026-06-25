@@ -69,18 +69,11 @@ import { getAdminHtml } from './admin';
 import { getBuiltinExtractRules, extractLink } from './extractor';
 import {
   consumeRateLimit,
-  consumeIpRateLimit,
-  consumeLoginAttempt,
-  recordLoginFailure,
-  clearLoginFailures,
-  checkLoginRateLimit,
+  DEFAULT_GLOBAL_IP_RATE_LIMIT,
+  getGlobalIpRateLimitKey,
   rateLimitHeaders,
   rateLimitExceededBody,
   getClientIp,
-  resolveTokenRateLimit,
-  DEFAULT_SESSION_RATE_LIMIT,
-  DEFAULT_ADMIN_RATE_LIMIT,
-  type IpRateLimitCategory,
 } from './rate-limit';
 
 type AppVariables = {
@@ -100,90 +93,28 @@ app.use('/*', cors({
   maxAge: 86400,
 }));
 
-function getRateLimitKey(auth: ApiAuthContext): string {
-  if (auth.type === 'user' && auth.tokenId != null) {
-    return `user-token:${auth.userId}:${auth.tokenId}`;
+async function globalIpRateLimitMiddleware(c: any, next: () => Promise<void>) {
+  const rateKey = getGlobalIpRateLimitKey(c.req.header('CF-Connecting-IP'));
+  const result = await consumeRateLimit(c.env.DB, rateKey, DEFAULT_GLOBAL_IP_RATE_LIMIT);
+  if (!result.ok) {
+    return c.json(rateLimitExceededBody(), 429, rateLimitHeaders(result));
   }
-  return `legacy-token:${auth.tokenId ?? 'global'}`;
-}
-
-function applyRateLimitHeaders(c: any, result: { limit: number; remaining: number; retryAfter: number }): void {
   for (const [key, value] of Object.entries(rateLimitHeaders(result))) {
     c.header(key, value);
   }
+  await next();
 }
 
-function rateLimitResponse(
-  c: any,
-  result: { ok: boolean; limit: number; remaining: number; retryAfter: number },
-  locked = false
-): Response | null {
-  if (!result.ok) {
-    return c.json(rateLimitExceededBody(locked), 429, rateLimitHeaders(result));
-  }
-  applyRateLimitHeaders(c, result);
-  return null;
-}
-
-async function requireIpRateLimit(c: any, category: IpRateLimitCategory): Promise<Response | null> {
-  const ip = getClientIp(c.req.raw);
-  const result = await consumeIpRateLimit(c.env.DB, ip, category);
-  return rateLimitResponse(c, result);
-}
-
-async function applyRateLimit(c: any, rateKey: string, limit?: number): Promise<Response | null> {
-  const tokenLimit = limit ?? resolveTokenRateLimit(c.env);
-  const result = await consumeRateLimit(c.env.DB, rateKey, tokenLimit);
-  return rateLimitResponse(c, result);
-}
-
-async function requireApiAuthWithRateLimit(c: any, scope?: TokenScope): Promise<Response | null> {
-  const authErr = await requireApiAuth(c, scope);
-  if (authErr) return authErr;
-  const auth = c.get('auth') as ApiAuthContext;
-  return applyRateLimit(c, getRateLimitKey(auth));
-}
-
-async function requireUserSessionWithRateLimit(c: any): Promise<Response | null> {
-  const authErr = await requireUserSession(c);
-  if (authErr) return authErr;
-  const user = c.get('user')!;
-  const result = await consumeRateLimit(c.env.DB, `session:user:${user.id}`, DEFAULT_SESSION_RATE_LIMIT);
-  return rateLimitResponse(c, result);
-}
-
-async function requireAdminWithRateLimit(c: any): Promise<Response | null> {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const ip = getClientIp(c.req.raw);
-  const result = await consumeRateLimit(c.env.DB, `admin:ip:${ip}`, DEFAULT_ADMIN_RATE_LIMIT);
-  return rateLimitResponse(c, result);
-}
-
-async function applyLoginRateLimit(c: any, ip: string, prefix = 'login'): Promise<Response | null> {
-  const result = await consumeLoginAttempt(c.env.DB, ip, prefix);
-  return rateLimitResponse(c, result, result.locked);
-}
-
-async function applyLoginLockCheck(c: any, ip: string, prefix = 'login'): Promise<Response | null> {
-  const result = await checkLoginRateLimit(c.env.DB, ip, prefix);
-  if (result.locked) {
-    return rateLimitResponse(c, result, true);
-  }
-  return null;
-}
+app.use('/api/*', globalIpRateLimitMiddleware);
+app.use('/admin/api/*', globalIpRateLimitMiddleware);
 
 // 健康检查端点
-app.get('/api/health', async (c) => {
-  const rateErr = await requireIpRateLimit(c, 'general');
-  if (rateErr) return rateErr;
+app.get('/api/health', (c) => {
   return c.json({ status: 'ok', message: '临时邮箱系统API正常运行' });
 });
 
 // 获取系统配置
 app.get('/api/config', async (c) => {
-  const rateErr = await requireIpRateLimit(c, 'general');
-  if (rateErr) return rateErr;
   try {
     const emailDomains = c.env.VITE_EMAIL_DOMAIN || '';
     const domains = emailDomains.split(',').map((domain: string) => domain.trim()).filter((domain: string) => domain);
@@ -207,8 +138,6 @@ app.get('/api/config', async (c) => {
 
 // 创建邮箱
 app.post('/api/mailboxes', async (c) => {
-  const rateErr = await requireIpRateLimit(c, 'mailbox_create');
-  if (rateErr) return rateErr;
   try {
     const body = await c.req.json();
     
@@ -251,7 +180,7 @@ app.post('/api/mailboxes', async (c) => {
 
 // 列出活跃邮箱（Bearer Token）
 app.get('/api/mailboxes', async (c) => {
-  const authErr = await requireApiAuthWithRateLimit(c, 'mail');
+  const authErr = await requireApiAuth(c, 'mail');
   if (authErr) return authErr;
   const auth = c.get('auth')!;
 
@@ -282,8 +211,6 @@ app.get('/api/mailboxes', async (c) => {
 
 // 获取邮箱信息
 app.get('/api/mailboxes/:address', async (c) => {
-  const rateErr = await requireIpRateLimit(c, 'public_read');
-  if (rateErr) return rateErr;
   try {
     const address = c.req.param('address');
     const mailbox = await getMailbox(c.env.DB, address);
@@ -305,8 +232,6 @@ app.get('/api/mailboxes/:address', async (c) => {
 
 // 删除邮箱
 app.delete('/api/mailboxes/:address', async (c) => {
-  const rateErr = await requireIpRateLimit(c, 'delete');
-  if (rateErr) return rateErr;
   try {
     const address = c.req.param('address');
     await deleteMailbox(c.env.DB, address);
@@ -324,7 +249,7 @@ app.delete('/api/mailboxes/:address', async (c) => {
 
 // 即时获取最新验证码（Bearer Token，非阻塞）
 app.get('/api/mailboxes/:address/latest-code', async (c) => {
-  const authErr = await requireApiAuthWithRateLimit(c, 'mail');
+  const authErr = await requireApiAuth(c, 'mail');
   if (authErr) return authErr;
 
   try {
@@ -358,7 +283,7 @@ app.get('/api/mailboxes/:address/latest-code', async (c) => {
 
 // 即时获取最新验证链接（Bearer Token）
 app.get('/api/mailboxes/:address/latest-link', async (c) => {
-  const authErr = await requireApiAuthWithRateLimit(c, 'mail');
+  const authErr = await requireApiAuth(c, 'mail');
   if (authErr) return authErr;
 
   try {
@@ -397,8 +322,6 @@ app.get('/api/mailboxes/:address/latest-link', async (c) => {
 
 // 获取邮件列表
 app.get('/api/mailboxes/:address/emails', async (c) => {
-  const rateErr = await requireIpRateLimit(c, 'public_read');
-  if (rateErr) return rateErr;
   try {
     const address = c.req.param('address');
     const mailbox = await getMailbox(c.env.DB, address);
@@ -422,8 +345,6 @@ app.get('/api/mailboxes/:address/emails', async (c) => {
 
 // 获取邮件详情
 app.get('/api/emails/:id', async (c) => {
-  const rateErr = await requireIpRateLimit(c, 'public_read');
-  if (rateErr) return rateErr;
   try {
     const id = c.req.param('id');
     const email = await getEmail(c.env.DB, id);
@@ -447,11 +368,9 @@ app.get('/api/emails/:id', async (c) => {
 app.get('/api/emails/:id/raw', async (c) => {
   const authHeader = c.req.header('Authorization');
   if (authHeader?.startsWith('Bearer ')) {
-    const authErr = await requireApiAuthWithRateLimit(c, 'mail');
+    const authErr = await requireApiAuth(c, 'mail');
     if (authErr) return authErr;
   } else {
-    const rateErr = await requireIpRateLimit(c, 'public_read');
-    if (rateErr) return rateErr;
   }
 
   try {
@@ -476,8 +395,6 @@ app.get('/api/emails/:id/raw', async (c) => {
 
 // 获取邮件的附件列表
 app.get('/api/emails/:id/attachments', async (c) => {
-  const rateErr = await requireIpRateLimit(c, 'public_read');
-  if (rateErr) return rateErr;
   try {
     const id = c.req.param('id');
     
@@ -503,8 +420,6 @@ app.get('/api/emails/:id/attachments', async (c) => {
 
 // 获取附件详情
 app.get('/api/attachments/:id', async (c) => {
-  const rateErr = await requireIpRateLimit(c, 'public_read');
-  if (rateErr) return rateErr;
   try {
     const id = c.req.param('id');
     const attachment = await getAttachment(c.env.DB, id);
@@ -557,8 +472,6 @@ app.get('/api/attachments/:id', async (c) => {
 
 // 删除邮件
 app.delete('/api/emails/:id', async (c) => {
-  const rateErr = await requireIpRateLimit(c, 'delete');
-  if (rateErr) return rateErr;
   try {
     const id = c.req.param('id');
     await deleteEmail(c.env.DB, id);
@@ -586,10 +499,6 @@ async function requireUserSession(c: any): Promise<Response | null> {
 }
 
 app.post('/api/auth/login', async (c) => {
-  const ip = getClientIp(c.req.raw);
-  const rateErr = await applyLoginRateLimit(c, ip);
-  if (rateErr) return rateErr;
-
   try {
     const body = await c.req.json();
     if (!body.username || !body.password) {
@@ -597,12 +506,8 @@ app.post('/api/auth/login', async (c) => {
     }
     const user = await authenticateUserLogin(c.env.DB, String(body.username), String(body.password));
     if (!user) {
-      await recordLoginFailure(c.env.DB, ip);
-      const lockedErr = await applyLoginLockCheck(c, ip);
-      if (lockedErr) return lockedErr;
       return c.json({ success: false, error: '用户名或密码错误' }, 401);
     }
-    await clearLoginFailures(c.env.DB, ip);
     const cookie = await createUserSessionCookie(c.env, user.id);
     return c.json({ success: true, user: { id: user.id, username: user.username, role: user.role } }, 200, { 'Set-Cookie': cookie });
   } catch (error) {
@@ -611,14 +516,12 @@ app.post('/api/auth/login', async (c) => {
   }
 });
 
-app.post('/api/auth/logout', async (c) => {
-  const rateErr = await requireIpRateLimit(c, 'general');
-  if (rateErr) return rateErr;
+app.post('/api/auth/logout', (c) => {
   return c.json({ success: true }, 200, { 'Set-Cookie': clearUserSessionCookie() });
 });
 
 app.get('/api/auth/me', async (c) => {
-  const authErr = await requireUserSessionWithRateLimit(c);
+  const authErr = await requireUserSession(c);
   if (authErr) return authErr;
   const user = c.get('user')!;
   const usage = await getDailyUsage(c.env.DB, user.id);
@@ -659,7 +562,7 @@ app.get('/api/auth/me', async (c) => {
 // ─── 用户 Token 管理（会话鉴权） ─────────────────────────────
 
 app.get('/api/user/tokens', async (c) => {
-  const authErr = await requireUserSessionWithRateLimit(c);
+  const authErr = await requireUserSession(c);
   if (authErr) return authErr;
   const user = c.get('user')!;
   const tokens = await listUserTokens(c.env.DB, user.id);
@@ -667,7 +570,7 @@ app.get('/api/user/tokens', async (c) => {
 });
 
 app.post('/api/user/tokens', async (c) => {
-  const authErr = await requireUserSessionWithRateLimit(c);
+  const authErr = await requireUserSession(c);
   if (authErr) return authErr;
   const user = c.get('user')!;
   const body = await c.req.json();
@@ -692,7 +595,7 @@ app.post('/api/user/tokens', async (c) => {
 });
 
 app.delete('/api/user/tokens/:id', async (c) => {
-  const authErr = await requireUserSessionWithRateLimit(c);
+  const authErr = await requireUserSession(c);
   if (authErr) return authErr;
   const user = c.get('user')!;
   const ok = await deleteUserToken(c.env.DB, user.id, parseInt(c.req.param('id'), 10));
@@ -703,7 +606,7 @@ app.delete('/api/user/tokens/:id', async (c) => {
 // ─── 用户提取规则（会话鉴权） ───────────────────────────────
 
 app.get('/api/user/extract-rules', async (c) => {
-  const authErr = await requireUserSessionWithRateLimit(c);
+  const authErr = await requireUserSession(c);
   if (authErr) return authErr;
   const user = c.get('user')!;
   const rules = await listUserExtractRules(c.env.DB, user.id);
@@ -712,7 +615,7 @@ app.get('/api/user/extract-rules', async (c) => {
 });
 
 app.post('/api/user/extract-rules', async (c) => {
-  const authErr = await requireUserSessionWithRateLimit(c);
+  const authErr = await requireUserSession(c);
   if (authErr) return authErr;
   const user = c.get('user')!;
   const body = await c.req.json();
@@ -729,7 +632,7 @@ app.post('/api/user/extract-rules', async (c) => {
 });
 
 app.put('/api/user/extract-rules/:id', async (c) => {
-  const authErr = await requireUserSessionWithRateLimit(c);
+  const authErr = await requireUserSession(c);
   if (authErr) return authErr;
   const user = c.get('user')!;
   const body = await c.req.json();
@@ -751,7 +654,7 @@ app.put('/api/user/extract-rules/:id', async (c) => {
 });
 
 app.delete('/api/user/extract-rules/:id', async (c) => {
-  const authErr = await requireUserSessionWithRateLimit(c);
+  const authErr = await requireUserSession(c);
   if (authErr) return authErr;
   const user = c.get('user')!;
   const ok = await deleteUserExtractRule(c.env.DB, parseInt(c.req.param('id'), 10), user.id);
@@ -760,7 +663,7 @@ app.delete('/api/user/extract-rules/:id', async (c) => {
 });
 
 app.get('/api/user/sent', async (c) => {
-  const authErr = await requireUserSessionWithRateLimit(c);
+  const authErr = await requireUserSession(c);
   if (authErr) return authErr;
   const user = c.get('user')!;
   const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '50', 10), 1), 100);
@@ -769,7 +672,7 @@ app.get('/api/user/sent', async (c) => {
 });
 
 app.get('/api/user/mailboxes', async (c) => {
-  const authErr = await requireUserSessionWithRateLimit(c);
+  const authErr = await requireUserSession(c);
   if (authErr) return authErr;
   const user = c.get('user')!;
   const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '50', 10), 1), 100);
@@ -785,7 +688,7 @@ app.get('/api/user/mailboxes', async (c) => {
 });
 
 app.post('/api/user/mailboxes', async (c) => {
-  const authErr = await requireUserSessionWithRateLimit(c);
+  const authErr = await requireUserSession(c);
   if (authErr) return authErr;
   const user = c.get('user')!;
 
@@ -847,7 +750,7 @@ async function resolveFromAddress(
 }
 
 app.post('/api/user/send', async (c) => {
-  const authErr = await requireUserSessionWithRateLimit(c);
+  const authErr = await requireUserSession(c);
   if (authErr) return authErr;
   const user = c.get('user')!;
 
@@ -921,7 +824,7 @@ async function resolveMailboxFromParam(c: any, addressParam: string) {
 
 // 租用临时邮箱
 app.post('/api/lease', async (c) => {
-  const authErr = await requireApiAuthWithRateLimit(c, 'lease');
+  const authErr = await requireApiAuth(c, 'lease');
   if (authErr) return authErr;
   const auth = c.get('auth')!;
 
@@ -959,7 +862,7 @@ app.post('/api/lease', async (c) => {
 
 // 长轮询等待邮件并返回 extracted_code
 app.get('/api/mail', async (c) => {
-  const authErr = await requireApiAuthWithRateLimit(c, 'mail');
+  const authErr = await requireApiAuth(c, 'mail');
   if (authErr) return authErr;
 
   try {
@@ -1019,7 +922,7 @@ app.get('/api/mail', async (c) => {
 
 // 发送邮件
 app.post('/api/send', async (c) => {
-  const authErr = await requireApiAuthWithRateLimit(c, 'send');
+  const authErr = await requireApiAuth(c, 'send');
   if (authErr) return authErr;
   const auth = c.get('auth')!;
 
@@ -1099,22 +1002,14 @@ app.get('/admin', async (c) => {
 });
 
 app.post('/admin/login', async (c) => {
-  const ip = getClientIp(c.req.raw);
-  const rateErr = await applyLoginRateLimit(c, ip, 'admin-login');
-  if (rateErr) return rateErr;
-
   try {
     if (!c.env.ADMIN_PASSWORD) {
       return c.json({ success: false, error: '未配置 ADMIN_PASSWORD' }, 503);
     }
     const body = await c.req.json();
     if (!verifyAdminPassword(c.env, body.password)) {
-      await recordLoginFailure(c.env.DB, ip, 'admin-login');
-      const lockedErr = await applyLoginLockCheck(c, ip, 'admin-login');
-      if (lockedErr) return lockedErr;
       return c.json({ success: false, error: '密码错误' }, 401);
     }
-    await clearLoginFailures(c.env.DB, ip, 'admin-login');
     const cookie = await createAdminSessionCookie(c.env);
     return c.json({ success: true }, 200, { 'Set-Cookie': cookie });
   } catch (error) {
@@ -1127,21 +1022,21 @@ app.post('/admin/logout', (c) => {
 });
 
 app.get('/admin/api/stats', async (c) => {
-  const authErr = await requireAdminWithRateLimit(c);
+  const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const stats = await getAdminStats(c.env.DB);
   return c.json({ success: true, stats });
 });
 
 app.get('/admin/api/tokens', async (c) => {
-  const authErr = await requireAdminWithRateLimit(c);
+  const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const tokens = await listApiTokens(c.env.DB);
   return c.json({ success: true, tokens });
 });
 
 app.post('/admin/api/tokens', async (c) => {
-  const authErr = await requireAdminWithRateLimit(c);
+  const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const body = await c.req.json();
   const expiresInDays = Math.min(Math.max(parseInt(body.expiresInDays) || 30, 1), 365);
@@ -1150,14 +1045,14 @@ app.post('/admin/api/tokens', async (c) => {
 });
 
 app.delete('/admin/api/tokens/:id', async (c) => {
-  const authErr = await requireAdminWithRateLimit(c);
+  const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   await deleteApiToken(c.env.DB, parseInt(c.req.param('id'), 10));
   return c.json({ success: true });
 });
 
 app.get('/admin/api/rules', async (c) => {
-  const authErr = await requireAdminWithRateLimit(c);
+  const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const rules = await listExtractRules(c.env.DB);
   const builtinRules = getBuiltinExtractRules();
@@ -1165,7 +1060,7 @@ app.get('/admin/api/rules', async (c) => {
 });
 
 app.post('/admin/api/rules', async (c) => {
-  const authErr = await requireAdminWithRateLimit(c);
+  const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const body = await c.req.json();
   const validated = validateExtractRuleInput(body);
@@ -1180,7 +1075,7 @@ app.post('/admin/api/rules', async (c) => {
 });
 
 app.put('/admin/api/rules/:id', async (c) => {
-  const authErr = await requireAdminWithRateLimit(c);
+  const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const body = await c.req.json();
   const validated = validateExtractRuleInput(body);
@@ -1196,7 +1091,7 @@ app.put('/admin/api/rules/:id', async (c) => {
 });
 
 app.delete('/admin/api/rules/:id', async (c) => {
-  const authErr = await requireAdminWithRateLimit(c);
+  const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const ok = await deleteGlobalExtractRule(c.env.DB, parseInt(c.req.param('id'), 10));
   if (!ok) return c.json({ success: false, error: '规则不存在' }, 404);
@@ -1204,21 +1099,21 @@ app.delete('/admin/api/rules/:id', async (c) => {
 });
 
 app.get('/admin/api/sent-emails', async (c) => {
-  const authErr = await requireAdminWithRateLimit(c);
+  const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const emails = await listSentEmails(c.env.DB);
   return c.json({ success: true, emails });
 });
 
 app.get('/admin/api/users', async (c) => {
-  const authErr = await requireAdminWithRateLimit(c);
+  const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const users = await listUsers(c.env.DB);
   return c.json({ success: true, users });
 });
 
 app.post('/admin/api/users', async (c) => {
-  const authErr = await requireAdminWithRateLimit(c);
+  const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const body = await c.req.json();
   if (!body.username || !body.password) {
@@ -1242,7 +1137,7 @@ app.post('/admin/api/users', async (c) => {
 });
 
 app.put('/admin/api/users/:id', async (c) => {
-  const authErr = await requireAdminWithRateLimit(c);
+  const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const body = await c.req.json();
   const user = await updateUser(c.env.DB, parseInt(c.req.param('id'), 10), {
@@ -1256,7 +1151,7 @@ app.put('/admin/api/users/:id', async (c) => {
 });
 
 app.delete('/admin/api/users/:id', async (c) => {
-  const authErr = await requireAdminWithRateLimit(c);
+  const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const ok = await deleteUser(c.env.DB, parseInt(c.req.param('id'), 10));
   if (!ok) return c.json({ success: false, error: '用户不存在' }, 404);

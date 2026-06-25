@@ -525,7 +525,7 @@
     },
     "rateLimit": {
       "title": "速率限制",
-      "description": "所有 API 接口均受速率限制。Bearer Token 路由：每 Token 每分钟 60 次（可通过 RATE_LIMIT_PER_MIN 覆盖）。会话路由（/api/user/*、/api/auth/* 除登录外）：每用户每分钟 120 次。公开路由：按 IP 限制（创建邮箱 20/分钟，读/删 60/分钟）。登录：每 IP 每分钟 10 次，15 分钟内失败 5 次则锁定。管理 API：每 IP 每分钟 120 次。响应含 X-RateLimit-Limit、X-RateLimit-Remaining 与 Retry-After；超出时返回 HTTP 429，error 为 rate_limit。"
+      "description": "/api/* 与 /admin/api/* 下所有请求共享同一 IP 全局限额：每分钟 60 次（按 CF-Connecting-IP 计）。响应包含 X-RateLimit-Limit、X-RateLimit-Remaining 与 Retry-After；超出时返回 HTTP 429，body 为 `{ \"success\": false, \"error\": \"rate_limit\", ... }`。"
     },
     "mail": {
       "title": "GET /api/mail — 长轮询等待邮件",
@@ -592,7 +592,7 @@
     "colScope": "权限",
     "examplesTitle": "curl 示例",
     "deleteDesc": "按 local-part 删除邮箱，无需 Bearer Token。",
-    "rateLimitNote": "受速率限制的接口会返回 X-RateLimit-Limit、X-RateLimit-Remaining 与 Retry-After，详见完整 API 文档中的分类限额。",
+    "rateLimitNote": "所有 API 调用共享每 IP 每分钟 60 次限额，响应包含 X-RateLimit-Limit、X-RateLimit-Remaining 与 Retry-After。",
     "viewFullDocs": "完整文档",
     "viewFullApiDocs": "查看完整 API 文档",
     "docsLinkHint": "接口说明、鉴权方式与 curl 示例请查看完整文档。",

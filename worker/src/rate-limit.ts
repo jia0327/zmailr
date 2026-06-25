@@ -14,8 +14,17 @@ export const DEFAULT_LOGIN_FAIL_MAX = 5;
 export const DEFAULT_ADMIN_RATE_LIMIT = 120;
 export const DEFAULT_IP_GENERAL_LIMIT = 120;
 
-/** @deprecated use DEFAULT_TOKEN_RATE_LIMIT */
-export const DEFAULT_RATE_LIMIT = DEFAULT_TOKEN_RATE_LIMIT;
+/** Shared per-IP bucket for all /api/* and /admin/api/* routes. */
+export const DEFAULT_GLOBAL_IP_RATE_LIMIT = 60;
+
+/** @deprecated use DEFAULT_GLOBAL_IP_RATE_LIMIT */
+export const DEFAULT_RATE_LIMIT = DEFAULT_GLOBAL_IP_RATE_LIMIT;
+
+/** Key: ip-global:{CF-Connecting-IP}, fallback ip-global:unknown */
+export function getGlobalIpRateLimitKey(cfConnectingIp: string | undefined): string {
+  const ip = cfConnectingIp?.trim();
+  return `ip-global:${ip || 'unknown'}`;
+}
 
 const memoryCounters = new Map<string, number>();
 

@@ -525,7 +525,7 @@
     },
     "rateLimit": {
       "title": "Rate limiting",
-      "description": "All API endpoints are rate-limited. Bearer token routes: 60/min per token (override with RATE_LIMIT_PER_MIN). Session routes (/api/user/*, /api/auth/* except login): 120/min per user. Public routes: IP-based limits (create mailbox 20/min, read/delete 60/min). Login: 10/min per IP with lockout after 5 failures in 15 minutes. Admin API: 120/min per IP. Responses include X-RateLimit-Limit, X-RateLimit-Remaining, and Retry-After; HTTP 429 with error rate_limit when exceeded."
+      "description": "All API requests under /api/* and /admin/api/* share one global limit of 60 requests per minute per IP (CF-Connecting-IP). Responses include X-RateLimit-Limit, X-RateLimit-Remaining, and Retry-After. HTTP 429 with `{ \"success\": false, \"error\": \"rate_limit\", ... }` when exceeded."
     },
     "mail": {
       "title": "GET /api/mail — Long-poll for mail",
@@ -592,7 +592,7 @@
     "colScope": "Scope",
     "examplesTitle": "curl examples",
     "deleteDesc": "Delete a mailbox by local-part. No Bearer token required.",
-    "rateLimitNote": "Rate-limited endpoints return X-RateLimit-Limit, X-RateLimit-Remaining, and Retry-After. See full API docs for per-category limits.",
+    "rateLimitNote": "All API calls share 60 requests per minute per IP. Responses include X-RateLimit-Limit, X-RateLimit-Remaining, and Retry-After.",
     "viewFullDocs": "Full documentation",
     "viewFullApiDocs": "View full API documentation",
     "docsLinkHint": "See the full docs for endpoints, auth, and curl examples.",
