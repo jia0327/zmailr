@@ -203,6 +203,22 @@ python scripts/verify_api.py \
 
 ---
 
+## 贡献与 Git 配置
+
+为避免 Cursor Agent 自动写入 co-author 信息，建议每位贡献者做一次本地配置：
+
+1. **启用仓库 Git hooks**（一次性）：
+
+   ```bash
+   git config core.hooksPath .githooks
+   ```
+
+   仓库已提供 `.githooks/commit-msg`，会在提交前移除 `cursoragent@cursor.com`、`Co-authored-by: … Cursor`、`Made-with: … Cursor` 等行（仅影响之后的新提交，不改写历史）。
+
+2. **关闭 Cursor 提交署名**：Cursor Settings → **Agents** → **Attribution** → 关闭 **Commit Attribution**。
+
+---
+
 ## 许可证
 
 [MIT License](./LICENSE)

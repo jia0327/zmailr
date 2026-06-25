@@ -1,0 +1,16 @@
+---
+description: Never add Cursor attribution trailers to git commits
+alwaysApply: true
+---
+
+# No Cursor commit attribution
+
+When creating or amending commits in this repository, **never** add any of the following to commit messages:
+
+- `Co-authored-by:` lines mentioning Cursor or `cursoragent@cursor.com`
+- Standalone lines containing `cursoragent@cursor.com`
+- `Made-with:` lines mentioning Cursor
+
+Do not use `--trailer`, HEREDOC footers, or commit templates to inject these lines. Write commit messages with only the human-authored summary and body.
+
+If the user asks you to commit, produce a clean message without agent attribution. The repo `.githooks/commit-msg` hook strips these lines when hooks are enabled, but agents must not add them in the first place.

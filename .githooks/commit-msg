@@ -1,0 +1,13 @@
+#!/bin/sh
+# Strip Cursor agent attribution lines from commit messages (future commits only).
+# Patterns: cursoragent@cursor.com, Co-authored-by with Cursor, Made-with Cursor.
+
+commit_msg_file="$1"
+[ -n "$commit_msg_file" ] && [ -f "$commit_msg_file" ] || exit 0
+
+tmp="${commit_msg_file}.tmp.$$"
+grep -v -E 'cursoragent@cursor\.com|^Co-authored-by:.*[Cc]ursor|^Made-with:.*Cursor' \
+  "$commit_msg_file" >"$tmp" 2>/dev/null || cp "$commit_msg_file" "$tmp"
+mv "$tmp" "$commit_msg_file"
+
+exit 0
