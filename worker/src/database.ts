@@ -55,33 +55,14 @@ export async function initializeDatabase(db: D1Database): Promise<void> {
     // 迁移：为 emails 表添加 extracted_code 列
     await migrateAddColumn(db, 'emails', 'extracted_code', 'TEXT');
 
-    // API Token 表
-    await db.exec(`CREATE TABLE IF NOT EXISTS api_tokens (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      token TEXT UNIQUE NOT NULL,
-      name TEXT,
-      expires_at INTEGER NOT NULL,
-      created_at INTEGER DEFAULT (unixepoch())
-    );`);
+    // API Token 表 (D1 exec requires single-line SQL)
+    await db.exec(`CREATE TABLE IF NOT EXISTS api_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT UNIQUE NOT NULL, name TEXT, expires_at INTEGER NOT NULL, created_at INTEGER DEFAULT (unixepoch()));`);
 
     // 验证码提取规则表
-    await db.exec(`CREATE TABLE IF NOT EXISTS extract_rules (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      domain TEXT NOT NULL DEFAULT '*',
-      regex TEXT NOT NULL,
-      priority INTEGER DEFAULT 0,
-      enabled INTEGER DEFAULT 1,
-      created_at INTEGER DEFAULT (unixepoch())
-    );`);
+    await db.exec(`CREATE TABLE IF NOT EXISTS extract_rules (id INTEGER PRIMARY KEY AUTOINCREMENT, domain TEXT NOT NULL DEFAULT '*', regex TEXT NOT NULL, priority INTEGER DEFAULT 0, enabled INTEGER DEFAULT 1, created_at INTEGER DEFAULT (unixepoch()));`);
 
     // 发信审计表
-    await db.exec(`CREATE TABLE IF NOT EXISTS sent_emails (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      to_email TEXT NOT NULL,
-      subject TEXT NOT NULL,
-      status TEXT DEFAULT 'sent',
-      created_at INTEGER DEFAULT (unixepoch())
-    );`);
+    await db.exec(`CREATE TABLE IF NOT EXISTS sent_emails (id INTEGER PRIMARY KEY AUTOINCREMENT, to_email TEXT NOT NULL, subject TEXT NOT NULL, status TEXT DEFAULT 'sent', created_at INTEGER DEFAULT (unixepoch()));`);
 
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_api_tokens_token ON api_tokens(token);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_extract_rules_domain ON extract_rules(domain);`);
