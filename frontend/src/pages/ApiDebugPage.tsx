@@ -293,7 +293,6 @@ const ApiDebugPage: React.FC = () => {
                   {items.map((ep) => (
                     <option key={ep.id} value={ep.id}>
                       {ep.method} {ep.pathTemplate}
-                      {ep.scope !== 'none' ? ` (${ep.scope})` : ''}
                     </option>
                   ))}
                 </optgroup>
