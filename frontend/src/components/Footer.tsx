@@ -41,24 +41,6 @@ const Footer: React.FC<FooterProps> = ({ onShowInfo }) => {
           </div>
           <div className="flex justify-center items-center space-x-4">
             <a
-              href="https://momo.996399.xyz"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-primary transition-colors"
-            >
-              <i className="fas fa-blog mr-1"></i>
-              {t("common.blog")}
-            </a>
-            <a
-              href="https://www.youtube.com/@aki_suou"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-primary transition-colors"
-            >
-              <i className="fab fa-youtube mr-1"></i>
-              {t("common.youtube")}
-            </a>
-            <a
               href="https://url.996399.xyz/"
               target="_blank"
               rel="noopener noreferrer"
