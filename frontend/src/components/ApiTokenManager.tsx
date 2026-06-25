@@ -71,6 +71,7 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
   };
 
   const fmtTime = (ts: number) => new Date(ts > 1e12 ? ts : ts * 1000).toLocaleString();
+  const hasToken = tokens.length > 0;
 
   return (
     <div className="space-y-4">
@@ -88,12 +89,14 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
       <div className={compact ? 'space-y-3' : 'border rounded-lg p-4 bg-card'}>
         <div className="flex items-center justify-between mb-4">
           <h2 className={compact ? 'text-sm font-semibold' : 'font-semibold'}>{t('auth.apiTokens')}</h2>
-          <button
-            onClick={() => setShowCreate(!showCreate)}
-            className="text-sm px-3 py-1.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-          >
-            {t('auth.createToken')}
-          </button>
+          {!hasToken && (
+            <button
+              onClick={() => setShowCreate(!showCreate)}
+              className="text-sm px-3 py-1.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              {t('auth.createToken')}
+            </button>
+          )}
         </div>
 
         {showCreate && (
@@ -158,42 +161,39 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
         ) : tokens.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('auth.noTokens')}</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs font-medium text-muted-foreground border-b">
-                  <th className="pb-2 pr-4 font-medium">{t('tokens.nameLabel')}</th>
-                  <th className="pb-2 pr-4 font-medium">{t('tokens.permissionsLabel')}</th>
-                  <th className="pb-2 pr-4 font-medium">{t('tokens.expiresAtLabel')}</th>
-                  <th className="pb-2 w-16" />
-                </tr>
-              </thead>
-              <tbody>
-                {tokens.map((tok) => (
-                  <tr key={tok.id} className="border-b last:border-b-0">
-                    <td className="py-2 pr-4 font-medium">{tok.name || `#${tok.id}`}</td>
-                    <td className="py-2 pr-4 text-muted-foreground">
-                      {tok.scopes
-                        .map((s) =>
-                          s in SCOPE_I18N ? t(SCOPE_I18N[s as (typeof ALL_SCOPES)[number]].label) : s
-                        )
-                        .join(', ')}
-                    </td>
-                    <td className="py-2 pr-4 text-muted-foreground whitespace-nowrap">
-                      {fmtTime(tok.expiresAt)}
-                    </td>
-                    <td className="py-2 text-right">
-                      <button
-                        onClick={() => handleDeleteToken(tok.id)}
-                        className="text-destructive hover:underline text-xs"
-                      >
-                        {t('common.delete')}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-3">
+            {tokens.map((tok) => (
+              <div key={tok.id} className="border rounded-md p-3 text-sm space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1 min-w-0">
+                    <p>
+                      <span className="text-muted-foreground">{t('tokens.nameLabel')}: </span>
+                      <span className="font-medium">{tok.name || `#${tok.id}`}</span>
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">{t('tokens.permissionsLabel')}: </span>
+                      <span>
+                        {tok.scopes
+                          .map((s) =>
+                            s in SCOPE_I18N ? t(SCOPE_I18N[s as (typeof ALL_SCOPES)[number]].label) : s
+                          )
+                          .join(', ')}
+                      </span>
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">{t('tokens.expiresAtLabel')}: </span>
+                      <span>{fmtTime(tok.expiresAt)}</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteToken(tok.id)}
+                    className="text-destructive hover:underline text-xs shrink-0"
+                  >
+                    {t('common.delete')}
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

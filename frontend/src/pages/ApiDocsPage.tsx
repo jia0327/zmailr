@@ -152,6 +152,34 @@ print(send)`;
         </section>
 
         <section className="space-y-4">
+          <h2 className="text-lg font-semibold">{t('apiDocs.mailboxOps.title')}</h2>
+          <div className="text-sm text-muted-foreground space-y-3">
+            <div>
+              <p className="font-medium text-foreground">{t('apiDocs.mailboxOps.randomTitle')}</p>
+              <ul className="list-disc list-inside mt-1 space-y-1">
+                <li>{t('apiDocs.mailboxOps.randomLease')}</li>
+                <li>{t('apiDocs.mailboxOps.randomMailboxes')}</li>
+                <li>{t('apiDocs.mailboxOps.randomUserMailboxes')}</li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium text-foreground">{t('apiDocs.mailboxOps.customTitle')}</p>
+              <ul className="list-disc list-inside mt-1 space-y-1">
+                <li>{t('apiDocs.mailboxOps.customMailboxes')}</li>
+                <li>{t('apiDocs.mailboxOps.customUserMailboxes')}</li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium text-foreground">{t('apiDocs.mailboxOps.deleteTitle')}</p>
+              <ul className="list-disc list-inside mt-1 space-y-1">
+                <li>{t('apiDocs.mailboxOps.deleteMailboxes')}</li>
+                <li>{t('apiDocs.mailboxOps.deleteUserNote')}</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
           <h2 className="text-lg font-semibold">{t('apiDocs.rateLimit.title')}</h2>
           <p className="text-sm text-muted-foreground">{t('apiDocs.rateLimit.description')}</p>
         </section>

@@ -1179,6 +1179,13 @@ export async function verifyUserToken(
   };
 }
 
+export async function countUserTokens(db: D1Database, userId: number): Promise<number> {
+  const result = await db.prepare(
+    `SELECT COUNT(*) AS count FROM user_tokens WHERE user_id = ?`
+  ).bind(userId).first();
+  return (result?.count as number) ?? 0;
+}
+
 export async function listUserTokens(db: D1Database, userId: number): Promise<UserToken[]> {
   const results = await db.prepare(
     `SELECT id, user_id, name, scopes, expires_at, created_at, last_used_at FROM user_tokens WHERE user_id = ? ORDER BY created_at DESC`

@@ -26,6 +26,7 @@
     "tokenCreated": "Token created — copy it now:",
     "tokenCopyWarning": "This token will not be shown again.",
     "noTokens": "No tokens yet",
+    "tokenLimitOne": "Each user may only have one API Token. Delete the existing token before creating a new one.",
     "confirmDeleteToken": "Delete this token?",
     "tokenCreateFailed": "Failed to create token"
   },
@@ -37,8 +38,8 @@
     "expiresDaysPlaceholder": "30",
     "daysUnit": "days",
     "scopesLabel": "Permissions",
-    "scopeLease": "Lease mailbox",
-    "scopeLeaseDesc": "Create temporary mailbox (POST /api/lease)",
+    "scopeLease": "Random mailbox",
+    "scopeLeaseDesc": "Create a random temporary mailbox (POST /api/lease, requires lease scope)",
     "scopeMail": "Receive mail & OTP",
     "scopeMailDesc": "Poll mail, extract verification codes",
     "scopeSend": "Send mail",
@@ -471,8 +472,8 @@
       "headerNote": "Include this header on every request:"
     },
     "lease": {
-      "title": "POST /api/lease — Lease a mailbox",
-      "description": "Create a new 24-hour temporary mailbox address."
+      "title": "POST /api/lease — Create random mailbox",
+      "description": "Create a new random 24-hour temporary mailbox via Bearer Token, associated with the token owner."
     },
     "listMailboxes": {
       "title": "GET /api/mailboxes — List active mailboxes",
@@ -532,7 +533,20 @@
     "param": "Parameter",
     "description": "Description",
     "responseExample": "Response example:",
-    "webApiNote": "Web frontend routes (/api/mailboxes, etc.) do not require a Bearer token. Mail list endpoints also return extractedCode.",
+    "webApiNote": "Web frontend routes (/api/mailboxes, POST /api/user/mailboxes, etc.) use login session auth, not Bearer tokens. Mail list endpoints also return extractedCode.",
+    "mailboxOps": {
+      "title": "Mailbox create & delete",
+      "randomTitle": "Random mailbox",
+      "randomLease": "POST /api/lease — Bearer Token (lease scope); random address tied to token owner.",
+      "randomMailboxes": "POST /api/mailboxes — no auth; omit address for random generation, not tied to a user.",
+      "randomUserMailboxes": "POST /api/user/mailboxes — login session; omit address for random generation, tied to current user.",
+      "customTitle": "Custom mailbox",
+      "customMailboxes": "POST /api/mailboxes — no auth; body {\"address\": \"local-part\"}.",
+      "customUserMailboxes": "POST /api/user/mailboxes — login session; body {\"address\": \"local-part\"}.",
+      "deleteTitle": "Delete mailbox",
+      "deleteMailboxes": "DELETE /api/mailboxes/:address — delete by local-part, no Bearer Token required.",
+      "deleteUserNote": "No DELETE /api/user/mailboxes endpoint yet; use DELETE /api/mailboxes/:address from the web UI."
+    },
     "backHome": "← Back to inbox"
   }
 }

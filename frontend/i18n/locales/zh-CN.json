@@ -26,6 +26,7 @@
     "tokenCreated": "Token 已创建，请立即复制：",
     "tokenCopyWarning": "此 Token 不会再次显示。",
     "noTokens": "暂无 Token",
+    "tokenLimitOne": "每位用户仅可创建一个 API Token，请先删除现有 Token 后再创建。",
     "confirmDeleteToken": "确定删除此 Token？",
     "tokenCreateFailed": "创建 Token 失败"
   },
@@ -37,8 +38,8 @@
     "expiresDaysPlaceholder": "30",
     "daysUnit": "天",
     "scopesLabel": "权限范围",
-    "scopeLease": "租用邮箱",
-    "scopeLeaseDesc": "创建临时邮箱地址",
+    "scopeLease": "随机邮箱",
+    "scopeLeaseDesc": "创建随机临时邮箱（POST /api/lease，需 lease 权限）",
     "scopeMail": "收信与验证码",
     "scopeMailDesc": "轮询邮件、提取验证码",
     "scopeSend": "发信",
@@ -471,8 +472,8 @@
       "headerNote": "每个请求需携带以下 Header："
     },
     "lease": {
-      "title": "POST /api/lease — 租用临时邮箱",
-      "description": "创建一个新的 24 小时临时邮箱地址。"
+      "title": "POST /api/lease — 创建随机临时邮箱",
+      "description": "通过 Bearer Token 创建一个新的 24 小时随机临时邮箱地址，并关联到当前 Token 所属用户。"
     },
     "listMailboxes": {
       "title": "GET /api/mailboxes — 列出活跃邮箱",
@@ -532,7 +533,20 @@
     "param": "参数",
     "description": "说明",
     "responseExample": "响应示例：",
-    "webApiNote": "Web 前端接口（/api/mailboxes 等）无需 Bearer Token。邮件列表接口同样返回 extractedCode 字段。",
+    "webApiNote": "Web 前端接口（/api/mailboxes、POST /api/user/mailboxes 等）使用登录会话鉴权，无需 Bearer Token。邮件列表接口同样返回 extractedCode 字段。",
+    "mailboxOps": {
+      "title": "邮箱创建与删除",
+      "randomTitle": "随机邮箱",
+      "randomLease": "POST /api/lease — Bearer Token（lease 权限），随机地址并关联 Token 用户。",
+      "randomMailboxes": "POST /api/mailboxes — 无需鉴权，省略 address 时随机生成，不关联用户。",
+      "randomUserMailboxes": "POST /api/user/mailboxes — 登录会话，省略 address 时随机生成，关联当前用户。",
+      "customTitle": "自定义邮箱",
+      "customMailboxes": "POST /api/mailboxes — 无需鉴权，请求体 {\"address\": \"local-part\"}。",
+      "customUserMailboxes": "POST /api/user/mailboxes — 登录会话，请求体 {\"address\": \"local-part\"}。",
+      "deleteTitle": "删除邮箱",
+      "deleteMailboxes": "DELETE /api/mailboxes/:address — 按 local-part 删除，无需 Bearer Token。",
+      "deleteUserNote": "尚无 DELETE /api/user/mailboxes 接口；Web 端删除请使用 DELETE /api/mailboxes/:address。"
+    },
     "backHome": "← 返回收件箱"
   }
 }
