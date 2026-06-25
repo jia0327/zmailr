@@ -86,7 +86,21 @@ jobs:
             echo "has_creds=true" >> $GITHUB_ENV
           fi
 
-      # 第八步：部署到 Cloudflare
+      # 第八步：上传 Brevo API 密钥（可选；未配置时跳过，发信功能不可用）
+      - name: Upload BREVO_API_KEY
+        if: env.has_creds == 'true'
+        run: |
+          if [ -n "$BREVO_API_KEY" ]; then
+            echo "$BREVO_API_KEY" | pnpm exec wrangler secret put BREVO_API_KEY
+          else
+            echo "BREVO_API_KEY not set in GitHub secrets; skipping upload (outbound send will not work)."
+          fi
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+
+      # 第九步：部署到 Cloudflare
       # 仅在检测到密钥存在时执行
       - name: Deploy to Cloudflare
         if: env.has_creds == 'true'
@@ -98,7 +112,3 @@ jobs:
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           # 明确指定要执行的命令是 'deploy'
           command: deploy
-          secrets: |
-            BREVO_API_KEY
-        env:
-          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
