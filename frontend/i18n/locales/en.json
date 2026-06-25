@@ -96,7 +96,9 @@
     "selectEmailPrompt": "Select an email to view details",
     "message": "message",
     "messages": "messages",
-    "verificationCode": "Verification Code"
+    "verificationCode": "Verification Code",
+    "otpLabel": "OTP",
+    "clickToCopy": "Click to copy"
   },
   "settings": {
     "language": "Language",

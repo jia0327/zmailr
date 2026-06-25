@@ -2,6 +2,7 @@ import React, { useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MailboxContext } from '../contexts/MailboxContext';
 import EmailDetail from './EmailDetail';
+import OtpBox from './OtpBox';
 
 interface EmailListProps {
   emails: Email[];
@@ -17,7 +18,7 @@ const EmailList: React.FC<EmailListProps> = ({
   isLoading 
 }) => {
   const { t } = useTranslation();
-  const { autoRefresh, setAutoRefresh, refreshEmails, mailbox, deleteMailbox } = useContext(MailboxContext);
+  const { autoRefresh, setAutoRefresh, refreshEmails, mailbox, deleteMailbox, showSuccessMessage } = useContext(MailboxContext);
   const [isDeleting, setIsDeleting] = useState(false);
   
   const formatDate = (timestamp: number) => {
@@ -169,22 +170,32 @@ const EmailList: React.FC<EmailListProps> = ({
                 } ${!email.isRead ? 'font-semibold' : ''}`}
                 onClick={() => onSelectEmail(selectedEmailId === email.id ? null : email.id)}
               >
-                <div className="flex justify-between mb-1">
-                  <span className="truncate">{email.fromName || email.fromAddress}</span>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-                    {formatDate(email.receivedAt)}
-                  </span>
-                </div>
-                <div className="text-sm truncate">
-                  {email.subject || t('email.noSubject')}
-                </div>
-                {email.extractedCode && (
-                  <div className="mt-1">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-primary/10 text-primary text-xs font-mono">
-                      {t('email.verificationCode')}: {email.extractedCode}
-                    </span>
+                <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between mb-1">
+                      <span className="truncate">{email.fromName || email.fromAddress}</span>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap ml-2 font-normal">
+                        {formatDate(email.receivedAt)}
+                      </span>
+                    </div>
+                    <div className="text-sm truncate font-normal">
+                      {email.subject || t('email.noSubject')}
+                    </div>
+                    {email.textContent && (
+                      <p className="mt-1 text-xs text-muted-foreground truncate font-normal">
+                        {email.textContent.replace(/\s+/g, ' ').trim()}
+                      </p>
+                    )}
                   </div>
-                )}
+                  {email.extractedCode && (
+                    <OtpBox
+                      code={email.extractedCode}
+                      size="sm"
+                      className="self-start sm:self-center"
+                      onCopy={() => showSuccessMessage(t('common.copied'))}
+                    />
+                  )}
+                </div>
               </li>
               {selectedEmailId === email.id && (
                 <li className="border-t border-muted">

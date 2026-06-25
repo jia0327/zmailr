@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { MailboxContext } from '../contexts/MailboxContext';
+import OtpBox from './OtpBox';
 
 interface EmailDetailProps {
   emailId: string;
@@ -284,24 +285,17 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
           </div>
           
           {email.extractedCode && (
-            <div className="flex items-center justify-between gap-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border bg-muted/20 p-4">
+              <div className="flex-1 min-w-0">
                 <p className="text-sm text-muted-foreground">{t('email.verificationCode')}</p>
-                <p className="text-2xl font-mono font-semibold tracking-widest text-primary">
-                  {email.extractedCode}
-                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('email.clickToCopy')}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(email.extractedCode!);
-                  showSuccessMessage(t('common.copied'));
-                }}
-                className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm hover:bg-primary/90 shrink-0"
-              >
-                <i className="fas fa-copy"></i>
-                {t('common.copy')}
-              </button>
+              <OtpBox
+                code={email.extractedCode}
+                size="md"
+                className="self-start sm:self-auto"
+                onCopy={() => showSuccessMessage(t('common.copied'))}
+              />
             </div>
           )}
 

@@ -96,7 +96,9 @@
     "selectEmailPrompt": "请选择一封邮件查看详情",
     "message": "封邮件",
     "messages": "封邮件",
-    "verificationCode": "验证码"
+    "verificationCode": "验证码",
+    "otpLabel": "OTP",
+    "clickToCopy": "点击复制"
   },
   "settings": {
     "language": "语言",
