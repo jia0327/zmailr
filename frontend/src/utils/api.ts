@@ -249,6 +249,19 @@ export interface AuthUsage {
   sendRemaining?: number;
 }
 
+export interface AuthTokenSummary {
+  id: number;
+  name: string | null;
+  scopes: string[];
+  expiresAt: number;
+}
+
+export interface AuthStats {
+  messagesReceivedCount: number;
+  customRulesCount: number;
+  token: AuthTokenSummary | null;
+}
+
 export const authLogin = async (username: string, password: string) => {
   try {
     const response = await fetch(apiUrl('/api/auth/login'), {
@@ -273,13 +286,19 @@ export const authMe = async (): Promise<{
   success: boolean;
   user?: AuthUser;
   usage?: AuthUsage;
+  stats?: AuthStats;
 }> => {
   try {
     const response = await fetch(apiUrl('/api/auth/me'), fetchOpts);
     if (response.status === 401) return { success: false };
     const data = await response.json();
     if (data.success) {
-      return { success: true, user: data.user, usage: data.usage };
+      return {
+        success: true,
+        user: data.user,
+        usage: data.usage,
+        stats: data.stats,
+      };
     }
     return { success: false };
   } catch {

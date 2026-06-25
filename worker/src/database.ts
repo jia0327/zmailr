@@ -1248,6 +1248,38 @@ export async function deleteUserToken(db: D1Database, userId: number, tokenId: n
   return (result.meta?.changes ?? 0) > 0;
 }
 
+export async function countEmailsReceivedForUser(db: D1Database, userId: number): Promise<number> {
+  const result = await db.prepare(
+    `SELECT COUNT(*) AS count FROM emails e
+     INNER JOIN mailboxes m ON e.mailbox_id = m.id
+     WHERE m.user_id = ?`
+  ).bind(userId).first();
+  return (result?.count as number) ?? 0;
+}
+
+export async function countUserExtractRules(db: D1Database, userId: number): Promise<number> {
+  const result = await db.prepare(
+    `SELECT COUNT(*) AS count FROM extract_rules WHERE user_id = ?`
+  ).bind(userId).first();
+  return (result?.count as number) ?? 0;
+}
+
+export async function getUserTokenSummary(
+  db: D1Database,
+  userId: number
+): Promise<{ id: number; name: string | null; scopes: TokenScope[]; expiresAt: number } | null> {
+  const result = await db.prepare(
+    `SELECT id, name, scopes, expires_at FROM user_tokens WHERE user_id = ? ORDER BY created_at DESC LIMIT 1`
+  ).bind(userId).first();
+  if (!result) return null;
+  return {
+    id: result.id as number,
+    name: result.name as string | null,
+    scopes: parseScopes(result.scopes as string),
+    expiresAt: result.expires_at as number,
+  };
+}
+
 export async function getDailyUsage(db: D1Database, userId: number, usageDate?: string): Promise<DailyUsage> {
   const date = usageDate ?? getTodayUsageDate();
   const result = await db.prepare(

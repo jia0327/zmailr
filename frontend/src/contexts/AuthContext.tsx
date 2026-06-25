@@ -1,9 +1,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { authLogin, authLogout, authMe, AuthUser, AuthUsage } from '../utils/api';
+import { authLogin, authLogout, authMe, AuthStats, AuthUser, AuthUsage } from '../utils/api';
 
 interface AuthContextValue {
   user: AuthUser | null;
   usage: AuthUsage | null;
+  stats: AuthStats | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
@@ -16,6 +17,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [usage, setUsage] = useState<AuthUsage | null>(null);
+  const [stats, setStats] = useState<AuthStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -23,9 +25,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (result.success && result.user) {
       setUser(result.user);
       setUsage(result.usage ?? null);
+      setStats(result.stats ?? null);
     } else {
       setUser(null);
       setUsage(null);
+      setStats(null);
     }
   }, []);
 
@@ -46,6 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await authLogout();
     setUser(null);
     setUsage(null);
+    setStats(null);
   };
 
   return (
@@ -53,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         usage,
+        stats,
         isLoading,
         isAuthenticated: !!user,
         login,

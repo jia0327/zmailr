@@ -33,6 +33,9 @@ import {
   createUserToken,
   deleteUserToken,
   getDailyUsage,
+  countEmailsReceivedForUser,
+  countUserExtractRules,
+  getUserTokenSummary,
   checkSendQuota,
   incrementSendUsage,
   incrementLeaseUsage,
@@ -498,6 +501,11 @@ app.get('/api/auth/me', async (c) => {
   if (authErr) return authErr;
   const user = c.get('user')!;
   const usage = await getDailyUsage(c.env.DB, user.id);
+  const [messagesReceivedCount, customRulesCount, token] = await Promise.all([
+    countEmailsReceivedForUser(c.env.DB, user.id),
+    countUserExtractRules(c.env.DB, user.id),
+    getUserTokenSummary(c.env.DB, user.id),
+  ]);
   const sendRemaining = user.dailySendQuota < 0
     ? -1
     : Math.max(0, user.dailySendQuota - usage.sendCount);
@@ -516,6 +524,11 @@ app.get('/api/auth/me', async (c) => {
       leaseCount: usage.leaseCount,
       usageDate: usage.usageDate,
       sendRemaining,
+    },
+    stats: {
+      messagesReceivedCount,
+      customRulesCount,
+      token,
     },
   });
 });
