@@ -46,7 +46,10 @@
     "scopeSendDesc": "Send email via API (POST /api/send)",
     "copyOneClick": "Copy",
     "tokenCopySuccess": "Token copied to clipboard",
-    "copyUnavailable": "Token is only shown at creation. Delete and recreate to copy again."
+    "copyUnavailable": "Plaintext not stored locally. Delete and recreate to copy again.",
+    "recreateToCopy": "Delete and recreate to copy",
+    "regenerateToken": "Regenerate",
+    "confirmRegenerateToken": "Regenerate this token? The old token will stop working immediately."
   },
   "send": {
     "title": "Send Email",

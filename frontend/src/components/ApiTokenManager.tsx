@@ -1,7 +1,14 @@
 import React, { useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createUserToken, deleteUserToken, UserTokenItem } from '../utils/api';
-import { getSessionToken, removeSessionToken, saveSessionToken } from '../utils/apiTokenSession';
+import {
+  loadStoredTokens,
+  migrateLegacySessionTokens,
+  pruneStoredTokens,
+  removeStoredToken,
+  saveStoredToken,
+} from '../utils/apiTokenSession';
+import { useAuth } from '../contexts/AuthContext';
 import { MailboxContext } from '../contexts/MailboxContext';
 
 const ALL_SCOPES = ['lease', 'mail', 'send'] as const;
@@ -16,8 +23,15 @@ interface ApiTokenManagerProps {
   compact?: boolean;
 }
 
+const expiresInDaysFromToken = (tok: UserTokenItem) => {
+  const expiresMs = tok.expiresAt > 1e12 ? tok.expiresAt : tok.expiresAt * 1000;
+  const days = Math.ceil((expiresMs - Date.now()) / 86_400_000);
+  return Math.max(1, Math.min(365, days));
+};
+
 const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { showSuccessMessage, showErrorMessage } = useContext(MailboxContext);
   const [tokens, setTokens] = useState<UserTokenItem[]>([]);
   const [tokensLoading, setTokensLoading] = useState(false);
@@ -27,15 +41,27 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
   const [newTokenScopes, setNewTokenScopes] = useState<string[]>([...ALL_SCOPES]);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<number | 'created' | null>(null);
-  const [sessionTokens, setSessionTokens] = useState<Record<number, string>>({});
+  const [storedTokens, setStoredTokens] = useState<Record<number, string>>({});
+  const [regeneratingId, setRegeneratingId] = useState<number | null>(null);
   const [error, setError] = useState('');
+
+  const syncStoredTokens = (nextTokens: UserTokenItem[]) => {
+    if (!user) return;
+    const ids = nextTokens.map((tok) => tok.id);
+    migrateLegacySessionTokens(user.id, ids);
+    pruneStoredTokens(user.id, ids);
+    setStoredTokens(loadStoredTokens(user.id, ids));
+  };
 
   const loadTokens = async () => {
     setTokensLoading(true);
     try {
       const res = await fetch('/api/user/tokens', { credentials: 'include' });
       const data = await res.json();
-      if (data.success) setTokens(data.tokens);
+      if (data.success) {
+        setTokens(data.tokens);
+        syncStoredTokens(data.tokens);
+      }
     } finally {
       setTokensLoading(false);
     }
@@ -43,21 +69,11 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
 
   React.useEffect(() => {
     loadTokens();
-  }, []);
-
-  React.useEffect(() => {
-    setSessionTokens(
-      Object.fromEntries(
-        tokens.map((tok) => {
-          const stored = getSessionToken(tok.id);
-          return stored ? [tok.id, stored] : [];
-        }).filter((entry): entry is [number, string] => entry.length === 2)
-      )
-    );
-  }, [tokens]);
+  }, [user?.id]);
 
   const handleCreateToken = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     setError('');
     const result = await createUserToken({
       name: newTokenName || undefined,
@@ -65,9 +81,9 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
       scopes: newTokenScopes,
     });
     if (result.success && result.token) {
-      saveSessionToken(result.token.id, result.token.token);
+      saveStoredToken(user.id, result.token.id, result.token.token);
       setCreatedToken(result.token.token);
-      setSessionTokens((prev) => ({ ...prev, [result.token!.id]: result.token!.token }));
+      setStoredTokens((prev) => ({ ...prev, [result.token!.id]: result.token!.token }));
       setShowCreate(false);
       setNewTokenName('');
       loadTokens();
@@ -77,18 +93,49 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
   };
 
   const handleDeleteToken = async (id: number) => {
+    if (!user) return;
     if (!confirm(t('auth.confirmDeleteToken'))) return;
     await deleteUserToken(id);
-    removeSessionToken(id);
-    setSessionTokens((prev) => {
+    removeStoredToken(user.id, id);
+    setStoredTokens((prev) => {
       const next = { ...prev };
       delete next[id];
       return next;
     });
-    if (createdToken && sessionTokens[id] === createdToken) {
+    if (createdToken && storedTokens[id] === createdToken) {
       setCreatedToken(null);
     }
     loadTokens();
+  };
+
+  const handleRegenerateToken = async (tok: UserTokenItem) => {
+    if (!user) return;
+    if (!confirm(t('tokens.confirmRegenerateToken'))) return;
+
+    setRegeneratingId(tok.id);
+    setError('');
+    try {
+      await deleteUserToken(tok.id);
+      removeStoredToken(user.id, tok.id);
+
+      const result = await createUserToken({
+        name: tok.name || undefined,
+        expiresInDays: expiresInDaysFromToken(tok),
+        scopes: tok.scopes,
+      });
+
+      if (result.success && result.token) {
+        saveStoredToken(user.id, result.token.id, result.token.token);
+        setCreatedToken(result.token.token);
+        setStoredTokens({ [result.token.id]: result.token.token });
+        await loadTokens();
+      } else {
+        setError(result.error || t('auth.tokenCreateFailed'));
+        await loadTokens();
+      }
+    } finally {
+      setRegeneratingId(null);
+    }
   };
 
   const toggleScope = (scope: string) => {
@@ -219,8 +266,9 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
         ) : (
           <div className="space-y-3">
             {tokens.map((tok) => {
-              const storedToken = sessionTokens[tok.id];
-              const canCopy = Boolean(storedToken);
+              const plaintext = storedTokens[tok.id];
+              const canCopy = Boolean(plaintext);
+              const isRegenerating = regeneratingId === tok.id;
 
               return (
                 <div key={tok.id} className="border rounded-md p-3 text-sm space-y-2">
@@ -252,20 +300,29 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
                       {t('common.delete')}
                     </button>
                   </div>
-                  <span
-                    className="inline-block"
-                    title={canCopy ? t('tokens.copyOneClick') : t('tokens.copyUnavailable')}
-                  >
+                  {canCopy ? (
                     <button
                       type="button"
-                      disabled={!canCopy}
-                      onClick={() => storedToken && copyToken(storedToken, tok.id)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed"
+                      onClick={() => copyToken(plaintext, tok.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+                      title={t('tokens.copyOneClick')}
                     >
                       <CopyIcon />
                       {copiedId === tok.id ? t('common.copied') : t('tokens.copyOneClick')}
                     </button>
-                  </span>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <p className="text-xs text-muted-foreground">{t('tokens.copyUnavailable')}</p>
+                      <button
+                        type="button"
+                        disabled={isRegenerating}
+                        onClick={() => handleRegenerateToken(tok)}
+                        className="text-xs text-primary hover:underline disabled:opacity-50"
+                      >
+                        {isRegenerating ? t('common.loading') : t('tokens.recreateToCopy')}
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
