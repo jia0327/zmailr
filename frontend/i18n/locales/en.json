@@ -2,6 +2,9 @@
   "app": {
     "title": "zMailR - 24h Temp Mail"
   },
+  "nav": {
+    "api": "API"
+  },
   "common": {
     "loading": "Loading...",
     "error": "Error",
@@ -160,6 +163,10 @@
         "question": "Is email content secure?",
         "answer": "All email content is only stored during the validity period and will be automatically deleted after expiration. Please check important information in time."
       }
+    },
+    "apiLink": {
+      "text": "Need automation? See the",
+      "link": "API documentation"
     }
   },
   "terms": {
@@ -336,5 +343,54 @@
       "item1": "If you have any questions about this privacy policy, please contact us through GitHub Issues."
     },
     "conclusion": "Thank you for trusting and using zMailR temporary email service!"
+  },
+  "apiDocs": {
+    "title": "API Documentation",
+    "subtitle": "Bearer-authenticated programmatic API for automation: lease mailboxes, poll for OTP codes, and send email.",
+    "auth": {
+      "title": "Authentication",
+      "description": "All programmatic API endpoints require a Bearer token.",
+      "step1": "Configure ADMIN_PASSWORD in wrangler.toml or GitHub Secrets.",
+      "step2": "Visit the admin panel and log in:",
+      "step3": "Create an API token in the Token panel and copy it (shown once).",
+      "headerNote": "Include this header on every request:"
+    },
+    "lease": {
+      "title": "POST /api/lease — Lease a mailbox",
+      "description": "Create a new 24-hour temporary mailbox address."
+    },
+    "mail": {
+      "title": "GET /api/mail — Long-poll for mail",
+      "description": "Wait for incoming mail on the specified address and return the auto-extracted verification code.",
+      "params": {
+        "to": "Required. Full email address or local-part.",
+        "timeout": "Optional. Timeout in seconds, default 60, max 55.",
+        "since": "Optional. Unix timestamp (seconds); only match emails received after this time.",
+        "requireCode": "Optional. Default true; set to false to return emails without a code."
+      }
+    },
+    "send": {
+      "title": "POST /api/send — Send email",
+      "description": "Send email via MailChannels from no-reply@your-domain (requires DNS setup)."
+    },
+    "python": {
+      "title": "Python example (requests)",
+      "description": "Full workflow: lease mailbox → poll for code → optional send."
+    },
+    "errors": {
+      "title": "Error codes",
+      "code": "HTTP",
+      "meaning": "Description",
+      "unauthorized": "Missing or invalid Bearer token.",
+      "badRequest": "Missing or invalid parameters.",
+      "notFound": "Mailbox not found or expired.",
+      "timeout": "No matching email within the timeout window.",
+      "sendFailed": "MailChannels send failed."
+    },
+    "param": "Parameter",
+    "description": "Description",
+    "responseExample": "Response example:",
+    "webApiNote": "Web frontend routes (/api/mailboxes, etc.) do not require a Bearer token. Mail list endpoints also return extractedCode.",
+    "backHome": "← Back to inbox"
   }
 }

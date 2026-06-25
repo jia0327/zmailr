@@ -139,6 +139,12 @@ const HomePage: React.FC = () => {
               <p>{t('intro.faq.q3.answer')}</p>
             </div>
           </div>
+          <p className="mt-4 text-sm">
+            {t('intro.apiLink.text')}{' '}
+            <Link to="/api-docs" className="text-primary hover:underline">
+              {t('intro.apiLink.link')}
+            </Link>
+          </p>
         </section>
       </div>
     </Container>

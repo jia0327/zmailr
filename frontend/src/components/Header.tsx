@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
 import HeaderMailbox from './HeaderMailbox';
@@ -19,6 +19,7 @@ const Header: React.FC<HeaderProps> = ({
   isLoading = false
 }) => {
   const { t } = useTranslation();
+  const location = useLocation();
   const [emailDomains, setEmailDomains] = useState<string[]>(EMAIL_DOMAINS);
   const [defaultDomain, setDefaultDomain] = useState<string>(DEFAULT_EMAIL_DOMAIN);
 
@@ -41,7 +42,18 @@ const Header: React.FC<HeaderProps> = ({
     <header className="border-b">
       <Container>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 py-3">
-          <div aria-hidden="true" />
+          <div className="flex items-center">
+            <Link
+              to="/api-docs"
+              className={`text-sm transition-colors hover:text-foreground ${
+                location.pathname === '/api-docs'
+                  ? 'text-foreground font-medium'
+                  : 'text-muted-foreground'
+              }`}
+            >
+              {t('nav.api')}
+            </Link>
+          </div>
 
           <Link
             to="/"

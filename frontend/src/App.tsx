@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
+import ApiDocsPage from './pages/ApiDocsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import { MailboxProvider } from './contexts/MailboxContext';
 
@@ -13,7 +14,7 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<HomePage />} />
-              {/* 移除了 privacy-policy, terms, 和 about 的路由 */}
+              <Route path="api-docs" element={<ApiDocsPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>

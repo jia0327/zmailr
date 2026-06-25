@@ -2,6 +2,9 @@
   "app": {
     "title": "zMailR · 24小时临时邮箱"
   },
+  "nav": {
+    "api": "API"
+  },
   "common": {
     "loading": "加载中...",
     "error": "出错了",
@@ -160,6 +163,10 @@
         "question": "邮件内容安全吗？",
         "answer": "所有邮件内容仅在有效期内存储，过期后会自动删除，请及时查看重要信息。"
       }
+    },
+    "apiLink": {
+      "text": "需要自动化集成？查看",
+      "link": "API 文档"
     }
   },
   "terms": {
@@ -336,5 +343,54 @@
       "item1": "如果您对本隐私政策有任何疑问，请通过GitHub Issues联系我们。"
     },
     "conclusion": "感谢您信任并使用zMailR临时邮箱服务！"
+  },
+  "apiDocs": {
+    "title": "API 文档",
+    "subtitle": "需 Bearer Token 鉴权的程序化 API，适用于自动化注册、收验证码、发通知等场景。",
+    "auth": {
+      "title": "身份验证",
+      "description": "所有程序化 API 接口均需在请求头中携带 Bearer Token。",
+      "step1": "在 wrangler.toml 或 GitHub Secrets 中配置 ADMIN_PASSWORD。",
+      "step2": "访问管理后台并登录：",
+      "step3": "在「API Token」面板创建 Token 并复制保存（仅显示一次）。",
+      "headerNote": "每个请求需携带以下 Header："
+    },
+    "lease": {
+      "title": "POST /api/lease — 租用临时邮箱",
+      "description": "创建一个新的 24 小时临时邮箱地址。"
+    },
+    "mail": {
+      "title": "GET /api/mail — 长轮询等待邮件",
+      "description": "等待指定邮箱收到新邮件，并返回自动提取的验证码。",
+      "params": {
+        "to": "必填。完整邮箱地址或 local-part。",
+        "timeout": "可选。超时秒数，默认 60，最大 55。",
+        "since": "可选。Unix 时间戳（秒），只匹配此时间之后的邮件。",
+        "requireCode": "可选。默认 true；设为 false 时无验证码也会返回。"
+      }
+    },
+    "send": {
+      "title": "POST /api/send — 发送邮件",
+      "description": "通过 MailChannels 从 no-reply@你的域名 发送邮件（需完成 DNS 配置）。"
+    },
+    "python": {
+      "title": "Python 示例（requests）",
+      "description": "完整流程：租用邮箱 → 轮询验证码 → 可选发信。"
+    },
+    "errors": {
+      "title": "错误码",
+      "code": "HTTP",
+      "meaning": "说明",
+      "unauthorized": "缺少或无效的 Bearer Token。",
+      "badRequest": "缺少或无效的请求参数。",
+      "notFound": "邮箱不存在或已过期。",
+      "timeout": "在超时时间内未收到匹配的邮件。",
+      "sendFailed": "MailChannels 发信失败。"
+    },
+    "param": "参数",
+    "description": "说明",
+    "responseExample": "响应示例：",
+    "webApiNote": "Web 前端接口（/api/mailboxes 等）无需 Bearer Token。邮件列表接口同样返回 extractedCode 字段。",
+    "backHome": "← 返回收件箱"
   }
 }

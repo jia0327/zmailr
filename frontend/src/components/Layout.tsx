@@ -39,6 +39,14 @@ const Layout: React.FC = () => {
       keywords: '临时邮箱,匿名邮箱,一次性邮箱,隐私保护,电子邮件,zMailR',
     };
     
+    if (path === '/api-docs') {
+      return {
+        title: 'zMailR API Documentation',
+        description: 'Programmatic API for leasing temp mailboxes, polling OTP codes, and sending email.',
+        keywords: 'zMailR API, temp mail API, OTP, Bearer token',
+      };
+    }
+
     // 如果有邮箱信息，添加到标题中
     if (mailbox) {
       return {
