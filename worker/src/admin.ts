@@ -1,4 +1,7 @@
-export function getAdminHtml(): string {
+export function getAdminHtml(adminBase: string): string {
+  const apiBase = `${adminBase}/api`;
+  const loginPath = `${adminBase}/login`;
+  const logoutPath = `${adminBase}/logout`;
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -149,12 +152,12 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
   </div>
 </div>
 <script>
-const API='/admin/api';
+const API='${apiBase}';
 async function api(path,opts={}){const r=await fetch(API+path,{...opts,credentials:'include',headers:{'Content-Type':'application/json',...(opts.headers||{})}});if(r.status===401){showLogin();throw new Error('未授权')}return r.json()}
 function showLogin(){document.getElementById('loginView').style.display='flex';document.getElementById('appView').style.display='none'}
 function showApp(){document.getElementById('loginView').style.display='none';document.getElementById('appView').style.display='block'}
-async function doLogin(){const pw=document.getElementById('passwordInput').value;const err=document.getElementById('loginError');err.style.display='none';try{const r=await fetch('/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({password:pw})});const d=await r.json();if(!d.success){err.textContent=d.error||'登录失败';err.style.display='block';return}showApp();loadAll()}catch(e){err.textContent='网络错误';err.style.display='block'}}
-async function doLogout(){await fetch('/admin/logout',{method:'POST',credentials:'include'});showLogin()}
+async function doLogin(){const pw=document.getElementById('passwordInput').value;const err=document.getElementById('loginError');err.style.display='none';try{const r=await fetch('${loginPath}',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({password:pw})});const d=await r.json();if(!d.success){err.textContent=d.error||'登录失败';err.style.display='block';return}showApp();loadAll()}catch(e){err.textContent='网络错误';err.style.display='block'}}
+async function doLogout(){await fetch('${logoutPath}',{method:'POST',credentials:'include'});showLogin()}
 function switchTab(name){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+name));if(name==='users')loadUsers();if(name==='announcements')loadAnnouncements();if(name==='rules')loadRules()}
 function hideModal(id){document.getElementById(id).classList.remove('show')}
 function showModal(id){document.getElementById(id).classList.add('show')}

@@ -42,7 +42,7 @@
 
 ### 程序化 API
 
-登录后在 **Dashboard → API Keys** 创建 Token（每位用户限 1 个，可选 scope：lease / mail / send）。Legacy 无配额 Token 仍可在 `/admin` 创建。请求头：`Authorization: Bearer <token>`。
+登录后在 **Dashboard → API Keys** 创建 Token（每位用户限 1 个，可选 scope：lease / mail / send）。Legacy 无配额 Token 可在管理后台（`ADMIN_PATH` 环境变量配置的密钥路径）创建。请求头：`Authorization: Bearer <token>`。
 
 | 端点 | 权限 | 说明 |
 |------|------|------|
@@ -66,7 +66,9 @@
 - `require_code=false`：不要求提取到验证码也可返回
 - **游标（cursor）**：同一邮箱多次轮询时，已返回过的邮件不会重复匹配
 
-### 管理后台（`/admin`）
+### 管理后台（`ADMIN_PATH`）
+
+管理后台 URL 为 `https://你的域名/{ADMIN_PATH}`，路径由环境变量 **`ADMIN_PATH`** 配置（推荐 UUID，如 `a1b2c3d4-e5f6-7890-abcd-ef1234567890`，无 leading slash）。未配置时本地开发默认为 `admin`；**生产部署必须在 GitHub Secret 中设置 `ADMIN_PATH`**。访问错误路径返回 404（不暴露后台存在）。
 
 - 仪表盘：今日收信/发信、有效 Token、启用规则数
 - API Token 的创建与吊销（legacy，无配额限制）
@@ -76,7 +78,7 @@
 
 ### 用户认证（Phase 1）
 
-- Web 发信与 Dashboard 功能需登录；**所有程序化 API 均需 Bearer Token**（用户 Token 或 `/admin` 创建的 legacy Token）
+- Web 发信与 Dashboard 功能需登录；**所有程序化 API 均需 Bearer Token**（用户 Token 或管理后台创建的 legacy Token）
 - 匿名 `POST /api/mailboxes` 已废弃，请登录后在收件箱创建，或使用 `POST /api/lease`（需 `lease` scope）
 - 用户可创建带 scope（lease / mail / send）的 API Token
 - 详见 [docs/user-auth.md](docs/user-auth.md)
@@ -173,7 +175,8 @@ python scripts/verify_api.py \
 | `D1_DATABASE_ID` | D1 数据库 ID |
 | `D1_DATABASE_NAME` | D1 数据库名称 |
 | `VITE_EMAIL_DOMAIN` | 邮箱域名，多个用逗号分隔（如 `example.com,test.com`） |
-| `ADMIN_PASSWORD` | 管理后台 `/admin` 登录密码 |
+| `ADMIN_PASSWORD` | 管理后台登录密码 |
+| `ADMIN_PATH` | 管理后台 URL 路径段（**必填**，UUID 格式，无 `/` 前缀；例：`a1b2c3d4-e5f6-7890-abcd-ef1234567890`） |
 | `BREVO_API_KEY` | Brevo Transactional Email API Key（明文 `xkeysib-...`），用于 `/api/send`；若拿到的是 Base64 JSON 需先解码，见 [docs/brevo-setup.md](docs/brevo-setup.md) |
 
 4. 推送至 `main` 分支即触发部署；也可在 Actions 页手动运行 **Deploy to Cloudflare**
@@ -191,7 +194,7 @@ python scripts/verify_api.py \
 - **MailSink 对照**：[docs/mailsink-comparison.md](docs/mailsink-comparison.md)（功能 parity、端点映射、架构与缺口）
 - **发信配置**：[docs/brevo-setup.md](docs/brevo-setup.md)（Brevo 注册、SPF/DKIM/DMARC、API Key、GitHub Secret 等）
 - **用户认证**：[docs/user-auth.md](docs/user-auth.md)
-- **API 用法**：部署后访问 `https://你的域名/api-docs`，或在 `/admin` 生成 Token 后调用上述接口
+- **API 用法**：部署后访问 `https://你的域名/api-docs`，或在管理后台（`https://你的域名/{ADMIN_PATH}`）生成 Token 后调用上述接口
 
 ---
 

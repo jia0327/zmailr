@@ -119,6 +119,9 @@
     "customRulesCountHint": "您的提取规则数量",
     "tokenInfo": "API Token",
     "noToken": "尚未创建 API Token，请前往",
+    "noTokenBannerTitle": "请先创建 API Token",
+    "noTokenBannerBody": "所有程序化接口均需 Bearer Token，请先到 API 密钥页面创建。",
+    "noTokenBannerCta": "前往创建",
     "newInbox": "新建收件箱",
     "activeInboxes": "活跃收件箱",
     "noActiveInboxes": "暂无活跃收件箱，点击上方按钮创建",
@@ -537,7 +540,7 @@
       "oneTokenLimit": "每位用户仅可持有一个 API Token，创建新 Token 前请先删除现有 Token。",
       "scopesNote": "权限说明：lease（POST /api/lease）、mail（GET /api/mail、列出邮箱、latest-code/link、原始 .eml）、send（POST /api/send）。",
       "legacyTitle": "Legacy 管理后台 Token",
-      "legacyDescription": "无用户配额限制的管理员 Token 仍可在管理后台创建：",
+      "legacyDescription": "无用户配额限制的管理员 Token 仍可在管理后台创建。管理后台 URL 由部署时的 ADMIN_PATH 环境变量配置（推荐 UUID），不在此公开；请向站点管理员索取完整地址。",
       "headerNote": "每个程序化请求需携带以下 Header：",
       "sessionVsBearerTitle": "会话 vs Bearer",
       "sessionVsBearer": "Web 界面路由（POST /api/user/mailboxes、POST /api/user/send、浏览器收件箱/发件箱）使用登录会话 Cookie（credentials: include）。Bearer Token 供自动化脚本调用 /api/lease、/api/mail、/api/send 等接口。所有邮箱与邮件路由均需有效会话（所有者）或 Bearer Token（mail 权限 + 所有权校验）。匿名 POST /api/mailboxes 返回 401。"
@@ -594,7 +597,7 @@
     },
     "rateLimit": {
       "title": "速率限制",
-      "description": "/api/* 与 /admin/api/* 下所有请求共享同一 IP 全局限额：每分钟 60 次（按 CF-Connecting-IP 计）。响应包含 X-RateLimit-Limit、X-RateLimit-Remaining 与 Retry-After；超出时返回 HTTP 429，body 为 `{ \"success\": false, \"error\": \"rate_limit\", ... }`。"
+      "description": "/api/* 与管理后台 /{ADMIN_PATH}/api/* 下所有请求共享同一 IP 全局限额：每分钟 60 次（按 CF-Connecting-IP 计）。响应包含 X-RateLimit-Limit、X-RateLimit-Remaining 与 Retry-After；超出时返回 HTTP 429，body 为 `{ \"success\": false, \"error\": \"rate_limit\", ... }`。"
     },
     "mail": {
       "title": "GET /api/mail — 长轮询等待邮件",

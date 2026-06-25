@@ -7,6 +7,8 @@ export interface Env {
   VITE_EMAIL_DOMAIN?: string;
   MAIL_DOMAIN?: string;
   ADMIN_PASSWORD?: string;
+  /** Secret URL segment for admin UI (UUID recommended). No leading slash. */
+  ADMIN_PATH?: string;
   BREVO_API_KEY?: string;
   MAILCHANNELS_API_KEY?: string;
   /** Default Bearer token requests per minute (optional). */

@@ -8,6 +8,7 @@ import {
   updateUserLastLogin,
 } from './database';
 import { verifyPassword } from './crypto';
+import { adminPathPrefix } from './admin-path';
 
 const ADMIN_SESSION_COOKIE = 'zmail_admin_session';
 const USER_SESSION_COOKIE = 'zmail_user_session';
@@ -120,7 +121,8 @@ async function verifySessionToken(secret: string, session: string): Promise<stri
 export async function createAdminSessionCookie(env: Env): Promise<string> {
   const exp = Date.now() + SESSION_MAX_AGE * 1000;
   const token = await signSession(getSessionSecret(env), String(exp));
-  return `${ADMIN_SESSION_COOKIE}=${token}; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=${SESSION_MAX_AGE}`;
+  const path = adminPathPrefix(env);
+  return `${ADMIN_SESSION_COOKIE}=${token}; Path=${path}; HttpOnly; SameSite=Strict; Max-Age=${SESSION_MAX_AGE}`;
 }
 
 function getCookieValue(request: Request, name: string): string | null {
@@ -137,8 +139,9 @@ export async function isAdminAuthenticated(request: Request, env: Env): Promise<
   return payload !== null;
 }
 
-export function clearAdminSessionCookie(): string {
-  return `${ADMIN_SESSION_COOKIE}=; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=0`;
+export function clearAdminSessionCookie(env: Env): string {
+  const path = adminPathPrefix(env);
+  return `${ADMIN_SESSION_COOKIE}=; Path=${path}; HttpOnly; SameSite=Strict; Max-Age=0`;
 }
 
 export async function createUserSessionCookie(env: Env, userId: number): Promise<string> {

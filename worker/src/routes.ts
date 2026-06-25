@@ -20,21 +20,12 @@ import {
   findLatestEmail,
   getMailboxApiMailCursor,
   setMailboxApiMailCursor,
-  listApiTokens,
-  createApiToken,
-  deleteApiToken,
   listExtractRules,
   listUserExtractRules,
-  listAllUserExtractRules,
   createExtractRule,
-  updateGlobalExtractRule,
-  deleteGlobalExtractRule,
-  deleteAnyUserExtractRule,
   updateUserExtractRule,
   deleteUserExtractRule,
-  listSentEmails,
   listUserSentEmails,
-  getAdminStats,
   listUserTokens,
   countUserTokens,
   createUserToken,
@@ -48,19 +39,11 @@ import {
   incrementSendUsage,
   incrementLeaseUsage,
   isMailboxOwnedByUser,
-  listUsers,
-  createUser,
-  updateUser,
-  deleteUser,
   listMailboxesByUser,
   listActiveMailboxes,
   findInstantLatestEmailWithCode,
   findInstantLatestEmail,
   getEmailRawContent,
-  listAnnouncements,
-  createAnnouncement,
-  updateAnnouncement,
-  deleteAnnouncement,
   listUnreadAnnouncementsForUser,
   markAnnouncementRead,
   markAllAnnouncementsRead,
@@ -70,10 +53,6 @@ import {
   authenticateApiToken,
   hasScope,
   assertMailboxAccess,
-  isAdminAuthenticated,
-  verifyAdminPassword,
-  createAdminSessionCookie,
-  clearAdminSessionCookie,
   getAuthenticatedUser,
   resolveUserFromSessionOrBearer,
   authenticateUserLogin,
@@ -81,8 +60,9 @@ import {
   clearUserSessionCookie,
 } from './auth';
 import { sendMail } from './sender';
-import { getAdminHtml } from './admin';
 import { extractLink } from './extractor';
+import { isAdminRequest, isLegacyAdminRequest, stripAdminPrefix } from './admin-path';
+import { createAdminApp } from './admin-routes';
 import {
   consumeRateLimit,
   DEFAULT_GLOBAL_IP_RATE_LIMIT,
@@ -99,6 +79,25 @@ type AppVariables = {
 
 // 创建 Hono 应用
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
+const adminApp = createAdminApp();
+
+// 管理后台：按 ADMIN_PATH 挂载；错误路径返回 404
+app.use('*', async (c, next) => {
+  const pathname = c.req.path;
+
+  if (isLegacyAdminRequest(pathname, c.env)) {
+    return c.notFound();
+  }
+
+  if (isAdminRequest(pathname, c.env)) {
+    const url = new URL(c.req.url);
+    url.pathname = stripAdminPrefix(pathname, c.env);
+    const adminRequest = new Request(url, c.req.raw);
+    return adminApp.fetch(adminRequest, c.env, c.executionCtx);
+  }
+
+  return await next();
+});
 
 // 添加 CORS 中间件
 app.use('/*', cors({
@@ -122,7 +121,6 @@ async function globalIpRateLimitMiddleware(c: any, next: () => Promise<void>) {
 }
 
 app.use('/api/*', globalIpRateLimitMiddleware);
-app.use('/admin/api/*', globalIpRateLimitMiddleware);
 
 // 健康检查端点
 app.get('/api/health', (c) => {
@@ -1188,240 +1186,6 @@ app.post('/api/send', async (c) => {
       message: error instanceof Error ? error.message : String(error),
     }, 500);
   }
-});
-
-// ─── 管理后台 ────────────────────────────────────────────────
-
-async function requireAdmin(c: any): Promise<Response | null> {
-  if (!(await isAdminAuthenticated(c.req.raw, c.env))) {
-    return c.json({ success: false, error: '未授权' }, 401);
-  }
-  return null;
-}
-
-app.get('/admin', async (c) => {
-  if (!(await isAdminAuthenticated(c.req.raw, c.env))) {
-    return c.html(getAdminHtml());
-  }
-  return c.html(getAdminHtml());
-});
-
-app.post('/admin/login', async (c) => {
-  try {
-    if (!c.env.ADMIN_PASSWORD) {
-      return c.json({ success: false, error: '未配置 ADMIN_PASSWORD' }, 503);
-    }
-    const body = await c.req.json();
-    if (!verifyAdminPassword(c.env, body.password)) {
-      return c.json({ success: false, error: '密码错误' }, 401);
-    }
-    const cookie = await createAdminSessionCookie(c.env);
-    return c.json({ success: true }, 200, { 'Set-Cookie': cookie });
-  } catch (error) {
-    return c.json({ success: false, error: '登录失败' }, 500);
-  }
-});
-
-app.post('/admin/logout', (c) => {
-  return c.json({ success: true }, 200, { 'Set-Cookie': clearAdminSessionCookie() });
-});
-
-app.get('/admin/api/stats', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const stats = await getAdminStats(c.env.DB);
-  return c.json({ success: true, stats });
-});
-
-app.get('/admin/api/tokens', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const tokens = await listApiTokens(c.env.DB);
-  return c.json({ success: true, tokens });
-});
-
-app.post('/admin/api/tokens', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const body = await c.req.json();
-  const expiresInDays = Math.min(Math.max(parseInt(body.expiresInDays) || 30, 1), 365);
-  const token = await createApiToken(c.env.DB, { name: body.name, expiresInDays });
-  return c.json({ success: true, token });
-});
-
-app.delete('/admin/api/tokens/:id', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  await deleteApiToken(c.env.DB, parseInt(c.req.param('id'), 10));
-  return c.json({ success: true });
-});
-
-app.get('/admin/api/rules', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const rules = await listExtractRules(c.env.DB);
-  const userRules = await listAllUserExtractRules(c.env.DB);
-  return c.json({ success: true, rules, userRules });
-});
-
-app.post('/admin/api/rules', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const body = await c.req.json();
-  const validated = validateExtractRuleInput(body);
-  if (!validated.ok) return c.json({ success: false, error: validated.error }, 400);
-  const rule = await createExtractRule(c.env.DB, {
-    domain: validated.domain,
-    regex: validated.regex,
-    priority: body.priority,
-    enabled: body.enabled,
-    remark: body.remark,
-  });
-  return c.json({ success: true, rule });
-});
-
-app.put('/admin/api/rules/:id', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const body = await c.req.json();
-  const validated = validateExtractRuleInput(body);
-  if (!validated.ok) return c.json({ success: false, error: validated.error }, 400);
-  const rule = await updateGlobalExtractRule(c.env.DB, parseInt(c.req.param('id'), 10), {
-    domain: validated.domain,
-    regex: validated.regex,
-    priority: body.priority,
-    enabled: body.enabled,
-    remark: body.remark,
-  });
-  if (!rule) return c.json({ success: false, error: '规则不存在' }, 404);
-  return c.json({ success: true, rule });
-});
-
-app.delete('/admin/api/rules/:id', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const ok = await deleteGlobalExtractRule(c.env.DB, parseInt(c.req.param('id'), 10));
-  if (!ok) return c.json({ success: false, error: '规则不存在' }, 404);
-  return c.json({ success: true });
-});
-
-app.delete('/admin/api/rules/user/:id', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const ok = await deleteAnyUserExtractRule(c.env.DB, parseInt(c.req.param('id'), 10));
-  if (!ok) return c.json({ success: false, error: '规则不存在' }, 404);
-  return c.json({ success: true });
-});
-
-app.get('/admin/api/sent-emails', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const emails = await listSentEmails(c.env.DB);
-  return c.json({ success: true, emails });
-});
-
-app.get('/admin/api/users', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const users = await listUsers(c.env.DB);
-  return c.json({ success: true, users });
-});
-
-app.post('/admin/api/users', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const body = await c.req.json();
-  if (!body.username || !body.password) {
-    return c.json({ success: false, error: '缺少 username 或 password' }, 400);
-  }
-  try {
-    const user = await createUser(c.env.DB, {
-      username: String(body.username),
-      password: String(body.password),
-      role: body.role === 'admin' ? 'admin' : 'user',
-      dailySendQuota: parseInt(body.dailySendQuota) || 50,
-    });
-    return c.json({ success: true, user });
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    if (msg.includes('UNIQUE')) {
-      return c.json({ success: false, error: '用户名已存在' }, 400);
-    }
-    return c.json({ success: false, error: '创建用户失败' }, 500);
-  }
-});
-
-app.put('/admin/api/users/:id', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const body = await c.req.json();
-  const user = await updateUser(c.env.DB, parseInt(c.req.param('id'), 10), {
-    role: body.role,
-    dailySendQuota: body.dailySendQuota !== undefined ? parseInt(body.dailySendQuota) : undefined,
-    enabled: body.enabled,
-    password: body.password || undefined,
-  });
-  if (!user) return c.json({ success: false, error: '用户不存在' }, 404);
-  return c.json({ success: true, user });
-});
-
-app.delete('/admin/api/users/:id', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const ok = await deleteUser(c.env.DB, parseInt(c.req.param('id'), 10));
-  if (!ok) return c.json({ success: false, error: '用户不存在' }, 404);
-  return c.json({ success: true });
-});
-
-app.get('/admin/api/announcements', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const announcements = await listAnnouncements(c.env.DB);
-  return c.json({ success: true, announcements });
-});
-
-app.post('/admin/api/announcements', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const body = await c.req.json();
-  const title = String(body.title ?? '').trim();
-  const content = String(body.content ?? '').trim();
-  if (!title || !content) {
-    return c.json({ success: false, error: '标题和内容不能为空' }, 400);
-  }
-  const announcement = await createAnnouncement(c.env.DB, {
-    title,
-    content,
-    enabled: body.enabled,
-    createdBy: body.createdBy ?? null,
-  });
-  return c.json({ success: true, announcement });
-});
-
-app.put('/admin/api/announcements/:id', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const body = await c.req.json();
-  const title = String(body.title ?? '').trim();
-  const content = String(body.content ?? '').trim();
-  if (!title || !content) {
-    return c.json({ success: false, error: '标题和内容不能为空' }, 400);
-  }
-  const announcement = await updateAnnouncement(c.env.DB, parseInt(c.req.param('id'), 10), {
-    title,
-    content,
-    enabled: body.enabled,
-  });
-  if (!announcement) return c.json({ success: false, error: '公告不存在' }, 404);
-  return c.json({ success: true, announcement });
-});
-
-app.delete('/admin/api/announcements/:id', async (c) => {
-  const authErr = await requireAdmin(c);
-  if (authErr) return authErr;
-  const ok = await deleteAnnouncement(c.env.DB, parseInt(c.req.param('id'), 10));
-  if (!ok) return c.json({ success: false, error: '公告不存在' }, 404);
-  return c.json({ success: true });
 });
 
 // SPA fallback: serve static assets or index.html for frontend routes (/login, /account, etc.)

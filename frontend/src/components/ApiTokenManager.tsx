@@ -21,6 +21,8 @@ const SCOPE_I18N: Record<(typeof ALL_SCOPES)[number], { label: string; desc: str
 
 interface ApiTokenManagerProps {
   compact?: boolean;
+  /** Open the create form when the user has no tokens (e.g. from dashboard reminder). */
+  autoOpenCreate?: boolean;
 }
 
 const expiresInDaysFromToken = (tok: UserTokenItem) => {
@@ -29,9 +31,9 @@ const expiresInDaysFromToken = (tok: UserTokenItem) => {
   return Math.max(1, Math.min(365, days));
 };
 
-const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) => {
+const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false, autoOpenCreate = false }) => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const { showSuccessMessage, showErrorMessage } = useContext(MailboxContext);
   const [tokens, setTokens] = useState<UserTokenItem[]>([]);
   const [tokensLoading, setTokensLoading] = useState(false);
@@ -61,6 +63,9 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
       if (data.success) {
         setTokens(data.tokens);
         syncStoredTokens(data.tokens);
+        if (autoOpenCreate && data.tokens.length === 0) {
+          setShowCreate(true);
+        }
       }
     } finally {
       setTokensLoading(false);
@@ -86,7 +91,8 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
       setStoredTokens((prev) => ({ ...prev, [result.token!.id]: result.token!.token }));
       setShowCreate(false);
       setNewTokenName('');
-      loadTokens();
+      await loadTokens();
+      await refresh();
     } else {
       setError(result.error || t('auth.tokenCreateFailed'));
     }
@@ -105,7 +111,8 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
     if (createdToken && storedTokens[id] === createdToken) {
       setCreatedToken(null);
     }
-    loadTokens();
+    await loadTokens();
+    await refresh();
   };
 
   const handleRegenerateToken = async (tok: UserTokenItem) => {
@@ -129,6 +136,7 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
         setCreatedToken(result.token.token);
         setStoredTokens({ [result.token.id]: result.token.token });
         await loadTokens();
+        await refresh();
       } else {
         setError(result.error || t('auth.tokenCreateFailed'));
         await loadTokens();
@@ -195,7 +203,7 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
           {!hasToken && (
             <button
               onClick={() => setShowCreate(!showCreate)}
-              className="text-sm px-3 py-1.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              className="text-sm px-3 py-1.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 ring-2 ring-amber-500/50 ring-offset-2 ring-offset-background"
             >
               {t('auth.createToken')}
             </button>

@@ -10,7 +10,7 @@ zMailR uses user accounts for the web Dashboard, scoped API tokens, and mailbox 
 | `POST /api/mailboxes` | Session or Bearer (`mail`) | Create temp inbox for authenticated user |
 | Web send (`POST /api/user/send`) | Session cookie | Requires login |
 | Programmatic API (`/api/lease`, `/api/mail`, `/api/send`, …) | Bearer token | User tokens or legacy admin tokens; all require auth |
-| Admin `/admin` | Admin password cookie | Unchanged |
+| Admin panel (`ADMIN_PATH`) | Admin password cookie | URL path from `ADMIN_PATH` env var (UUID recommended) |
 
 ## First-time setup
 
@@ -20,7 +20,7 @@ On first DB migration, if no users exist and `ADMIN_PASSWORD` is set, an **admin
 - **Password:** same as `ADMIN_PASSWORD`
 - **Quota:** unlimited (`-1`)
 
-Use `/admin` → **用户** tab to create additional users and set daily send quotas.
+Open `https://your-domain/{ADMIN_PATH}` → **用户** tab to create additional users and set daily send quotas.
 
 ## Web login
 
@@ -125,27 +125,28 @@ Users can manage personal extraction rules at **Dashboard → 提取规则** (`/
 **Priority when extracting OTP for a mailbox:**
 
 1. User custom rules (if mailbox has `user_id`)
-2. Global admin rules (`/admin` → 提取规则, `extract_rules.user_id IS NULL`)
+2. Global admin rules (admin panel → 提取规则, `extract_rules.user_id IS NULL`)
 3. Built-in code fallbacks (hard-coded, read-only in UI)
 
 Within each tier: sender domain exact match beats `*`, then higher `priority` wins.
 
-Admin global rules: `GET/POST/PUT/DELETE /admin/api/rules` (unchanged, global only).
+Admin global rules: `GET/POST/PUT/DELETE /{ADMIN_PATH}/api/rules` (global only).
 
 ## Admin user management
 
-Under `/admin` → **用户**:
+In the admin panel → **用户**:
 
 - Create users (username, password, role, quota)
 - Edit quota, reset password, enable/disable
 - Delete users
 
-API: `GET/POST/PUT/DELETE /admin/api/users`
+API: `GET/POST/PUT/DELETE /{ADMIN_PATH}/api/users`
 
 ## Security notes
 
 - Passwords: PBKDF2-SHA256 (100k iterations) + random salt
 - API tokens: SHA-256 hash only
-- Sessions: HMAC-signed cookie (same secret as admin, derived from `ADMIN_PASSWORD`)
+- Sessions: HMAC-signed cookie (same secret as admin, derived from `ADMIN_PASSWORD`); admin cookie scoped to `Path=/{ADMIN_PATH}`
+- Admin panel URL is not exposed in the frontend bundle; set `ADMIN_PATH` to a UUID in production
 
 See also: [brevo-setup.md](./brevo-setup.md) for outbound email configuration.

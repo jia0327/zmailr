@@ -22,7 +22,8 @@ const SectionHeading: React.FC<{ title: string }> = ({ title }) => (
 
 const UsagePage: React.FC = () => {
   const { t } = useTranslation();
-  const { user, usage, stats, refresh } = useAuth();
+  const { user, usage, stats, isLoading, refresh } = useAuth();
+  const hasApiToken = Boolean(stats?.token);
   const { showSuccessMessage, showErrorMessage } = useContext(MailboxContext);
   const [copied, setCopied] = useState(false);
   const [storedTokenPlaintext, setStoredTokenPlaintext] = useState<string | null>(null);
@@ -71,6 +72,30 @@ const UsagePage: React.FC = () => {
           </button>
         }
       />
+
+      {!isLoading && !hasApiToken && (
+        <div
+          className="rounded-lg border border-amber-500/40 bg-amber-50/50 dark:bg-amber-950/20 p-4 flex flex-col sm:flex-row sm:items-center gap-4"
+          role="alert"
+        >
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <i className="fas fa-exclamation-triangle text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                {t('dashboard.noTokenBannerTitle')}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">{t('dashboard.noTokenBannerBody')}</p>
+            </div>
+          </div>
+          <Link
+            to="/dashboard/api-keys"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 min-h-10 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 shrink-0 w-full sm:w-auto"
+          >
+            <i className="fas fa-key" aria-hidden="true" />
+            {t('dashboard.noTokenBannerCta')}
+          </Link>
+        </div>
+      )}
 
       <section className="space-y-3">
         <SectionHeading title={t('dashboard.sectionProfile')} />

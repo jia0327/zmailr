@@ -172,7 +172,7 @@ Invoke-RestMethod -Uri "https://api.brevo.com/v3/smtp/email" -Method Post -Heade
 
 ### 通过 zMailR `/api/send` 测试
 
-先在 `/admin` 创建 API Token，然后：
+先在管理后台（`https://你的域名/{ADMIN_PATH}`）创建 API Token，然后：
 
 ```bash
 curl -X POST "https://你的域名/api/send" \
@@ -181,7 +181,7 @@ curl -X POST "https://你的域名/api/send" \
   -d '{"to":"your-test@example.com","subject":"Hello","text":"Plain text body","from":"abc123@你的域名"}'
 ```
 
-成功后在 `/admin` 的 **发信记录** 中可看到 `sent` 状态。
+成功后在管理后台的 **发信记录** 中可看到 `sent` 状态。
 
 ---
 

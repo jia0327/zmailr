@@ -57,10 +57,7 @@ const ApiDocsPage: React.FC = () => {
           <div>
             <p className="text-sm font-medium">{t('apiDocs.auth.legacyTitle')}</p>
             <p className="text-sm text-muted-foreground mt-1">
-              {t('apiDocs.auth.legacyDescription')}{' '}
-              <a href={`${baseUrl}/admin`} className="text-primary hover:underline">
-                {baseUrl}/admin
-              </a>
+              {t('apiDocs.auth.legacyDescription')}
             </p>
           </div>
           <p className="text-sm text-muted-foreground">{t('apiDocs.auth.headerNote')}</p>

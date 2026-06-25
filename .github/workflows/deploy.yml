@@ -60,6 +60,10 @@ jobs:
       # 这是关键的一步，在部署前动态地将占位符替换为真实的 secrets 值
       - name: Configure Wrangler
         run: |
+          if [ -z "$ADMIN_PATH" ]; then
+            echo "Error: ADMIN_PATH GitHub secret is required (UUID, no leading slash)."
+            exit 1
+          fi
           # 使用 sed 命令在 wrangler.toml 文件中查找并替换 D1 数据库 ID 的占位符
           sed -i "s/\${D1_DATABASE_ID}/${D1_DATABASE_ID}/g" wrangler.toml
           # 使用 sed 命令在 wrangler.toml 文件中查找并替换 D1 数据库名称的占位符
@@ -67,12 +71,14 @@ jobs:
           # 使用 sed 命令在 wrangler.toml 文件中查找并替换邮箱域名的占位符
           sed -i "s/\${VITE_EMAIL_DOMAIN}/${VITE_EMAIL_DOMAIN}/g" wrangler.toml
           sed -i "s/\${ADMIN_PASSWORD}/${ADMIN_PASSWORD}/g" wrangler.toml
+          sed -i "s/\${ADMIN_PATH}/${ADMIN_PATH}/g" wrangler.toml
         env:
           # 从 GitHub Secrets 中读取 D1 数据库 ID 和名称，并将其作为环境变量注入到此步骤中
           D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
           D1_DATABASE_NAME: ${{ secrets.D1_DATABASE_NAME }}
           VITE_EMAIL_DOMAIN: ${{ secrets.VITE_EMAIL_DOMAIN }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          ADMIN_PATH: ${{ secrets.ADMIN_PATH }}
 
       # 新增步骤：检查 Cloudflare 密钥是否存在
       - name: Check for Cloudflare credentials

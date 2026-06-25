@@ -31,7 +31,8 @@
         <li><code>D1_DATABASE_ID</code>: D1 database ID from step 2</li>
         <li><code>D1_DATABASE_NAME</code>: D1 database name from step 2</li>
         <li><code>VITE_EMAIL_DOMAIN</code>: Comma-separated domain list (e.g. <code>example.com,test.com</code>)</li>
-        <li><code>ADMIN_PASSWORD</code>: Admin panel (<code>/admin</code>) login password for API tokens and extract rules</li>
+        <li><code>ADMIN_PASSWORD</code>: Admin panel login password for API tokens and extract rules</li>
+        <li><code>ADMIN_PATH</code>: Secret URL path segment for the admin panel (UUID, no leading slash; e.g. <code>a1b2c3d4-e5f6-7890-abcd-ef1234567890</code>) — <strong>required for production</strong></li>
         <li><code>BREVO_API_KEY</code>: <a href="docs/brevo-setup.md">Brevo</a> Transactional Email API key for <code>/api/send</code></li>
       </ul>
     </li>
@@ -62,7 +63,7 @@
 ### 📚 Related docs
 
 - **Outbound mail**: [docs/brevo-setup.md](docs/brevo-setup.md) (Brevo signup, SPF/DKIM/DMARC, API key, GitHub Secret, testing)
-- **Programmatic API**: After deploy, visit <code>https://your-domain/admin</code> to create an API token. Endpoints: <code>/api/lease</code>, <code>/api/mail</code>, <code>/api/send</code> — all require <code>Authorization: Bearer &lt;token&gt;</code>
+- **Programmatic API**: After deploy, open <code>https://your-domain/{ADMIN_PATH}</code> (path from the <code>ADMIN_PATH</code> secret) to create an API token. Endpoints: <code>/api/lease</code>, <code>/api/mail</code>, <code>/api/send</code> — all require <code>Authorization: Bearer &lt;token&gt;</code>
 
 ---
 

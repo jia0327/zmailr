@@ -5,7 +5,7 @@ Requires: pip install requests  (see requirements-dev.txt)
 
 Environment variables (overridden by CLI flags):
   ZMAIL_BASE_URL  API base URL, e.g. https://your-domain
-  ZMAIL_TOKEN     Bearer API token from /admin
+  ZMAIL_TOKEN     Bearer API token from admin panel (ADMIN_PATH)
 
 Typical flow:
   1. POST /api/lease — obtain a temporary mailbox

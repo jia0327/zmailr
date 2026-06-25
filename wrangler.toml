@@ -20,6 +20,7 @@ database_id = "${D1_DATABASE_ID}"      # 这是 D1 数据库 ID 的占位符
 VITE_EMAIL_DOMAIN = "${VITE_EMAIL_DOMAIN}"   # 这是邮箱域名的占位符
 MAIL_DOMAIN = "${VITE_EMAIL_DOMAIN}"         # 发信/API 使用的域名，默认同 VITE_EMAIL_DOMAIN
 ADMIN_PASSWORD = "${ADMIN_PASSWORD}"         # 管理后台密码，部署时通过 secret 注入
+ADMIN_PATH = "${ADMIN_PATH}"                 # 管理后台 URL 路径段（UUID，无 leading slash）；生产环境必填
 
 # 配置邮件处理
 [triggers]

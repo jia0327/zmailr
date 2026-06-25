@@ -55,15 +55,15 @@
 | `GET /v1/inboxes/{id}/latest-link` | `GET /api/mailboxes/:address/latest-link` | 从最新邮件提取验证链接 |
 | `GET /v1/messages/{id}` | `GET /api/emails/:id` | 完整正文（text/html） |
 | `GET /v1/messages/{id}/raw` | `GET /api/emails/:id/raw` | 存储的 raw MIME 或从 DB 重建 |
-| `POST /v1/keys` | `POST /admin/api/tokens` | Legacy 全局 Token（admin 会话） |
+| `POST /v1/keys` | `POST /{ADMIN_PATH}/api/tokens` | Legacy 全局 Token（admin 会话；`ADMIN_PATH` 为部署密钥） |
 | | `POST /api/user/tokens` | 用户 Token，可配置 scope |
-| `DELETE /v1/keys/{id}` | `DELETE /admin/api/tokens/:id` | Legacy Token 吊销 |
+| `DELETE /v1/keys/{id}` | `DELETE /{ADMIN_PATH}/api/tokens/:id` | Legacy Token 吊销 |
 | | `DELETE /api/user/tokens/:id` | 用户 Token 吊销（需 Web 会话） |
 | — | `POST /api/send` | **zMailR 独有**：API Token 出站发信 |
 | — | `POST /api/user/send` | **zMailR 独有**：Web 会话出站发信 |
 | — | `GET/POST /api/auth/*` | **zMailR 独有**：用户登录与会话 |
 | — | `GET /api/emails/:id/attachments` | **zMailR 扩展**：附件列表与下载 |
-| — | `GET /admin/*` | **zMailR 扩展**：管理后台、提取规则、用户配额 |
+| — | `GET /{ADMIN_PATH}/*` | **zMailR 扩展**：管理后台（路径由 `ADMIN_PATH` 配置）、提取规则、用户配额 |
 
 ---
 
@@ -150,7 +150,7 @@ POST /api/send            （可选）以租用的地址发信
 
 | | MailSink | zMailR |
 |---|----------|--------|
-| 获取 API Key | GitHub 登录 → 控制台 | `/admin` 创建 legacy Token，或用户登录后在 `/account` 创建 scoped Token |
+| 获取 API Key | GitHub 登录 → 控制台 | 管理后台（`ADMIN_PATH`）创建 legacy Token，或用户登录后在 Dashboard 创建 scoped Token |
 | Key 权限 | 统一 | `lease` / `mail` / `send` 分 scope |
 | Web 匿名收信 | — | `POST /api/mailboxes` 无需登录 |
 

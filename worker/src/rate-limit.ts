@@ -14,7 +14,7 @@ export const DEFAULT_LOGIN_FAIL_MAX = 5;
 export const DEFAULT_ADMIN_RATE_LIMIT = 120;
 export const DEFAULT_IP_GENERAL_LIMIT = 120;
 
-/** Shared per-IP bucket for all /api/* and /admin/api/* routes. */
+/** Shared per-IP bucket for all /api/* and admin /api/* routes. */
 export const DEFAULT_GLOBAL_IP_RATE_LIMIT = 60;
 
 /** @deprecated use DEFAULT_GLOBAL_IP_RATE_LIMIT */
