@@ -181,7 +181,7 @@ curl -X POST "https://你的域名/api/send" \
   -d '{"to":"your-test@example.com","subject":"Hello","text":"Plain text body","from":"abc123@你的域名"}'
 ```
 
-成功后在管理后台的 **发信记录** 中可看到 `sent` 状态。
+成功后在管理后台 **仪表盘 → Brevo / 发信** 可看到本地 `sent_emails` 统计；若已配置 `BREVO_API_KEY`，同一区域还会尝试拉取 Brevo 账户套餐与 credits（详见 [admin-guide.md](./admin-guide.md)）。
 
 ---
 

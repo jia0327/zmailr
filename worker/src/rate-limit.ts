@@ -1,9 +1,11 @@
 import { D1Database } from '@cloudflare/workers-types';
-import type { Env } from './types';
+import type { Env, User } from './types';
+import { resolveUserFromSessionOrBearer } from './auth';
 
 export const WINDOW_MS = 60 * 1000;
 export const LOGIN_FAIL_WINDOW_MS = 15 * 60 * 1000;
 
+export const DEFAULT_USER_RATE_LIMIT = 60;
 export const DEFAULT_TOKEN_RATE_LIMIT = 60;
 export const DEFAULT_SESSION_RATE_LIMIT = 120;
 export const DEFAULT_IP_MAILBOX_CREATE_LIMIT = 20;
@@ -17,6 +19,15 @@ export const DEFAULT_IP_GENERAL_LIMIT = 120;
 /** Shared per-IP bucket for all /api/* and admin /api/* routes. */
 export const DEFAULT_GLOBAL_IP_RATE_LIMIT = 60;
 
+/** Admin UI plan presets (req/min + optional burst). */
+export const RATE_LIMIT_PLANS = {
+  free: { limit: 60, burst: null as number | null },
+  pro: { limit: 600, burst: 30 },
+  team: { limit: 3000, burst: 200 },
+} as const;
+
+export type RateLimitPlanId = keyof typeof RATE_LIMIT_PLANS;
+
 /** @deprecated use DEFAULT_GLOBAL_IP_RATE_LIMIT */
 export const DEFAULT_RATE_LIMIT = DEFAULT_GLOBAL_IP_RATE_LIMIT;
 
@@ -24,6 +35,30 @@ export const DEFAULT_RATE_LIMIT = DEFAULT_GLOBAL_IP_RATE_LIMIT;
 export function getGlobalIpRateLimitKey(cfConnectingIp: string | undefined): string {
   const ip = cfConnectingIp?.trim();
   return `ip-global:${ip || 'unknown'}`;
+}
+
+/** Per-user bucket when session or user Bearer token is present. */
+export function getUserRateLimitKey(userId: number): string {
+  return `user:${userId}`;
+}
+
+export function resolveUserRateLimits(user: Pick<User, 'rateLimitPerMin' | 'rateLimitBurst'>): {
+  limit: number;
+  burst: number | null;
+} {
+  const rawLimit = user.rateLimitPerMin;
+  const limit =
+    rawLimit != null && Number.isFinite(rawLimit) && rawLimit > 0
+      ? rawLimit
+      : DEFAULT_USER_RATE_LIMIT;
+  const burstRaw = user.rateLimitBurst;
+  const burst = burstRaw != null && burstRaw > 0 ? burstRaw : null;
+  return { limit, burst };
+}
+
+/** Effective max requests per minute window (sustained limit + optional burst). */
+export function effectiveRateLimitMax(limit: number, burst: number | null): number {
+  return limit + (burst ?? 0);
 }
 
 const memoryCounters = new Map<string, number>();
@@ -85,9 +120,11 @@ export function resolveTokenRateLimit(env?: Pick<Env, 'RATE_LIMIT_PER_MIN'>): nu
 }
 
 export function rateLimitHeaders(result: Pick<RateLimitResult, 'limit' | 'remaining' | 'retryAfter'>): Record<string, string> {
+  const resetAt = Math.ceil(Date.now() / 1000) + result.retryAfter;
   return {
     'X-RateLimit-Limit': String(result.limit),
     'X-RateLimit-Remaining': String(result.remaining),
+    'X-RateLimit-Reset': String(resetAt),
     'Retry-After': String(result.retryAfter),
   };
 }
@@ -135,6 +172,44 @@ export async function consumeRateLimit(
   await persistCount(db, key, newCount, bucket);
 
   return { ok: true, limit, remaining: Math.max(0, limit - newCount), retryAfter };
+}
+
+/**
+ * Per-user rate limit: sustained limit/min with optional burst headroom in the same window.
+ * X-RateLimit-Limit reflects sustained rate; remaining includes burst allowance.
+ */
+export async function consumeUserRateLimit(
+  db: D1Database,
+  userId: number,
+  limitPerMin: number,
+  burst: number | null
+): Promise<RateLimitResult> {
+  const effectiveMax = effectiveRateLimitMax(limitPerMin, burst);
+  const raw = await consumeRateLimit(db, getUserRateLimitKey(userId), effectiveMax);
+  return {
+    ok: raw.ok,
+    limit: limitPerMin,
+    remaining: raw.remaining,
+    retryAfter: raw.retryAfter,
+  };
+}
+
+/**
+ * Authenticated users: per-user limits. Unauthenticated / legacy token: global IP limit.
+ */
+export async function consumeRequestRateLimit(
+  db: D1Database,
+  request: Request,
+  env: Env
+): Promise<RateLimitResult> {
+  const user = await resolveUserFromSessionOrBearer(db, request, env);
+  if (user) {
+    const { limit, burst } = resolveUserRateLimits(user);
+    return consumeUserRateLimit(db, user.id, limit, burst);
+  }
+
+  const rateKey = getGlobalIpRateLimitKey(request.headers.get('CF-Connecting-IP') ?? undefined);
+  return consumeRateLimit(db, rateKey, DEFAULT_GLOBAL_IP_RATE_LIMIT);
 }
 
 async function peekRateLimit(

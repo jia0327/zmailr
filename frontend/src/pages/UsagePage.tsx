@@ -5,9 +5,15 @@ import DashboardPageHeader from '../components/DashboardPageHeader';
 import StatCard from '../components/StatCard';
 import { useAuth } from '../contexts/AuthContext';
 import { MailboxContext } from '../contexts/MailboxContext';
-import { getStoredToken, migrateLegacySessionTokens } from '../utils/apiTokenSession';
+import { getStoredToken, maskApiToken, migrateLegacySessionTokens } from '../utils/apiTokenSession';
 
 const fmtTime = (ts: number) => new Date(ts > 1e12 ? ts : ts * 1000).toLocaleString();
+
+const expiresWithinDays = (expiresAt: number, days: number) => {
+  const expiresMs = expiresAt > 1e12 ? expiresAt : expiresAt * 1000;
+  const daysLeft = (expiresMs - Date.now()) / 86_400_000;
+  return daysLeft > 0 && daysLeft <= days;
+};
 
 const CopyIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -34,6 +40,7 @@ const UsagePage: React.FC = () => {
   const outboxQuotaValue = `${sendCount} / ${quotaTotalLabel}`;
 
   const token = stats?.token ?? null;
+  const tokenExpiringSoon = token ? expiresWithinDays(token.expiresAt, 7) : false;
 
   useEffect(() => {
     if (!user?.id || !token?.id) {
@@ -97,6 +104,30 @@ const UsagePage: React.FC = () => {
         </div>
       )}
 
+      {!isLoading && hasApiToken && tokenExpiringSoon && (
+        <div
+          className="rounded-lg border border-amber-500/40 bg-amber-50/50 dark:bg-amber-950/20 p-4 flex flex-col sm:flex-row sm:items-center gap-4"
+          role="alert"
+        >
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <i className="fas fa-exclamation-triangle text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                {t('dashboard.tokenExpiringBannerTitle')}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">{t('dashboard.tokenExpiringBannerBody')}</p>
+            </div>
+          </div>
+          <Link
+            to="/dashboard/api-keys"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 min-h-10 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 shrink-0 w-full sm:w-auto"
+          >
+            <i className="fas fa-key" aria-hidden="true" />
+            {t('dashboard.tokenExpiringBannerCta')}
+          </Link>
+        </div>
+      )}
+
       <section className="space-y-3">
         <SectionHeading title={t('dashboard.sectionProfile')} />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -132,7 +163,9 @@ const UsagePage: React.FC = () => {
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   {t('tokens.copyOneClick')}
                 </p>
-                {storedTokenPlaintext ? null : (
+                {storedTokenPlaintext ? (
+                  <code className="text-sm font-mono mt-1 block">{maskApiToken(storedTokenPlaintext)}</code>
+                ) : (
                   <p className="text-sm text-muted-foreground mt-1">{t('tokens.copyUnavailable')}</p>
                 )}
               </div>
@@ -160,6 +193,13 @@ const UsagePage: React.FC = () => {
               value={fmtTime(token.expiresAt)}
               icon="fas fa-clock"
             />
+            {token.lastUsedAt != null && (
+              <StatCard
+                label={t('tokens.lastUsedAtLabel')}
+                value={fmtTime(token.lastUsedAt)}
+                icon="fas fa-history"
+              />
+            )}
           </div>
         </section>
       )}

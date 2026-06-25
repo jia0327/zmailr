@@ -47,6 +47,8 @@ import {
   listUnreadAnnouncementsForUser,
   markAnnouncementRead,
   markAllAnnouncementsRead,
+  getMaintenanceMode,
+  writeAuditLog,
 } from './database';
 import { generateRandomAddress, getMailDomain, parseMailboxAddress, getCurrentTimestamp, validateSendFromAddress, validateExtractRuleInput } from './utils';
 import {
@@ -64,13 +66,13 @@ import { extractLink } from './extractor';
 import { isAdminRequest, isLegacyAdminRequest, stripAdminPrefix } from './admin-path';
 import { createAdminApp } from './admin-routes';
 import {
-  consumeRateLimit,
-  DEFAULT_GLOBAL_IP_RATE_LIMIT,
-  getGlobalIpRateLimitKey,
+  consumeRequestRateLimit,
   rateLimitHeaders,
   rateLimitExceededBody,
   getClientIp,
 } from './rate-limit';
+import { checkMaintenanceBlock, maintenanceBlockedBody } from './maintenance';
+import { logRateLimitHit } from './monitoring';
 
 type AppVariables = {
   auth?: ApiAuthContext;
@@ -108,10 +110,11 @@ app.use('/*', cors({
   maxAge: 86400,
 }));
 
-async function globalIpRateLimitMiddleware(c: any, next: () => Promise<void>) {
-  const rateKey = getGlobalIpRateLimitKey(c.req.header('CF-Connecting-IP'));
-  const result = await consumeRateLimit(c.env.DB, rateKey, DEFAULT_GLOBAL_IP_RATE_LIMIT);
+async function apiRateLimitMiddleware(c: any, next: () => Promise<void>) {
+  const result = await consumeRequestRateLimit(c.env.DB, c.req.raw, c.env);
   if (!result.ok) {
+    const user = await resolveUserFromSessionOrBearer(c.env.DB, c.req.raw, c.env);
+    c.executionCtx.waitUntil(logRateLimitHit(c.env.DB, c.req.raw, user?.id ?? null));
     return c.json(rateLimitExceededBody(), 429, rateLimitHeaders(result));
   }
   for (const [key, value] of Object.entries(rateLimitHeaders(result))) {
@@ -120,11 +123,32 @@ async function globalIpRateLimitMiddleware(c: any, next: () => Promise<void>) {
   await next();
 }
 
-app.use('/api/*', globalIpRateLimitMiddleware);
+async function maintenanceMiddleware(c: any, next: () => Promise<void>) {
+  const block = await checkMaintenanceBlock(c.env.DB, c.req.path, c.req.method);
+  if (block.blocked) {
+    return c.json(maintenanceBlockedBody(block.mode), 503);
+  }
+  await next();
+}
+
+app.use('/api/*', maintenanceMiddleware);
+app.use('/api/*', apiRateLimitMiddleware);
 
 // 健康检查端点
 app.get('/api/health', (c) => {
   return c.json({ status: 'ok', message: '临时邮箱系统API正常运行' });
+});
+
+// 公开状态（维护模式横幅等，无需鉴权）
+app.get('/api/public/status', async (c) => {
+  const maintenance = await getMaintenanceMode(c.env.DB);
+  return c.json({
+    success: true,
+    maintenance: {
+      enabled: maintenance.enabled,
+      message: maintenance.message,
+    },
+  });
 });
 
 // 获取系统配置
@@ -132,12 +156,17 @@ app.get('/api/config', async (c) => {
   try {
     const emailDomains = c.env.VITE_EMAIL_DOMAIN || '';
     const domains = emailDomains.split(',').map((domain: string) => domain.trim()).filter((domain: string) => domain);
-    
-    return c.json({ 
-      success: true, 
+    const maintenance = await getMaintenanceMode(c.env.DB);
+
+    return c.json({
+      success: true,
       config: {
-        emailDomains: domains
-      }
+        emailDomains: domains,
+        maintenance: {
+          enabled: maintenance.enabled,
+          message: maintenance.message,
+        },
+      },
     });
   } catch (error) {
     console.error('获取配置失败:', error);
@@ -516,6 +545,15 @@ app.post('/api/auth/login', async (c) => {
       return c.json({ success: false, error: '用户名或密码错误' }, 401);
     }
     const cookie = await createUserSessionCookie(c.env, user.id);
+    c.executionCtx.waitUntil(
+      writeAuditLog(c.env.DB, {
+        actorType: 'user',
+        actorId: user.id,
+        actorName: user.username,
+        action: 'user.login',
+        ip: getClientIp(c.req.raw),
+      })
+    );
     return c.json({ success: true, user: { id: user.id, username: user.username, role: user.role } }, 200, { 'Set-Cookie': cookie });
   } catch (error) {
     console.error('登录失败:', error);
@@ -617,6 +655,16 @@ app.post('/api/user/tokens', async (c) => {
     expiresInDays,
     scopes,
   });
+  c.executionCtx.waitUntil(
+    writeAuditLog(c.env.DB, {
+      actorType: 'user',
+      actorId: user.id,
+      actorName: user.username,
+      action: 'user.token.create',
+      detail: { tokenId: token.id, name: token.name, scopes: token.scopes },
+      ip: getClientIp(c.req.raw),
+    })
+  );
   return c.json({ success: true, token });
 });
 
@@ -624,8 +672,19 @@ app.delete('/api/user/tokens/:id', async (c) => {
   const authErr = await requireUserSession(c);
   if (authErr) return authErr;
   const user = c.get('user')!;
-  const ok = await deleteUserToken(c.env.DB, user.id, parseInt(c.req.param('id'), 10));
+  const tokenId = parseInt(c.req.param('id'), 10);
+  const ok = await deleteUserToken(c.env.DB, user.id, tokenId);
   if (!ok) return c.json({ success: false, error: 'Token 不存在' }, 404);
+  c.executionCtx.waitUntil(
+    writeAuditLog(c.env.DB, {
+      actorType: 'user',
+      actorId: user.id,
+      actorName: user.username,
+      action: 'user.token.delete',
+      detail: { tokenId },
+      ip: getClientIp(c.req.raw),
+    })
+  );
   return c.json({ success: true });
 });
 
@@ -934,6 +993,16 @@ app.post('/api/user/send', async (c) => {
     }
 
     await incrementSendUsage(c.env.DB, user.id);
+    c.executionCtx.waitUntil(
+      writeAuditLog(c.env.DB, {
+        actorType: 'user',
+        actorId: user.id,
+        actorName: user.username,
+        action: 'user.send',
+        detail: { to: body.to, subject: body.subject, sentEmailId: result.sentEmailId },
+        ip: getClientIp(c.req.raw),
+      })
+    );
     return c.json({ success: true, sentEmailId: result.sentEmailId });
   } catch (error) {
     console.error('Web 发信失败:', error);

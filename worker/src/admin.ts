@@ -58,7 +58,14 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
 .form-group textarea{min-height:80px;font-family:monospace}
 .form-group textarea.content-area{min-height:160px;font-family:inherit;white-space:pre-wrap}
 .modal-actions{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
-.empty{text-align:center;color:#64748b;padding:32px}
+.form-group input[type=checkbox]{width:auto;margin-right:8px}
+.pagination{display:flex;gap:8px;align-items:center;margin-top:16px;flex-wrap:wrap}
+.pagination span{font-size:.875rem;color:#94a3b8}
+.banner-warn{background:#422006;border:1px solid #92400e;color:#fcd34d;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:.875rem}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px}
+.card{background:#0f172a;padding:16px;border-radius:8px;border:1px solid #334155}
+.card h4{font-size:.875rem;color:#f8fafc;margin-bottom:12px}
+.hint{font-size:.75rem;color:#64748b;margin-top:8px}
 </style>
 </head>
 <body>
@@ -80,15 +87,22 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
     <div class="tab" data-tab="users" onclick="switchTab('users')">用户</div>
     <div class="tab" data-tab="announcements" onclick="switchTab('announcements')">公告</div>
     <div class="tab" data-tab="rules" onclick="switchTab('rules')">提取规则</div>
+    <div class="tab" data-tab="ratelimit" onclick="switchTab('ratelimit')">限流监控</div>
+    <div class="tab" data-tab="settings" onclick="switchTab('settings')">系统设置</div>
+    <div class="tab" data-tab="audit" onclick="switchTab('audit')">审计日志</div>
   </div>
   <div id="panel-dashboard" class="panel active">
     <div class="stats" id="statsGrid"></div>
+    <h3 class="section-title" style="margin-top:8px">Brevo / 发信</h3>
+    <p class="section-desc">本地 sent_emails 统计；若配置了 BREVO_API_KEY 则尝试 GET /v3/account 获取套餐信息</p>
+    <div class="stats" id="brevoStatsGrid"></div>
+    <p class="hint" id="brevoHint"></p>
   </div>
   <div id="panel-users" class="panel">
     <div class="toolbar">
       <button class="btn" onclick="showUserModal()">新增用户</button>
     </div>
-    <table><thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>日配额</th><th>状态</th><th>操作</th></tr></thead><tbody id="usersBody"></tbody></table>
+    <table><thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>日配额</th><th>速率限制</th><th>状态</th><th>操作</th></tr></thead><tbody id="usersBody"></tbody></table>
   </div>
   <div id="panel-announcements" class="panel">
     <div class="toolbar">
@@ -106,6 +120,39 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
     <h3 class="section-title" style="margin-top:24px">所有用户自定义规则</h3>
     <p class="section-desc">汇总展示所有用户创建的规则，便于参考优质规则并提升平台提取能力</p>
     <table><thead><tr><th>ID</th><th>用户名</th><th>域名</th><th>正则</th><th>优先级</th><th>状态</th><th>备注</th><th>操作</th></tr></thead><tbody id="userRulesBody"></tbody></table>
+  </div>
+  <div id="panel-ratelimit" class="panel">
+    <div class="stats" id="rateLimitStatsGrid"></div>
+    <div class="grid-2">
+      <div class="card">
+        <h4>今日 Top 10 IP（429）</h4>
+        <table><thead><tr><th>IP</th><th>次数</th></tr></thead><tbody id="topIpsBody"></tbody></table>
+      </div>
+      <div class="card">
+        <h4>今日 Top 10 用户（429）</h4>
+        <table><thead><tr><th>用户</th><th>次数</th></tr></thead><tbody id="topUsersBody"></tbody></table>
+      </div>
+    </div>
+    <p class="hint">429 事件保留 7 天；每次触发限流时写入 D1 rate_limit_hits 表</p>
+  </div>
+  <div id="panel-settings" class="panel">
+    <h3 class="section-title">维护模式</h3>
+    <p class="section-desc">开启后按下方选项阻断对应 API，用户端显示维护横幅</p>
+    <div class="form-group"><label><input type="checkbox" id="maintEnabled"> 启用维护模式</label></div>
+    <div class="form-group"><label>维护提示信息</label><textarea id="maintMessage" placeholder="系统维护中，部分功能暂不可用"></textarea></div>
+    <div class="form-group"><label><input type="checkbox" id="maintBlockLease" checked> 阻断 POST /api/lease</label></div>
+    <div class="form-group"><label><input type="checkbox" id="maintBlockSend" checked> 阻断 POST /api/send 与 /api/user/send</label></div>
+    <div class="form-group"><label><input type="checkbox" id="maintBlockMailbox" checked> 阻断创建邮箱（含 lease）</label></div>
+    <button class="btn" onclick="saveMaintenance()">保存系统设置</button>
+  </div>
+  <div id="panel-audit" class="panel">
+    <div class="toolbar">
+      <div class="form-group" style="margin:0"><label>起始日期</label><input type="date" id="auditFrom"></div>
+      <div class="form-group" style="margin:0"><label>结束日期</label><input type="date" id="auditTo"></div>
+      <button class="btn" onclick="loadAuditLogs(1)">筛选</button>
+    </div>
+    <table><thead><tr><th>时间</th><th>操作者</th><th>动作</th><th>详情</th><th>IP</th></tr></thead><tbody id="auditBody"></tbody></table>
+    <div class="pagination" id="auditPagination"></div>
   </div>
 </div>
 <div id="announcementModal" class="modal">
@@ -129,6 +176,9 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
     <div class="form-group"><label>密码</label><input id="userPassword" type="password" placeholder="留空则不修改（编辑时）"></div>
     <div class="form-group"><label>角色</label><select id="userRole"><option value="user">user</option><option value="admin">admin</option></select></div>
     <div class="form-group"><label>日发信配额（-1 无限）</label><input id="userQuota" type="number" value="50"></div>
+    <div class="form-group"><label>速率方案</label><select id="userRatePlan" onchange="applyRatePlan()"><option value="free">Free (60/min)</option><option value="pro">Pro (600/min, burst 30)</option><option value="team">Team (3000/min, burst 200)</option><option value="custom">自定义</option></select></div>
+    <div class="form-group"><label>速率限制 (req/min)</label><input id="userRateLimit" type="number" min="1" value="60"></div>
+    <div class="form-group"><label>突发 (burst, 可选)</label><input id="userRateBurst" type="number" min="0" placeholder="留空表示无 burst"></div>
     <div class="form-group" id="userEnabledGroup" style="display:none"><label>启用</label><select id="userEnabled"><option value="1">启用</option><option value="0">禁用</option></select></div>
     <div class="modal-actions">
       <button class="btn" onclick="hideModal('userModal')">取消</button>
@@ -158,19 +208,37 @@ function showLogin(){document.getElementById('loginView').style.display='flex';d
 function showApp(){document.getElementById('loginView').style.display='none';document.getElementById('appView').style.display='block'}
 async function doLogin(){const pw=document.getElementById('passwordInput').value;const err=document.getElementById('loginError');err.style.display='none';try{const r=await fetch('${loginPath}',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({password:pw})});const d=await r.json();if(!d.success){err.textContent=d.error||'登录失败';err.style.display='block';return}showApp();loadAll()}catch(e){err.textContent='网络错误';err.style.display='block'}}
 async function doLogout(){await fetch('${logoutPath}',{method:'POST',credentials:'include'});showLogin()}
-function switchTab(name){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+name));if(name==='users')loadUsers();if(name==='announcements')loadAnnouncements();if(name==='rules')loadRules()}
+function switchTab(name){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+name));if(name==='users')loadUsers();if(name==='announcements')loadAnnouncements();if(name==='rules')loadRules();if(name==='ratelimit')loadRateLimitStats();if(name==='settings')loadMaintenance();if(name==='audit')loadAuditLogs(1)}
 function hideModal(id){document.getElementById(id).classList.remove('show')}
 function showModal(id){document.getElementById(id).classList.add('show')}
 function fmtTime(ts){if(!ts)return'-';const d=new Date(ts>1e12?ts:ts*1000);return d.toLocaleString('zh-CN')}
-async function loadAll(){await loadStats()}
+async function loadAll(){await Promise.all([loadStats(),loadBrevoStats()])}
 async function loadStats(){const d=await api('/stats');const s=d.stats;document.getElementById('statsGrid').innerHTML=[
   ['用户总数',s.totalUsers],['启用用户',s.activeUsers],['有效邮箱',s.activeMailboxes],['邮箱总数',s.totalMailboxes],
   ['今日收信',s.receivedToday],['今日发信',s.sentToday],['今日活跃用户',s.activeUsersToday],['有效用户 Token',s.activeUserTokens]
 ].map(([l,v])=>'<div class="stat"><div class="label">'+l+'</div><div class="value">'+v+'</div></div>').join('')}
-async function loadUsers(){const d=await api('/users');const b=document.getElementById('usersBody');if(!d.users.length){b.innerHTML='<tr><td colspan="6" class="empty">暂无用户</td></tr>';return}b.innerHTML=d.users.map(u=>'<tr><td>'+u.id+'</td><td>'+u.username+'</td><td>'+u.role+'</td><td>'+(u.dailySendQuota<0?'无限':u.dailySendQuota)+'</td><td><span class="badge '+(u.enabled?'badge-ok':'badge-off')+'">'+(u.enabled?'启用':'禁用')+'</span></td><td><button class="btn btn-sm" onclick="editUser('+u.id+')">编辑</button> <button class="btn btn-danger btn-sm" onclick="deleteUser('+u.id+')">删除</button></td></tr>').join('');window._users=d.users}
-function showUserModal(){document.getElementById('userModalTitle').textContent='新增用户';document.getElementById('userId').value='';document.getElementById('userUsername').value='';document.getElementById('userPassword').value='';document.getElementById('userRole').value='user';document.getElementById('userQuota').value='50';document.getElementById('userEnabledGroup').style.display='none';showModal('userModal')}
-function editUser(id){const u=(window._users||[]).find(x=>x.id===id);if(!u)return;document.getElementById('userModalTitle').textContent='编辑用户';document.getElementById('userId').value=u.id;document.getElementById('userUsername').value=u.username;document.getElementById('userUsername').disabled=true;document.getElementById('userPassword').value='';document.getElementById('userRole').value=u.role;document.getElementById('userQuota').value=u.dailySendQuota;document.getElementById('userEnabled').value=u.enabled?'1':'0';document.getElementById('userEnabledGroup').style.display='block';showModal('userModal')}
-async function saveUser(){const id=document.getElementById('userId').value;const body={username:document.getElementById('userUsername').value,password:document.getElementById('userPassword').value,role:document.getElementById('userRole').value,dailySendQuota:parseInt(document.getElementById('userQuota').value)||50};if(id){body.enabled=document.getElementById('userEnabled').value==='1';if(!body.password)delete body.password;await api('/users/'+id,{method:'PUT',body:JSON.stringify(body)})}else{if(!body.username||!body.password){alert('用户名和密码必填');return}await api('/users',{method:'POST',body:JSON.stringify(body)})}document.getElementById('userUsername').disabled=false;hideModal('userModal');loadUsers()}
+async function loadBrevoStats(){const d=await api('/brevo-stats');const s=d.stats;const l=s.local;document.getElementById('brevoStatsGrid').innerHTML=[
+  ['今日发信',l.sentToday],['今日失败',l.failedToday],['累计失败',l.failedTotal],['用户日配额合计',l.userQuotaSum]
+].map(([lbl,v])=>'<div class="stat"><div class="label">'+lbl+'</div><div class="value">'+v+'</div></div>').join('');
+const hint=document.getElementById('brevoHint');
+if(s.brevoAvailable&&s.brevo){hint.textContent='Brevo 账户: '+s.brevo.email+' · 套餐: '+s.brevo.planType+' · Credits: '+JSON.stringify(s.brevo.credits);hint.style.color='#86efac'}else{hint.textContent='Brevo API: '+(s.brevoError||'不可用')+'（仅显示本地统计）';hint.style.color='#94a3b8'}}
+async function loadRateLimitStats(){const d=await api('/rate-limit-stats');const s=d.stats;document.getElementById('rateLimitStatsGrid').innerHTML='<div class="stat"><div class="label">今日 429 次数</div><div class="value">'+s.todayCount+'</div></div>';
+const ipB=document.getElementById('topIpsBody');if(!s.topIps.length){ipB.innerHTML='<tr><td colspan="2" class="empty">暂无</td></tr>'}else{ipB.innerHTML=s.topIps.map(r=>'<tr><td><code>'+r.ip+'</code></td><td>'+r.count+'</td></tr>').join('')}
+const uB=document.getElementById('topUsersBody');if(!s.topUsers.length){uB.innerHTML='<tr><td colspan="2" class="empty">暂无</td></tr>'}else{uB.innerHTML=s.topUsers.map(r=>'<tr><td>'+r.username+' (#'+r.userId+')</td><td>'+r.count+'</td></tr>').join('')}}
+async function loadMaintenance(){const d=await api('/maintenance');const m=d.maintenance;document.getElementById('maintEnabled').checked=!!m.enabled;document.getElementById('maintMessage').value=m.message||'';document.getElementById('maintBlockLease').checked=!!m.blockLease;document.getElementById('maintBlockSend').checked=!!m.blockSend;document.getElementById('maintBlockMailbox').checked=!!m.blockMailboxCreate}
+async function saveMaintenance(){const body={enabled:document.getElementById('maintEnabled').checked,message:document.getElementById('maintMessage').value,blockLease:document.getElementById('maintBlockLease').checked,blockSend:document.getElementById('maintBlockSend').checked,blockMailboxCreate:document.getElementById('maintBlockMailbox').checked};await api('/maintenance',{method:'PUT',body:JSON.stringify(body)});alert('已保存')}
+function dateToUnixStart(d){if(!d)return undefined;const t=new Date(d+'T00:00:00');return Math.floor(t.getTime()/1000)}
+function dateToUnixEnd(d){if(!d)return undefined;const t=new Date(d+'T23:59:59');return Math.floor(t.getTime()/1000)}
+async function loadAuditLogs(page){window._auditPage=page;const from=dateToUnixStart(document.getElementById('auditFrom').value);const to=dateToUnixEnd(document.getElementById('auditTo').value);let q='?page='+page+'&limit=50';if(from)q+='&from='+from;if(to)q+='&to='+to;const d=await api('/audit-logs'+q);const b=document.getElementById('auditBody');if(!d.logs.length){b.innerHTML='<tr><td colspan="5" class="empty">暂无日志</td></tr>'}else{b.innerHTML=d.logs.map(l=>'<tr><td>'+fmtTime(l.createdAt)+'</td><td>'+l.actorType+(l.actorName?': '+l.actorName:'')+'</td><td><code>'+l.action+'</code></td><td><code>'+(l.detail?JSON.stringify(l.detail):'-')+'</code></td><td>'+(l.ip||'-')+'</td></tr>').join('')}
+const totalPages=Math.max(1,Math.ceil(d.total/d.limit));document.getElementById('auditPagination').innerHTML='<span>共 '+d.total+' 条 · 第 '+d.page+' / '+totalPages+' 页</span>'+(d.page>1?'<button class="btn btn-sm" onclick="loadAuditLogs('+(d.page-1)+')">上一页</button>':'')+(d.page<totalPages?'<button class="btn btn-sm" onclick="loadAuditLogs('+(d.page+1)+')">下一页</button>':'')}
+const RATE_PLANS={free:{limit:60,burst:null},pro:{limit:600,burst:30},team:{limit:3000,burst:200}};
+function fmtRateLimit(u){const l=u.rateLimitPerMin??60;const b=u.rateLimitBurst;return l+'/min'+(b?' (+'+b+' burst)':'');}
+function detectRatePlan(u){const l=u.rateLimitPerMin??60;const b=u.rateLimitBurst??null;for(const[k,p]of Object.entries(RATE_PLANS)){if(p.limit===l&&p.burst===b)return k}return'custom'}
+function applyRatePlan(){const p=document.getElementById('userRatePlan').value;if(p==='custom')return;const plan=RATE_PLANS[p];document.getElementById('userRateLimit').value=plan.limit;document.getElementById('userRateBurst').value=plan.burst??''}
+async function loadUsers(){const d=await api('/users');const b=document.getElementById('usersBody');if(!d.users.length){b.innerHTML='<tr><td colspan="7" class="empty">暂无用户</td></tr>';return}b.innerHTML=d.users.map(u=>'<tr><td>'+u.id+'</td><td>'+u.username+'</td><td>'+u.role+'</td><td>'+(u.dailySendQuota<0?'无限':u.dailySendQuota)+'</td><td>'+fmtRateLimit(u)+'</td><td><span class="badge '+(u.enabled?'badge-ok':'badge-off')+'">'+(u.enabled?'启用':'禁用')+'</span></td><td><button class="btn btn-sm" onclick="editUser('+u.id+')">编辑</button> <button class="btn btn-danger btn-sm" onclick="deleteUser('+u.id+')">删除</button></td></tr>').join('');window._users=d.users}
+function showUserModal(){document.getElementById('userModalTitle').textContent='新增用户';document.getElementById('userId').value='';document.getElementById('userUsername').value='';document.getElementById('userPassword').value='';document.getElementById('userRole').value='user';document.getElementById('userQuota').value='50';document.getElementById('userRatePlan').value='free';applyRatePlan();document.getElementById('userEnabledGroup').style.display='none';showModal('userModal')}
+function editUser(id){const u=(window._users||[]).find(x=>x.id===id);if(!u)return;document.getElementById('userModalTitle').textContent='编辑用户';document.getElementById('userId').value=u.id;document.getElementById('userUsername').value=u.username;document.getElementById('userUsername').disabled=true;document.getElementById('userPassword').value='';document.getElementById('userRole').value=u.role;document.getElementById('userQuota').value=u.dailySendQuota;document.getElementById('userRatePlan').value=detectRatePlan(u);document.getElementById('userRateLimit').value=u.rateLimitPerMin??60;document.getElementById('userRateBurst').value=u.rateLimitBurst??'';document.getElementById('userEnabled').value=u.enabled?'1':'0';document.getElementById('userEnabledGroup').style.display='block';showModal('userModal')}
+async function saveUser(){const id=document.getElementById('userId').value;const burstRaw=document.getElementById('userRateBurst').value;const body={username:document.getElementById('userUsername').value,password:document.getElementById('userPassword').value,role:document.getElementById('userRole').value,dailySendQuota:parseInt(document.getElementById('userQuota').value)||50,rateLimitPerMin:parseInt(document.getElementById('userRateLimit').value)||60,rateLimitBurst:burstRaw===''?null:parseInt(burstRaw)||null};if(id){body.enabled=document.getElementById('userEnabled').value==='1';if(!body.password)delete body.password;await api('/users/'+id,{method:'PUT',body:JSON.stringify(body)})}else{if(!body.username||!body.password){alert('用户名和密码必填');return}await api('/users',{method:'POST',body:JSON.stringify(body)})}document.getElementById('userUsername').disabled=false;hideModal('userModal');loadUsers()}
 async function deleteUser(id){if(!confirm('确定删除此用户？'))return;await api('/users/'+id,{method:'DELETE'});loadUsers()}
 async function loadAnnouncements(){const d=await api('/announcements');const b=document.getElementById('announcementsBody');if(!d.announcements.length){b.innerHTML='<tr><td colspan="6" class="empty">暂无公告</td></tr>';return}b.innerHTML=d.announcements.map(a=>'<tr><td>'+a.id+'</td><td>'+a.title+'</td><td>'+fmtTime(a.createdAt)+'</td><td><span class="badge '+(a.enabled?'badge-ok':'badge-off')+'">'+(a.enabled?'启用':'禁用')+'</span></td><td>'+(a.readCount??0)+'</td><td><button class="btn btn-sm" onclick="editAnnouncement('+a.id+')">编辑</button> <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement('+a.id+')">删除</button></td></tr>').join('');window._announcements=d.announcements}
 function showAnnouncementModal(){document.getElementById('announcementModalTitle').textContent='新增公告';document.getElementById('announcementId').value='';document.getElementById('announcementTitle').value='';document.getElementById('announcementContent').value='';document.getElementById('announcementEnabled').value='1';showModal('announcementModal')}

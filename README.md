@@ -26,7 +26,7 @@
 - 邮件列表与详情、HTML/纯文本正文、附件下载
 - 自动识别验证码并在界面高亮展示（OtpBox），一键复制
 - 邮件自动刷新、删除邮箱
-- 简体中文界面，明暗主题
+- **简体中文界面**（zh-CN only），明暗主题
 - 内置 [API 文档页](/api-docs)（`/api-docs`）
 
 ### 入站邮件
@@ -42,7 +42,7 @@
 
 ### 程序化 API
 
-登录后在 **Dashboard → API Keys** 创建 Token（每位用户限 1 个，可选 scope：lease / mail / send）。Legacy 无配额 Token 可在管理后台（`ADMIN_PATH` 环境变量配置的密钥路径）创建。请求头：`Authorization: Bearer <token>`。
+登录后在 **Dashboard → API 密钥** 创建 Token（每位用户限 1 个，可选 scope：lease / mail / send）。Legacy 无配额 Token 可通过管理后台 API 创建（见 [docs/admin-guide.md](docs/admin-guide.md)）。请求头：`Authorization: Bearer <token>`。
 
 | 端点 | 权限 | 说明 |
 |------|------|------|
@@ -56,7 +56,7 @@
 | `GET /api/user/quota` | 任意用户 Token 或会话 | 查询今日发信配额与剩余次数 |
 | `DELETE /api/mailboxes/:address` | mail | 按 local-part 删除邮箱（会话所有者或 Bearer + 所有权） |
 
-响应头含 `X-RateLimit-Limit` / `X-RateLimit-Remaining`（默认 60 次/分钟/Token）。完整说明见 [`/api-docs`](/api-docs) 或 Dashboard API Keys 页。
+响应头含 `X-RateLimit-Limit` / `X-RateLimit-Remaining` / `X-RateLimit-Reset`。已登录用户与用户 Bearer Token 按** per-user 速率方案**限流（默认 Free：60 次/分钟；管理员可在后台设为 Pro / Team 或自定义 burst）。Legacy Token 与未鉴权请求按 **IP** 限流（默认 60 次/分钟）。完整说明见 [`/api-docs`](/api-docs) 或 Dashboard API 密钥页。
 
 `/api/mail` 要点：
 
@@ -68,13 +68,16 @@
 
 ### 管理后台（`ADMIN_PATH`）
 
-管理后台 URL 为 `https://你的域名/{ADMIN_PATH}`，路径由环境变量 **`ADMIN_PATH`** 配置（推荐 UUID，如 `a1b2c3d4-e5f6-7890-abcd-ef1234567890`，无 leading slash）。未配置时本地开发默认为 `admin`；**生产部署必须在 GitHub Secret 中设置 `ADMIN_PATH`**。访问错误路径返回 404（不暴露后台存在）。
+管理后台 URL 为 `https://你的域名/{ADMIN_PATH}`，路径由环境变量 **`ADMIN_PATH`** 配置（推荐 UUID，无 leading slash）。未配置时本地开发默认为 `admin`；**生产部署必须在 GitHub Secret 中设置 `ADMIN_PATH`**。访问错误路径返回 404（不暴露后台存在）。完整说明见 **[docs/admin-guide.md](docs/admin-guide.md)**。
 
-- 仪表盘：今日收信/发信、有效 Token、启用规则数
-- API Token 的创建与吊销（legacy，无配额限制）
-- **用户管理**：创建用户、设置日发信配额、重置密码
-- 验证码提取规则（内置规则只读 + 自定义正则）
-- 发信日志
+标签页：**仪表盘** · **用户** · **公告** · **提取规则** · **限流监控** · **系统设置** · **审计日志**
+
+- **仪表盘**：运营统计 + 本地发信统计 + Brevo 套餐/credits（已配置 `BREVO_API_KEY` 时）
+- **用户**：创建用户、日发信配额、**速率方案**（Free / Pro / Team / 自定义）、重置密码
+- **限流监控**：今日 429 次数、Top IP / Top 用户
+- **系统设置**：**维护模式**（可选阻断 lease / 发信 / 创建邮箱；Dashboard 显示维护横幅）
+- **审计日志**：管理员与用户关键操作（登录、用户变更、Token、规则、维护模式等）
+- Legacy API Token（无配额）仍可通过管理 API 创建，供向后兼容
 
 ### 用户认证（Phase 1）
 
@@ -106,7 +109,7 @@
 
 ![仪表板](docs/screenshots/dashboard.png)
 
-展示当前用户的个人信息、API Token 状态、收件箱/发件箱用量统计与今日发信配额。
+展示当前用户的个人信息、API Token 状态（含 masked 预览与一键复制）、收件箱/发件箱用量统计与今日发信配额。未创建 Token 或 Token 即将过期（7 天内）时显示提醒横幅。
 
 ### 收件箱（`/dashboard/inbox`）
 
@@ -128,9 +131,10 @@
 
 ![API 密钥](docs/screenshots/api-keys.png)
 
-- 每位用户限 **1 个** Bearer Token，可选 scope：`lease` / `mail` / `send`
-- 创建时 Token 明文**仅显示一次**，可 **一键复制**；若丢失需删除后重新创建
-- 页面提供 curl 示例与完整 API 文档链接
+- 每位用户限 **1 个** Bearer Token，可选 scope：`lease` / `mail` / `send`（彩色标签展示）
+- 创建时 Token 明文**仅显示一次**，支持 **一键复制** 与复制成功 toast；浏览器 localStorage 可保存明文以便仪表板 masked 预览后再复制
+- 展示 **最后使用时间**（`last_used_at`）、过期时间与 7 天内过期提醒
+- 提供 **curl 示例**（含 `GET /api/user/quota`）与完整 API 文档链接
 
 ### API 调试（`/dashboard/api-debug`）
 
@@ -193,8 +197,9 @@ python scripts/verify_api.py \
 
 - **MailSink 对照**：[docs/mailsink-comparison.md](docs/mailsink-comparison.md)（功能 parity、端点映射、架构与缺口）
 - **发信配置**：[docs/brevo-setup.md](docs/brevo-setup.md)（Brevo 注册、SPF/DKIM/DMARC、API Key、GitHub Secret 等）
-- **用户认证**：[docs/user-auth.md](docs/user-auth.md)
-- **API 用法**：部署后访问 `https://你的域名/api-docs`，或在管理后台（`https://你的域名/{ADMIN_PATH}`）生成 Token 后调用上述接口
+- **用户认证**：[docs/user-auth.md](docs/user-auth.md)（配额、Token scope、per-user 速率限制）
+- **管理后台**：[docs/admin-guide.md](docs/admin-guide.md)（`ADMIN_PATH`、维护模式、限流监控、审计日志）
+- **API 用法**：部署后访问 `https://你的域名/api-docs`，或在 Dashboard → API 密钥创建 Token 后调用上述接口
 
 ---
 

@@ -4,11 +4,18 @@ import { useTranslation } from 'react-i18next';
 import DashboardSidebar from './DashboardSidebar';
 import AnnouncementModal from './AnnouncementModal';
 import SEO from './SEO';
+import { API_BASE_URL } from '../config';
 
 const SIDEBAR_COLLAPSED_KEY = 'dashboardSidebarCollapsed';
 
+interface PublicMaintenance {
+  enabled: boolean;
+  message: string;
+}
+
 const DashboardLayout: React.FC = () => {
   const { t } = useTranslation();
+  const [maintenance, setMaintenance] = useState<PublicMaintenance | null>(null);
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
@@ -38,6 +45,28 @@ const DashboardLayout: React.FC = () => {
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [mobileOpen]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/public/status`);
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled && data.success && data.maintenance?.enabled) {
+          setMaintenance({
+            enabled: true,
+            message: data.maintenance.message || t('dashboard.maintenanceDefault'),
+          });
+        }
+      } catch {
+        // ignore — banner is optional
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [t]);
 
   const toggleSidebar = useCallback(() => {
     setCollapsed((prev) => !prev);
@@ -80,6 +109,15 @@ const DashboardLayout: React.FC = () => {
         </header>
 
         <AnnouncementModal />
+        {maintenance?.enabled && (
+          <div
+            role="status"
+            className="mx-4 md:mx-6 lg:mx-8 mt-4 md:mt-6 px-4 py-3 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-100 text-sm shrink-0"
+          >
+            <i className="fas fa-wrench mr-2" aria-hidden />
+            {maintenance.message}
+          </div>
+        )}
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">
           <Outlet />
         </main>

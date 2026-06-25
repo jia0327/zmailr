@@ -3,11 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { createUserToken, deleteUserToken, UserTokenItem } from '../utils/api';
 import {
   loadStoredTokens,
+  maskApiToken,
   migrateLegacySessionTokens,
   pruneStoredTokens,
   removeStoredToken,
   saveStoredToken,
 } from '../utils/apiTokenSession';
+import { API_BASE_URL } from '../config';
 import { useAuth } from '../contexts/AuthContext';
 import { MailboxContext } from '../contexts/MailboxContext';
 
@@ -18,6 +20,38 @@ const SCOPE_I18N: Record<(typeof ALL_SCOPES)[number], { label: string; desc: str
   mail: { label: 'tokens.scopeMail', desc: 'tokens.scopeMailDesc' },
   send: { label: 'tokens.scopeSend', desc: 'tokens.scopeSendDesc' },
 };
+
+const SCOPE_COLORS: Record<(typeof ALL_SCOPES)[number], string> = {
+  lease: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30',
+  mail: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
+  send: 'bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/30',
+};
+
+const getApiOrigin = () => {
+  const base = API_BASE_URL?.replace(/\/$/, '') || '';
+  return base || window.location.origin;
+};
+
+const buildQuotaCurl = (token: string) =>
+  `curl -s -H "Authorization: Bearer ${token}" "${getApiOrigin()}/api/user/quota"`;
+
+const ScopeBadges: React.FC<{ scopes: string[]; t: (key: string) => string }> = ({ scopes, t }) => (
+  <div className="flex flex-wrap gap-1.5">
+    {scopes.map((s) => {
+      const known = s in SCOPE_I18N;
+      const color = known ? SCOPE_COLORS[s as (typeof ALL_SCOPES)[number]] : 'bg-muted text-muted-foreground border-border';
+      return (
+        <span
+          key={s}
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${color}`}
+          title={known ? t(SCOPE_I18N[s as (typeof ALL_SCOPES)[number]].desc) : s}
+        >
+          {known ? t(SCOPE_I18N[s as (typeof ALL_SCOPES)[number]].label) : s}
+        </span>
+      );
+    })}
+  </div>
+);
 
 interface ApiTokenManagerProps {
   compact?: boolean;
@@ -42,7 +76,7 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false, auto
   const [newTokenDays, setNewTokenDays] = useState(30);
   const [newTokenScopes, setNewTokenScopes] = useState<string[]>([...ALL_SCOPES]);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState<number | 'created' | null>(null);
+  const [copiedId, setCopiedId] = useState<number | 'created' | 'curl' | null>(null);
   const [storedTokens, setStoredTokens] = useState<Record<number, string>>({});
   const [regeneratingId, setRegeneratingId] = useState<number | null>(null);
   const [error, setError] = useState('');
@@ -152,16 +186,18 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false, auto
     );
   };
 
-  const copyToken = (token: string, copyKey: number | 'created') => {
+  const copyText = (text: string, copyKey: number | 'created' | 'curl', successMsg?: string) => {
     navigator.clipboard
-      .writeText(token)
+      .writeText(text)
       .then(() => {
         setCopiedId(copyKey);
-        showSuccessMessage(t('tokens.tokenCopySuccess'));
+        showSuccessMessage(successMsg ?? t('tokens.tokenCopySuccess'));
         window.setTimeout(() => setCopiedId(null), 2000);
       })
       .catch(() => showErrorMessage(t('mailbox.copyFailed')));
   };
+
+  const copyToken = (token: string, copyKey: number | 'created') => copyText(token, copyKey);
 
   const CopyIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -184,10 +220,10 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false, auto
               type="button"
               onClick={() => copyToken(createdToken, 'created')}
               className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-              title={t('tokens.copyOneClick')}
+              title={t('tokens.copyToken')}
             >
               <CopyIcon />
-              {copiedId === 'created' ? t('common.copied') : t('tokens.copyOneClick')}
+              {copiedId === 'created' ? t('common.copied') : t('tokens.copyToken')}
             </button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">{t('auth.tokenCopyWarning')}</p>
@@ -288,17 +324,23 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false, auto
                       </p>
                       <p>
                         <span className="text-muted-foreground">{t('tokens.permissionsLabel')}: </span>
-                        <span>
-                          {tok.scopes
-                            .map((s) =>
-                              s in SCOPE_I18N ? t(SCOPE_I18N[s as (typeof ALL_SCOPES)[number]].label) : s
-                            )
-                            .join(', ')}
-                        </span>
                       </p>
+                      <ScopeBadges scopes={tok.scopes} t={t} />
                       <p>
                         <span className="text-muted-foreground">{t('tokens.expiresAtLabel')}: </span>
                         <span>{fmtTime(tok.expiresAt)}</span>
+                      </p>
+                      <p>
+                        <span className="text-muted-foreground">{t('tokens.lastUsedAtLabel')}: </span>
+                        <span>{tok.lastUsedAt ? fmtTime(tok.lastUsedAt) : t('tokens.lastUsedNever')}</span>
+                      </p>
+                      <p>
+                        <span className="text-muted-foreground">{t('tokens.tokenPreviewLabel')}: </span>
+                        {plaintext ? (
+                          <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{maskApiToken(plaintext)}</code>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">{t('tokens.noPlaintextHint')}</span>
+                        )}
                       </p>
                     </div>
                     <button
@@ -309,15 +351,29 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false, auto
                     </button>
                   </div>
                   {canCopy ? (
-                    <button
-                      type="button"
-                      onClick={() => copyToken(plaintext, tok.id)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-                      title={t('tokens.copyOneClick')}
-                    >
-                      <CopyIcon />
-                      {copiedId === tok.id ? t('common.copied') : t('tokens.copyOneClick')}
-                    </button>
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => copyToken(plaintext, tok.id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+                        title={t('tokens.copyToken')}
+                      >
+                        <CopyIcon />
+                        {copiedId === tok.id ? t('common.copied') : t('tokens.copyToken')}
+                      </button>
+                      <div className="rounded-md border bg-muted/30 p-2 space-y-1.5">
+                        <p className="text-xs font-medium text-muted-foreground">{t('tokens.curlExampleLabel')}</p>
+                        <code className="block text-xs break-all font-mono">{buildQuotaCurl(plaintext)}</code>
+                        <button
+                          type="button"
+                          onClick={() => copyText(buildQuotaCurl(plaintext), 'curl', t('tokens.curlCopySuccess'))}
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          <CopyIcon />
+                          {copiedId === 'curl' ? t('common.copied') : t('tokens.copyOneClick')}
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <div className="space-y-1.5">
                       <p className="text-xs text-muted-foreground">{t('tokens.copyUnavailable')}</p>

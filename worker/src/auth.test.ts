@@ -24,6 +24,8 @@ const owner: User = {
   username: 'alice',
   role: 'user',
   dailySendQuota: 50,
+  rateLimitPerMin: 60,
+  rateLimitBurst: null,
   enabled: true,
   createdAt: 0,
   lastLoginAt: null,

@@ -54,6 +54,13 @@ export function loadStoredTokens(userId: number, tokenIds: number[]): Record<num
   return result;
 }
 
+/** Mask token for display: zm_****…abcd (last 4 chars visible). */
+export function maskApiToken(token: string): string {
+  if (!token) return 'zm_****';
+  const suffix = token.length <= 4 ? token : token.slice(-4);
+  return `zm_****…${suffix}`;
+}
+
 export function pruneStoredTokens(userId: number, validTokenIds: number[]) {
   const store = readStore();
   const key = userKey(userId);

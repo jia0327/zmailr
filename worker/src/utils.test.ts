@@ -1,6 +1,24 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateExtractRuleInput, validateSendFromAddress } from './utils';
+import { shouldTouchTokenLastUsed, TOKEN_LAST_USED_TOUCH_INTERVAL_SEC, validateExtractRuleInput, validateSendFromAddress } from './utils';
+
+describe('shouldTouchTokenLastUsed', () => {
+  it('touches when last_used_at is null', () => {
+    assert.equal(shouldTouchTokenLastUsed(null, 1000), true);
+  });
+
+  it('touches when interval has elapsed', () => {
+    const now = 5000;
+    const last = now - TOKEN_LAST_USED_TOUCH_INTERVAL_SEC;
+    assert.equal(shouldTouchTokenLastUsed(last, now), true);
+  });
+
+  it('skips touch within interval', () => {
+    const now = 5000;
+    const last = now - TOKEN_LAST_USED_TOUCH_INTERVAL_SEC + 1;
+    assert.equal(shouldTouchTokenLastUsed(last, now), false);
+  });
+});
 
 describe('validateExtractRuleInput', () => {
   it('accepts wildcard domain and valid regex', () => {

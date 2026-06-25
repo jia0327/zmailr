@@ -23,6 +23,10 @@ export interface User {
   username: string;
   role: UserRole;
   dailySendQuota: number;
+  /** Requests per minute; null uses platform default (60). */
+  rateLimitPerMin: number | null;
+  /** Extra requests allowed per minute window; null/0 = no burst. */
+  rateLimitBurst: number | null;
   enabled: boolean;
   createdAt: number;
   lastLoginAt: number | null;
@@ -62,11 +66,15 @@ export interface CreateUserParams {
   password: string;
   role?: UserRole;
   dailySendQuota?: number;
+  rateLimitPerMin?: number | null;
+  rateLimitBurst?: number | null;
 }
 
 export interface UpdateUserParams {
   role?: UserRole;
   dailySendQuota?: number;
+  rateLimitPerMin?: number | null;
+  rateLimitBurst?: number | null;
   enabled?: boolean;
   password?: string;
 }
@@ -206,6 +214,78 @@ export interface AdminStats {
   sentToday: number;
   activeUsersToday: number;
   activeUserTokens: number;
+}
+
+export type AuditActorType = 'admin' | 'user';
+
+export interface AuditLog {
+  id: number;
+  actorType: AuditActorType;
+  actorId: string | null;
+  actorName: string | null;
+  action: string;
+  detail: Record<string, unknown> | null;
+  ip: string | null;
+  createdAt: number;
+}
+
+export interface WriteAuditLogParams {
+  actorType: AuditActorType;
+  actorId?: string | number | null;
+  actorName?: string | null;
+  action: string;
+  detail?: Record<string, unknown> | null;
+  ip?: string | null;
+}
+
+export interface MaintenanceMode {
+  enabled: boolean;
+  message: string;
+  blockLease: boolean;
+  blockSend: boolean;
+  blockMailboxCreate: boolean;
+}
+
+export const DEFAULT_MAINTENANCE_MODE: MaintenanceMode = {
+  enabled: false,
+  message: '',
+  blockLease: true,
+  blockSend: true,
+  blockMailboxCreate: true,
+};
+
+export interface RateLimitHitRow {
+  id: number;
+  ip: string;
+  userId: number | null;
+  path: string;
+  hitAt: number;
+}
+
+export interface RateLimitStats {
+  todayCount: number;
+  topIps: Array<{ ip: string; count: number }>;
+  topUsers: Array<{ userId: number; username: string; count: number }>;
+}
+
+export interface LocalEmailStats {
+  sentToday: number;
+  failedToday: number;
+  failedTotal: number;
+  userQuotaSum: number;
+}
+
+export interface BrevoAccountSummary {
+  email: string;
+  planType: string;
+  credits: unknown;
+}
+
+export interface BrevoStats {
+  local: LocalEmailStats;
+  brevo: BrevoAccountSummary | null;
+  brevoAvailable: boolean;
+  brevoError?: string;
 }
 
 // 邮件列表项（不包含内容）

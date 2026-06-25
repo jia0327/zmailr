@@ -10,7 +10,7 @@ zMailR uses user accounts for the web Dashboard, scoped API tokens, and mailbox 
 | `POST /api/mailboxes` | Session or Bearer (`mail`) | Create temp inbox for authenticated user |
 | Web send (`POST /api/user/send`) | Session cookie | Requires login |
 | Programmatic API (`/api/lease`, `/api/mail`, `/api/send`, …) | Bearer token | User tokens or legacy admin tokens; all require auth |
-| Admin panel (`ADMIN_PATH`) | Admin password cookie | URL path from `ADMIN_PATH` env var (UUID recommended) |
+| Admin panel (`ADMIN_PATH`) | Admin password cookie | URL path from `ADMIN_PATH` env var (UUID recommended). See [admin-guide.md](./admin-guide.md) |
 
 ## First-time setup
 
@@ -56,7 +56,9 @@ Scopes:
 - `mail` — `GET /api/mail`
 - `send` — `POST /api/send`
 
-Plaintext token is returned **once** on creation; only SHA-256 hash is stored.
+Plaintext token is returned **once** on creation; only SHA-256 hash is stored. The Dashboard may persist the plaintext in `localStorage` (per user) so you can copy a masked preview later; clearing browser data removes this convenience copy.
+
+Token list includes **`last_used_at`** (Unix seconds, updated at most once per hour when the token is used on API requests).
 
 ### Check remaining send quota
 
@@ -98,7 +100,24 @@ Enforced on:
 - `POST /api/user/send` (session)
 - `POST /api/send` (user Bearer tokens)
 
-**Legacy** admin-created `api_tokens` remain unlimited (backward compatible).
+**Legacy** admin-created `api_tokens` remain unlimited for daily send quota (backward compatible).
+
+## Per-user API rate limits
+
+Each user has optional `rate_limit_per_min` and `rate_limit_burst` (D1 `users` table). Authenticated session or **user Bearer token** requests consume a per-user bucket (1-minute window):
+
+| Plan (admin UI) | Sustained req/min | Burst |
+|-----------------|-------------------|-------|
+| Free (default) | 60 | — |
+| Pro | 600 | 30 |
+| Team | 3000 | 200 |
+| Custom | manual | optional |
+
+Response headers on `/api/*`: `X-RateLimit-Limit` (sustained rate), `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`. Excess requests return `429` with `{ "error": "rate_limit" }`.
+
+**Legacy** admin API tokens and unauthenticated callers fall back to a **global per-IP** limit (default 60 req/min).
+
+Admins configure plans in the admin panel → **用户** user modal. See [admin-guide.md](./admin-guide.md) for monitoring (429 hits) and audit entries (`user.rate_limit.update`).
 
 ## Web send
 
@@ -137,7 +156,7 @@ Admin global rules: `GET/POST/PUT/DELETE /{ADMIN_PATH}/api/rules` (global only).
 In the admin panel → **用户**:
 
 - Create users (username, password, role, quota)
-- Edit quota, reset password, enable/disable
+- Edit quota, **rate plan** (Free / Pro / Team / custom), reset password, enable/disable
 - Delete users
 
 API: `GET/POST/PUT/DELETE /{ADMIN_PATH}/api/users`
@@ -149,4 +168,4 @@ API: `GET/POST/PUT/DELETE /{ADMIN_PATH}/api/users`
 - Sessions: HMAC-signed cookie (same secret as admin, derived from `ADMIN_PASSWORD`); admin cookie scoped to `Path=/{ADMIN_PATH}`
 - Admin panel URL is not exposed in the frontend bundle; set `ADMIN_PATH` to a UUID in production
 
-See also: [brevo-setup.md](./brevo-setup.md) for outbound email configuration.
+See also: [brevo-setup.md](./brevo-setup.md) for outbound email configuration; [admin-guide.md](./admin-guide.md) for maintenance mode, rate-limit monitoring, and audit logs.

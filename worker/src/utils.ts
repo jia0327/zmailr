@@ -37,6 +37,17 @@ export function generateRandomString(length: number): string {
   export function getCurrentTimestamp(): number {
     return Math.floor(Date.now() / 1000);
   }
+
+  /** Minimum interval between last_used_at writes per token (seconds). */
+  export const TOKEN_LAST_USED_TOUCH_INTERVAL_SEC = 3600;
+
+  export function shouldTouchTokenLastUsed(
+    lastUsedAt: number | null | undefined,
+    nowSec: number
+  ): boolean {
+    if (lastUsedAt == null) return true;
+    return nowSec - lastUsedAt >= TOKEN_LAST_USED_TOUCH_INTERVAL_SEC;
+  }
   
   /**
    * 计算过期时间戳

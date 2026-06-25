@@ -63,7 +63,8 @@
 ### 📚 Related docs
 
 - **Outbound mail**: [docs/brevo-setup.md](docs/brevo-setup.md) (Brevo signup, SPF/DKIM/DMARC, API key, GitHub Secret, testing)
-- **Programmatic API**: After deploy, open <code>https://your-domain/{ADMIN_PATH}</code> (path from the <code>ADMIN_PATH</code> secret) to create an API token. Endpoints: <code>/api/lease</code>, <code>/api/mail</code>, <code>/api/send</code> — all require <code>Authorization: Bearer &lt;token&gt;</code>
+- **Admin console** (Chinese): [docs/admin-guide.md](docs/admin-guide.md) — secret `ADMIN_PATH` URL, maintenance mode, rate limits, audit logs
+- **Programmatic API**: After deploy, create a user API token at **Dashboard → API 密钥** (`/dashboard/api-keys`). Endpoints: `/api/lease`, `/api/mail`, `/api/send` — all require `Authorization: Bearer <token>`
 
 ---
 

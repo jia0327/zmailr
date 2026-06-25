@@ -254,6 +254,7 @@ export interface AuthTokenSummary {
   name: string | null;
   scopes: string[];
   expiresAt: number;
+  lastUsedAt: number | null;
 }
 
 export interface AuthStats {

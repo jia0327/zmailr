@@ -25,12 +25,19 @@ import {
   TokenScope,
   Announcement,
   SaveAnnouncementParams,
+  AuditLog,
+  WriteAuditLogParams,
+  MaintenanceMode,
+  DEFAULT_MAINTENANCE_MODE,
+  RateLimitStats,
+  LocalEmailStats,
 } from './types';
 import { 
   generateId, 
   getCurrentTimestamp, 
   calculateExpiryTimestamp,
   generateApiToken,
+  shouldTouchTokenLastUsed,
 } from './utils';
 import { hashPassword, hashToken } from './crypto';
 import { SEED_GLOBAL_EXTRACT_RULES } from './extractor';
@@ -75,12 +82,15 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await db.exec(`CREATE TABLE IF NOT EXISTS api_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT UNIQUE NOT NULL, name TEXT, expires_at INTEGER NOT NULL, created_at INTEGER DEFAULT (unixepoch()));`);
     await db.exec(`CREATE TABLE IF NOT EXISTS extract_rules (id INTEGER PRIMARY KEY AUTOINCREMENT, domain TEXT NOT NULL DEFAULT '*', regex TEXT NOT NULL, priority INTEGER DEFAULT 0, enabled INTEGER DEFAULT 1, created_at INTEGER DEFAULT (unixepoch()));`);
     await db.exec(`CREATE TABLE IF NOT EXISTS sent_emails (id INTEGER PRIMARY KEY AUTOINCREMENT, to_email TEXT NOT NULL, subject TEXT NOT NULL, status TEXT DEFAULT 'sent', created_at INTEGER DEFAULT (unixepoch()));`);
-    await db.exec(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'user', daily_send_quota INTEGER NOT NULL DEFAULT 50, enabled INTEGER NOT NULL DEFAULT 1, created_at INTEGER DEFAULT (unixepoch()), last_login_at INTEGER);`);
+    await db.exec(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'user', daily_send_quota INTEGER NOT NULL DEFAULT 50, rate_limit_per_min INTEGER DEFAULT 60, rate_limit_burst INTEGER, enabled INTEGER NOT NULL DEFAULT 1, created_at INTEGER DEFAULT (unixepoch()), last_login_at INTEGER);`);
     await db.exec(`CREATE TABLE IF NOT EXISTS user_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, token_hash TEXT UNIQUE NOT NULL, name TEXT, scopes TEXT NOT NULL DEFAULT '["lease","mail","send"]', expires_at INTEGER NOT NULL, created_at INTEGER DEFAULT (unixepoch()), last_used_at INTEGER, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);`);
     await db.exec(`CREATE TABLE IF NOT EXISTS daily_usage (user_id INTEGER NOT NULL, usage_date TEXT NOT NULL, send_count INTEGER NOT NULL DEFAULT 0, lease_count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, usage_date), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);`);
     await db.exec(`CREATE TABLE IF NOT EXISTS api_rate_limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL DEFAULT 0, window_start INTEGER NOT NULL);`);
     await db.exec(`CREATE TABLE IF NOT EXISTS announcements (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, content TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER, enabled INTEGER DEFAULT 1, created_by TEXT);`);
     await db.exec(`CREATE TABLE IF NOT EXISTS announcement_reads (user_id INTEGER NOT NULL, announcement_id INTEGER NOT NULL, read_at INTEGER NOT NULL, PRIMARY KEY (user_id, announcement_id), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE);`);
+    await db.exec(`CREATE TABLE IF NOT EXISTS rate_limit_hits (id INTEGER PRIMARY KEY AUTOINCREMENT, ip TEXT NOT NULL, user_id INTEGER, path TEXT NOT NULL, hit_at INTEGER NOT NULL);`);
+    await db.exec(`CREATE TABLE IF NOT EXISTS system_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER NOT NULL);`);
+    await db.exec(`CREATE TABLE IF NOT EXISTS audit_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, actor_type TEXT NOT NULL, actor_id TEXT, actor_name TEXT, action TEXT NOT NULL, detail TEXT, ip TEXT, created_at INTEGER NOT NULL DEFAULT (unixepoch()));`);
 
     // Phase 2: add columns to existing tables (must run before indexes on those columns)
     await migrateAddColumn(db, 'emails', 'extracted_code', 'TEXT');
@@ -92,6 +102,8 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await migrateAddColumn(db, 'sent_emails', 'token_id', 'INTEGER');
     await migrateAddColumn(db, 'extract_rules', 'user_id', 'INTEGER');
     await migrateAddColumn(db, 'extract_rules', 'remark', 'TEXT');
+    await migrateAddColumn(db, 'users', 'rate_limit_per_min', 'INTEGER DEFAULT 60');
+    await migrateAddColumn(db, 'users', 'rate_limit_burst', 'INTEGER');
 
     // Phase 3: create indexes (after all columns exist)
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_mailboxes_address ON mailboxes(address);`);
@@ -110,6 +122,11 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_user_tokens_hash ON user_tokens(token_hash);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_announcement_reads_user ON announcement_reads(user_id);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_announcements_enabled ON announcements(enabled);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_rate_limit_hits_hit_at ON rate_limit_hits(hit_at);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_rate_limit_hits_ip ON rate_limit_hits(ip);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_rate_limit_hits_user_id ON rate_limit_hits(user_id);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);`);
 
     await seedAdminUser(db, adminPassword);
     await seedGuestUser(db);
@@ -178,11 +195,14 @@ export function getTodayUsageDate(): string {
 }
 
 function mapUser(row: Record<string, unknown>): User {
+  const burstRaw = row.rate_limit_burst as number | null | undefined;
   return {
     id: row.id as number,
     username: row.username as string,
     role: row.role as User['role'],
     dailySendQuota: row.daily_send_quota as number,
+    rateLimitPerMin: (row.rate_limit_per_min as number | null | undefined) ?? null,
+    rateLimitBurst: burstRaw != null && burstRaw > 0 ? burstRaw : null,
     enabled: !!row.enabled,
     createdAt: row.created_at as number,
     lastLoginAt: (row.last_login_at as number | null) ?? null,
@@ -1326,21 +1346,21 @@ export async function findInstantLatestEmail(
 
 export async function getUserById(db: D1Database, id: number): Promise<User | null> {
   const result = await db.prepare(
-    `SELECT id, username, role, daily_send_quota, enabled, created_at, last_login_at FROM users WHERE id = ?`
+    `SELECT id, username, role, daily_send_quota, rate_limit_per_min, rate_limit_burst, enabled, created_at, last_login_at FROM users WHERE id = ?`
   ).bind(id).first();
   return result ? mapUser(result as Record<string, unknown>) : null;
 }
 
 export async function getUserByUsername(db: D1Database, username: string): Promise<User | null> {
   const result = await db.prepare(
-    `SELECT id, username, role, daily_send_quota, enabled, created_at, last_login_at FROM users WHERE username = ?`
+    `SELECT id, username, role, daily_send_quota, rate_limit_per_min, rate_limit_burst, enabled, created_at, last_login_at FROM users WHERE username = ?`
   ).bind(username).first();
   return result ? mapUser(result as Record<string, unknown>) : null;
 }
 
 export async function listUsers(db: D1Database): Promise<User[]> {
   const results = await db.prepare(
-    `SELECT id, username, role, daily_send_quota, enabled, created_at, last_login_at FROM users ORDER BY created_at ASC`
+    `SELECT id, username, role, daily_send_quota, rate_limit_per_min, rate_limit_burst, enabled, created_at, last_login_at FROM users ORDER BY created_at ASC`
   ).all();
   if (!results.results) return [];
   return results.results.map((row) => mapUser(row as Record<string, unknown>));
@@ -1348,15 +1368,20 @@ export async function listUsers(db: D1Database): Promise<User[]> {
 
 export async function createUser(db: D1Database, params: CreateUserParams): Promise<User> {
   const passwordHash = await hashPassword(params.password);
+  const rateLimitPerMin = params.rateLimitPerMin ?? 60;
+  const rateLimitBurst =
+    params.rateLimitBurst != null && params.rateLimitBurst > 0 ? params.rateLimitBurst : null;
   const result = await db.prepare(
-    `INSERT INTO users (username, password_hash, role, daily_send_quota, enabled)
-     VALUES (?, ?, ?, ?, 1)
-     RETURNING id, username, role, daily_send_quota, enabled, created_at, last_login_at`
+    `INSERT INTO users (username, password_hash, role, daily_send_quota, rate_limit_per_min, rate_limit_burst, enabled)
+     VALUES (?, ?, ?, ?, ?, ?, 1)
+     RETURNING id, username, role, daily_send_quota, rate_limit_per_min, rate_limit_burst, enabled, created_at, last_login_at`
   ).bind(
     params.username,
     passwordHash,
     params.role ?? 'user',
-    params.dailySendQuota ?? 50
+    params.dailySendQuota ?? 50,
+    rateLimitPerMin,
+    rateLimitBurst
   ).first();
   return mapUser(result as Record<string, unknown>);
 }
@@ -1379,6 +1404,16 @@ export async function updateUser(db: D1Database, id: number, params: UpdateUserP
     id
   ).run();
 
+  if (params.rateLimitPerMin !== undefined) {
+    await db.prepare(`UPDATE users SET rate_limit_per_min = ? WHERE id = ?`)
+      .bind(params.rateLimitPerMin ?? 60, id)
+      .run();
+  }
+  if (params.rateLimitBurst !== undefined) {
+    const burst = params.rateLimitBurst != null && params.rateLimitBurst > 0 ? params.rateLimitBurst : null;
+    await db.prepare(`UPDATE users SET rate_limit_burst = ? WHERE id = ?`).bind(burst, id).run();
+  }
+
   return getUserById(db, id);
 }
 
@@ -1398,12 +1433,15 @@ export async function verifyUserToken(
   const tokenHash = await hashToken(token);
   const nowMs = Date.now();
   const result = await db.prepare(
-    `SELECT id, user_id, scopes FROM user_tokens WHERE token_hash = ? AND expires_at > ?`
+    `SELECT id, user_id, scopes, last_used_at FROM user_tokens WHERE token_hash = ? AND expires_at > ?`
   ).bind(tokenHash, nowMs).first();
 
   if (!result) return null;
 
-  await db.prepare(`UPDATE user_tokens SET last_used_at = ? WHERE id = ?`).bind(getCurrentTimestamp(), result.id).run();
+  const nowSec = getCurrentTimestamp();
+  if (shouldTouchTokenLastUsed(result.last_used_at as number | null, nowSec)) {
+    await db.prepare(`UPDATE user_tokens SET last_used_at = ? WHERE id = ?`).bind(nowSec, result.id).run();
+  }
 
   return {
     userId: result.user_id as number,
@@ -1496,9 +1534,9 @@ export async function countUserExtractRules(db: D1Database, userId: number): Pro
 export async function getUserTokenSummary(
   db: D1Database,
   userId: number
-): Promise<{ id: number; name: string | null; scopes: TokenScope[]; expiresAt: number } | null> {
+): Promise<{ id: number; name: string | null; scopes: TokenScope[]; expiresAt: number; lastUsedAt: number | null } | null> {
   const result = await db.prepare(
-    `SELECT id, name, scopes, expires_at FROM user_tokens WHERE user_id = ? ORDER BY created_at DESC LIMIT 1`
+    `SELECT id, name, scopes, expires_at, last_used_at FROM user_tokens WHERE user_id = ? ORDER BY created_at DESC LIMIT 1`
   ).bind(userId).first();
   if (!result) return null;
   return {
@@ -1506,6 +1544,7 @@ export async function getUserTokenSummary(
     name: result.name as string | null,
     scopes: parseScopes(result.scopes as string),
     expiresAt: result.expires_at as number,
+    lastUsedAt: (result.last_used_at as number | null) ?? null,
   };
 }
 
@@ -1679,4 +1718,248 @@ export async function markAllAnnouncementsRead(db: D1Database, userId: number): 
     await stmt.bind(userId, item.id, now).run();
   }
   return unread.length;
+}
+
+// ─── Rate limit hit monitoring ───────────────────────────────
+
+const RATE_LIMIT_HIT_RETENTION_SEC = 7 * 86400;
+
+export async function recordRateLimitHit(
+  db: D1Database,
+  params: { ip: string; userId?: number | null; path: string; hitAt?: number }
+): Promise<void> {
+  const hitAt = params.hitAt ?? getCurrentTimestamp();
+  await db
+    .prepare(`INSERT INTO rate_limit_hits (ip, user_id, path, hit_at) VALUES (?, ?, ?, ?)`)
+    .bind(params.ip, params.userId ?? null, params.path, hitAt)
+    .run();
+  const cutoff = hitAt - RATE_LIMIT_HIT_RETENTION_SEC;
+  await db.prepare(`DELETE FROM rate_limit_hits WHERE hit_at < ?`).bind(cutoff).run();
+}
+
+export async function getRateLimitStats(db: D1Database): Promise<RateLimitStats> {
+  const now = getCurrentTimestamp();
+  const startOfDay = now - (now % 86400);
+
+  const todayRow = await db
+    .prepare(`SELECT COUNT(*) as count FROM rate_limit_hits WHERE hit_at >= ?`)
+    .bind(startOfDay)
+    .first<{ count: number }>();
+
+  const topIpsResult = await db
+    .prepare(
+      `SELECT ip, COUNT(*) as count FROM rate_limit_hits WHERE hit_at >= ?
+       GROUP BY ip ORDER BY count DESC LIMIT 10`
+    )
+    .bind(startOfDay)
+    .all();
+
+  const topUsersResult = await db
+    .prepare(
+      `SELECT h.user_id, u.username, COUNT(*) as count
+       FROM rate_limit_hits h
+       INNER JOIN users u ON u.id = h.user_id
+       WHERE h.hit_at >= ? AND h.user_id IS NOT NULL
+       GROUP BY h.user_id
+       ORDER BY count DESC
+       LIMIT 10`
+    )
+    .bind(startOfDay)
+    .all();
+
+  return {
+    todayCount: todayRow?.count ?? 0,
+    topIps: (topIpsResult.results ?? []).map((row) => ({
+      ip: row.ip as string,
+      count: row.count as number,
+    })),
+    topUsers: (topUsersResult.results ?? []).map((row) => ({
+      userId: row.user_id as number,
+      username: row.username as string,
+      count: row.count as number,
+    })),
+  };
+}
+
+// ─── System settings & maintenance mode ──────────────────────
+
+const MAINTENANCE_MODE_KEY = 'maintenance_mode';
+
+function parseMaintenanceMode(raw: string | null | undefined): MaintenanceMode {
+  if (!raw) return { ...DEFAULT_MAINTENANCE_MODE };
+  try {
+    const parsed = JSON.parse(raw) as Partial<MaintenanceMode>;
+    return {
+      enabled: !!parsed.enabled,
+      message: typeof parsed.message === 'string' ? parsed.message : '',
+      blockLease: parsed.blockLease !== false,
+      blockSend: parsed.blockSend !== false,
+      blockMailboxCreate: parsed.blockMailboxCreate !== false,
+    };
+  } catch {
+    return { ...DEFAULT_MAINTENANCE_MODE };
+  }
+}
+
+export async function getSystemSetting(db: D1Database, key: string): Promise<string | null> {
+  const row = await db.prepare(`SELECT value FROM system_settings WHERE key = ?`).bind(key).first<{ value: string }>();
+  return row?.value ?? null;
+}
+
+export async function setSystemSetting(db: D1Database, key: string, value: string): Promise<void> {
+  const now = getCurrentTimestamp();
+  await db
+    .prepare(
+      `INSERT INTO system_settings (key, value, updated_at) VALUES (?, ?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
+    )
+    .bind(key, value, now)
+    .run();
+}
+
+export async function getMaintenanceMode(db: D1Database): Promise<MaintenanceMode> {
+  const raw = await getSystemSetting(db, MAINTENANCE_MODE_KEY);
+  return parseMaintenanceMode(raw);
+}
+
+export async function setMaintenanceMode(db: D1Database, mode: MaintenanceMode): Promise<MaintenanceMode> {
+  const normalized: MaintenanceMode = {
+    enabled: !!mode.enabled,
+    message: mode.message ?? '',
+    blockLease: !!mode.blockLease,
+    blockSend: !!mode.blockSend,
+    blockMailboxCreate: !!mode.blockMailboxCreate,
+  };
+  await setSystemSetting(db, MAINTENANCE_MODE_KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
+// ─── Local email / Brevo dashboard stats ───────────────────
+
+export async function getLocalEmailStats(db: D1Database): Promise<LocalEmailStats> {
+  const now = getCurrentTimestamp();
+  const startOfDay = now - (now % 86400);
+
+  const [sentToday, failedToday, failedTotal, userQuotaSum] = await Promise.all([
+    db
+      .prepare(`SELECT COUNT(*) as count FROM sent_emails WHERE created_at >= ?`)
+      .bind(startOfDay)
+      .first<{ count: number }>(),
+    db
+      .prepare(`SELECT COUNT(*) as count FROM sent_emails WHERE created_at >= ? AND status != 'sent'`)
+      .bind(startOfDay)
+      .first<{ count: number }>(),
+    db
+      .prepare(`SELECT COUNT(*) as count FROM sent_emails WHERE status != 'sent'`)
+      .first<{ count: number }>(),
+    db
+      .prepare(
+        `SELECT COALESCE(SUM(CASE WHEN daily_send_quota >= 0 THEN daily_send_quota ELSE 0 END), 0) as total
+         FROM users WHERE enabled = 1`
+      )
+      .first<{ total: number }>(),
+  ]);
+
+  return {
+    sentToday: sentToday?.count ?? 0,
+    failedToday: failedToday?.count ?? 0,
+    failedTotal: failedTotal?.count ?? 0,
+    userQuotaSum: userQuotaSum?.total ?? 0,
+  };
+}
+
+// ─── Audit logs ──────────────────────────────────────────────
+
+function mapAuditLogRow(row: Record<string, unknown>): AuditLog {
+  let detail: Record<string, unknown> | null = null;
+  const rawDetail = row.detail as string | null | undefined;
+  if (rawDetail) {
+    try {
+      detail = JSON.parse(rawDetail) as Record<string, unknown>;
+    } catch {
+      detail = { raw: rawDetail };
+    }
+  }
+  return {
+    id: row.id as number,
+    actorType: row.actor_type as AuditLog['actorType'],
+    actorId: (row.actor_id as string | null) ?? null,
+    actorName: (row.actor_name as string | null) ?? null,
+    action: row.action as string,
+    detail,
+    ip: (row.ip as string | null) ?? null,
+    createdAt: row.created_at as number,
+  };
+}
+
+export async function writeAuditLog(db: D1Database, params: WriteAuditLogParams): Promise<void> {
+  const detailJson =
+    params.detail != null && Object.keys(params.detail).length > 0
+      ? JSON.stringify(params.detail)
+      : null;
+  await db
+    .prepare(
+      `INSERT INTO audit_logs (actor_type, actor_id, actor_name, action, detail, ip, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      params.actorType,
+      params.actorId != null ? String(params.actorId) : null,
+      params.actorName ?? null,
+      params.action,
+      detailJson,
+      params.ip ?? null,
+      getCurrentTimestamp()
+    )
+    .run();
+}
+
+export interface ListAuditLogsParams {
+  page?: number;
+  limit?: number;
+  from?: number;
+  to?: number;
+}
+
+export async function listAuditLogs(
+  db: D1Database,
+  params: ListAuditLogsParams = {}
+): Promise<{ logs: AuditLog[]; total: number; page: number; limit: number }> {
+  const page = Math.max(1, params.page ?? 1);
+  const limit = Math.min(Math.max(params.limit ?? 50, 1), 200);
+  const offset = (page - 1) * limit;
+
+  const conditions: string[] = [];
+  const binds: Array<number> = [];
+  if (params.from != null) {
+    conditions.push('created_at >= ?');
+    binds.push(params.from);
+  }
+  if (params.to != null) {
+    conditions.push('created_at <= ?');
+    binds.push(params.to);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const countRow = await db
+    .prepare(`SELECT COUNT(*) as count FROM audit_logs ${where}`)
+    .bind(...binds)
+    .first<{ count: number }>();
+
+  const results = await db
+    .prepare(
+      `SELECT id, actor_type, actor_id, actor_name, action, detail, ip, created_at
+       FROM audit_logs ${where}
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?`
+    )
+    .bind(...binds, limit, offset)
+    .all();
+
+  return {
+    logs: (results.results ?? []).map((row) => mapAuditLogRow(row as Record<string, unknown>)),
+    total: countRow?.count ?? 0,
+    page,
+    limit,
+  };
 }
