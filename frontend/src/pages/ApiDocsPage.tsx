@@ -119,6 +119,44 @@ print(send)`;
         </section>
 
         <section className="space-y-4">
+          <h2 className="text-lg font-semibold">{t('apiDocs.listMailboxes.title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('apiDocs.listMailboxes.description')}</p>
+          <p className="text-sm font-medium">GET /api/mailboxes</p>
+          <CodeBlock>{`curl "${baseUrl}/api/mailboxes" \\
+  -H "Authorization: Bearer YOUR_TOKEN"`}</CodeBlock>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold">{t('apiDocs.latestCode.title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('apiDocs.latestCode.description')}</p>
+          <p className="text-sm font-medium">GET /api/mailboxes/:address/latest-code</p>
+          <CodeBlock>{`curl "${baseUrl}/api/mailboxes/abc123/latest-code" \\
+  -H "Authorization: Bearer YOUR_TOKEN"`}</CodeBlock>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold">{t('apiDocs.latestLink.title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('apiDocs.latestLink.description')}</p>
+          <p className="text-sm font-medium">GET /api/mailboxes/:address/latest-link</p>
+          <CodeBlock>{`curl "${baseUrl}/api/mailboxes/abc123/latest-link" \\
+  -H "Authorization: Bearer YOUR_TOKEN"`}</CodeBlock>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold">{t('apiDocs.rawEmail.title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('apiDocs.rawEmail.description')}</p>
+          <p className="text-sm font-medium">GET /api/emails/:id/raw</p>
+          <CodeBlock>{`curl "${baseUrl}/api/emails/EMAIL_ID/raw" \\
+  -H "Authorization: Bearer YOUR_TOKEN" \\
+  -o message.eml`}</CodeBlock>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold">{t('apiDocs.rateLimit.title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('apiDocs.rateLimit.description')}</p>
+        </section>
+
+        <section className="space-y-4">
           <h2 className="text-lg font-semibold">{t('apiDocs.mail.title')}</h2>
           <p className="text-sm text-muted-foreground">{t('apiDocs.mail.description')}</p>
           <p className="text-sm font-medium">GET /api/mail</p>
@@ -224,6 +262,10 @@ print(send)`;
                 <tr className="border-b border-border/50">
                   <td className="py-2 pr-4 font-mono text-foreground">408</td>
                   <td className="py-2">{t('apiDocs.errors.timeout')}</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-foreground">429</td>
+                  <td className="py-2">{t('apiDocs.errors.rateLimit')}</td>
                 </tr>
                 <tr>
                   <td className="py-2 pr-4 font-mono text-foreground">502</td>

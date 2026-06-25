@@ -2,11 +2,13 @@ import React, { createContext, useState, useEffect, ReactNode, useRef } from 're
 import { useTranslation } from 'react-i18next';
 import {
   createRandomMailbox,
+  createUserMailbox,
   getMailboxFromLocalStorage,
   saveMailboxToLocalStorage,
   removeMailboxFromLocalStorage,
   getEmails,
-  deleteMailbox as apiDeleteMailbox
+  deleteMailbox as apiDeleteMailbox,
+  UserMailboxItem,
 } from '../utils/api';
 import { useAuth } from './AuthContext';
 import { DEFAULT_AUTO_REFRESH, AUTO_REFRESH_INTERVAL } from '../config';
@@ -160,7 +162,9 @@ export const MailboxProvider: React.FC<MailboxProviderProps> = ({ children }) =>
       setErrorMessage(null);
       setSuccessMessage(null);
       setIsLoading(true);
-      const result = await createRandomMailbox();
+      const result = isAuthenticated
+        ? await createUserMailbox()
+        : await createRandomMailbox();
       if (result.success && result.mailbox) {
         setMailbox(result.mailbox);
         saveMailboxToLocalStorage(result.mailbox);

@@ -75,7 +75,11 @@
     "leaseCount": "Leases today",
     "leaseCountHint": "Mailboxes created via API",
     "usageDate": "Usage date",
-    "usedToday": "Used today"
+    "usedToday": "Used today",
+    "newInbox": "New inbox",
+    "activeInboxes": "Active inboxes",
+    "noActiveInboxes": "No active inboxes — click New inbox above",
+    "apiKeysQuick": "API keys"
   },
   "common": {
     "loading": "Loading...",
@@ -431,6 +435,26 @@
       "title": "POST /api/lease — Lease a mailbox",
       "description": "Create a new 24-hour temporary mailbox address."
     },
+    "listMailboxes": {
+      "title": "GET /api/mailboxes — List active mailboxes",
+      "description": "List non-expired mailboxes for the authenticated token. User tokens see only mailboxes they created; legacy tokens see recently active mailboxes."
+    },
+    "latestCode": {
+      "title": "GET /api/mailboxes/:address/latest-code — Latest OTP",
+      "description": "Non-blocking instant query for the most recent extracted verification code."
+    },
+    "latestLink": {
+      "title": "GET /api/mailboxes/:address/latest-link — Latest verification link",
+      "description": "Extract a verification URL from the latest email using common link patterns."
+    },
+    "rawEmail": {
+      "title": "GET /api/emails/:id/raw — Raw .eml download",
+      "description": "Returns stored raw MIME when available, otherwise reconstructs from database fields."
+    },
+    "rateLimit": {
+      "title": "Rate limiting",
+      "description": "Programmatic API responses include X-RateLimit-Limit and X-RateLimit-Remaining (60 requests per minute per token by default). HTTP 429 when exceeded."
+    },
     "mail": {
       "title": "GET /api/mail — Long-poll for mail",
       "description": "Wait for incoming mail and return the auto-extracted code. Repeated polls skip emails already returned—no manual since bump needed.",
@@ -463,7 +487,8 @@
       "badRequest": "Missing or invalid parameters.",
       "notFound": "Mailbox not found or expired.",
       "timeout": "No matching email within the timeout window.",
-      "sendFailed": "Outbound send failed (Brevo / MailChannels)."
+      "sendFailed": "Outbound send failed (Brevo / MailChannels).",
+      "rateLimit": "Rate limit exceeded (check X-RateLimit-* headers)."
     },
     "param": "Parameter",
     "description": "Description",

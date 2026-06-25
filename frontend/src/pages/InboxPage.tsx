@@ -1,11 +1,14 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import EmailList from '../components/EmailList';
 import HeaderMailbox from '../components/HeaderMailbox';
 import DashboardPageHeader from '../components/DashboardPageHeader';
 import StatCard from '../components/StatCard';
+import ActiveInboxesList from '../components/ActiveInboxesList';
+import ApiTokenManager from '../components/ApiTokenManager';
 import { MailboxContext } from '../contexts/MailboxContext';
 import { getEmailDomains, getDefaultEmailDomain, EMAIL_DOMAINS, DEFAULT_EMAIL_DOMAIN } from '../config';
+import { UserMailboxItem } from '../utils/api';
 
 const InboxPage: React.FC = () => {
   const { t } = useTranslation();
@@ -17,12 +20,15 @@ const InboxPage: React.FC = () => {
     selectedEmail,
     setSelectedEmail,
     isEmailsLoading,
+    createNewMailbox,
+    refreshEmails,
   } = useContext(MailboxContext);
 
-  const [emailDomains, setEmailDomains] = useState<string[]>(EMAIL_DOMAINS);
-  const [defaultDomain, setDefaultDomain] = useState<string>(DEFAULT_EMAIL_DOMAIN);
+  const [emailDomains, setEmailDomains] = React.useState<string[]>(EMAIL_DOMAINS);
+  const [defaultDomain, setDefaultDomain] = React.useState<string>(DEFAULT_EMAIL_DOMAIN);
+  const [creating, setCreating] = React.useState(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const loadConfig = async () => {
       try {
         const domains = await getEmailDomains();
@@ -47,6 +53,28 @@ const InboxPage: React.FC = () => {
     return t('mailbox.expiresInMinutes', { minutes });
   };
 
+  const handleNewInbox = async () => {
+    setCreating(true);
+    try {
+      await createNewMailbox();
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleSelectInbox = (mb: UserMailboxItem) => {
+    setMailbox({
+      id: mb.id,
+      address: mb.address,
+      createdAt: mb.createdAt,
+      expiresAt: mb.expiresAt,
+      ipAddress: mb.ipAddress,
+      lastAccessed: mb.lastAccessed,
+    });
+    setSelectedEmail(null);
+    refreshEmails();
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[40vh]">
@@ -61,6 +89,16 @@ const InboxPage: React.FC = () => {
         breadcrumb={t('dashboard.breadcrumbInbox')}
         title={t('dashboard.inboxTitle')}
         subtitle={t('dashboard.inboxSubtitle')}
+        action={
+          <button
+            onClick={handleNewInbox}
+            disabled={creating}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            <i className={`fas fa-plus ${creating ? 'animate-spin' : ''}`} />
+            {t('dashboard.newInbox')}
+          </button>
+        }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -81,6 +119,19 @@ const InboxPage: React.FC = () => {
           icon="fas fa-clock"
           hint={t('dashboard.statTtlHint')}
         />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ActiveInboxesList
+          activeAddress={mailbox?.address}
+          onSelect={handleSelectInbox}
+        />
+        <div className="border rounded-lg p-4 bg-card">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+            {t('dashboard.apiKeysQuick')}
+          </h2>
+          <ApiTokenManager compact />
+        </div>
       </div>
 
       {mailbox && (

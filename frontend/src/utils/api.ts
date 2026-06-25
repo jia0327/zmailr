@@ -3,7 +3,7 @@ import { API_BASE_URL } from "../config";
 // API请求基础URL
 const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
 
-// 创建随机邮箱
+// 创建随机邮箱（匿名 Web API，保持向后兼容）
 export const createRandomMailbox = async (expiresInHours = 24) => {
   try {
     const requestBody = JSON.stringify({
@@ -31,6 +31,46 @@ export const createRandomMailbox = async (expiresInHours = 24) => {
     }
   } catch (error) {
     return { success: false, error };
+  }
+};
+
+export interface UserMailboxItem {
+  id: string;
+  address: string;
+  email?: string;
+  createdAt: number;
+  expiresAt: number;
+  ipAddress: string;
+  lastAccessed: number;
+}
+
+export const getUserMailboxes = async () => {
+  try {
+    const response = await fetch(apiUrl('/api/user/mailboxes'), fetchOpts);
+    if (response.status === 401) return { success: false as const, error: 'Unauthorized' };
+    const data = await response.json();
+    if (data.success) {
+      return { success: true as const, mailboxes: data.mailboxes as UserMailboxItem[] };
+    }
+    return { success: false as const, error: data.error };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export const createUserMailbox = async (address?: string) => {
+  try {
+    const response = await fetch(apiUrl('/api/user/mailboxes'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(address ? { address } : {}),
+    });
+    const data = await response.json();
+    if (data.success) return { success: true as const, mailbox: data.mailbox };
+    return { success: false as const, error: data.error };
+  } catch {
+    return { success: false as const, error: 'Network error' };
   }
 };
 

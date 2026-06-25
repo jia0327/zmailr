@@ -4,7 +4,11 @@ import { createUserToken, deleteUserToken, UserTokenItem } from '../utils/api';
 
 const ALL_SCOPES = ['lease', 'mail', 'send'] as const;
 
-const ApiTokenManager: React.FC = () => {
+interface ApiTokenManagerProps {
+  compact?: boolean;
+}
+
+const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) => {
   const { t } = useTranslation();
   const [tokens, setTokens] = useState<UserTokenItem[]>([]);
   const [tokensLoading, setTokensLoading] = useState(false);
@@ -75,9 +79,9 @@ const ApiTokenManager: React.FC = () => {
         </div>
       )}
 
-      <div className="border rounded-lg p-4 bg-card">
+      <div className={compact ? 'space-y-3' : 'border rounded-lg p-4 bg-card'}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold">{t('auth.apiTokens')}</h2>
+          <h2 className={compact ? 'text-sm font-semibold' : 'font-semibold'}>{t('auth.apiTokens')}</h2>
           <button
             onClick={() => setShowCreate(!showCreate)}
             className="text-sm px-3 py-1.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"

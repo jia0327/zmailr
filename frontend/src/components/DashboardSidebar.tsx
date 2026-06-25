@@ -27,6 +27,9 @@ const DashboardSidebar: React.FC = () => {
   return (
     <aside className="w-60 shrink-0 border-r bg-card flex flex-col min-h-screen">
       <div className="p-4 border-b">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-lg font-bold tracking-tight">zMailR</span>
+        </div>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-semibold">
             {initial}
