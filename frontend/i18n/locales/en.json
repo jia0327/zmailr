@@ -501,7 +501,7 @@
       "legacyDescription": "Unlimited tokens without user quotas can still be created at the admin panel:",
       "headerNote": "Include this header on every programmatic request:",
       "sessionVsBearerTitle": "Session vs Bearer",
-      "sessionVsBearer": "Web UI routes (POST /api/user/mailboxes, POST /api/user/send, inbox/outbox in the browser) use the login session cookie. Bearer tokens are for automation scripts calling /api/lease, /api/mail, /api/send, and related programmatic endpoints. Anonymous POST /api/mailboxes and DELETE /api/mailboxes/:address require no auth."
+      "sessionVsBearer": "Web UI routes (POST /api/user/mailboxes, POST /api/user/send, inbox/outbox in the browser) use the login session cookie with credentials: include. Bearer tokens are for automation scripts calling /api/lease, /api/mail, /api/send, and related programmatic endpoints. All mailbox and email routes require either a valid session (owner) or Bearer token (mail scope + ownership). Anonymous POST /api/mailboxes returns 401."
     },
     "lease": {
       "title": "POST /api/lease — Create random mailbox",
@@ -534,8 +534,8 @@
     },
     "emailDetail": {
       "title": "GET /api/emails/:id — Email detail",
-      "description": "Returns parsed email fields (subject, from, text/html body, receivedAt) as JSON. No Bearer token required.",
-      "usageHint": "Use the email id from /api/mail or mailbox list responses. Public read — no auth header needed.",
+      "description": "Returns parsed email fields (subject, from, text/html body, receivedAt) as JSON. Requires login session (mailbox owner) or Bearer token with mail scope.",
+      "usageHint": "Use the email id from /api/mail or mailbox list responses. Requires auth — session cookie or Bearer mail scope.",
       "params": {
         "id": "Required. Email UUID from a prior API or web UI response."
       }
@@ -543,7 +543,7 @@
     "rawEmail": {
       "title": "GET /api/emails/:id/raw — Raw .eml download",
       "description": "Returns stored raw MIME when available, otherwise reconstructs from database fields.",
-      "usageHint": "Requires mail scope when using Bearer auth. Save response as .eml for debugging or archival.",
+      "usageHint": "Requires mail scope (Bearer) or login session (owner). Save response as .eml for debugging or archival.",
       "params": {
         "id": "Required. Email UUID from a prior API or web UI response."
       }
@@ -582,7 +582,7 @@
       "title": "Error codes",
       "code": "HTTP",
       "meaning": "Description",
-      "unauthorized": "Missing or invalid Bearer token.",
+      "unauthorized": "Missing or invalid auth (Bearer token or login session).",
       "badRequest": "Missing or invalid parameters.",
       "notFound": "Mailbox not found or expired.",
       "timeout": "No matching email within the timeout window.",
@@ -592,20 +592,20 @@
     "param": "Parameter",
     "description": "Description",
     "responseExample": "Response example:",
-    "webApiNote": "Web frontend routes (/api/mailboxes, POST /api/user/mailboxes, etc.) use login session auth, not Bearer tokens. Mail list endpoints also return extractedCode.",
+    "webApiNote": "Web frontend routes use login session auth (credentials: include). Programmatic routes use Bearer tokens. All mailbox/email read and delete operations require auth and ownership.",
     "mailboxOps": {
       "title": "Mailbox create & delete",
       "randomTitle": "Random mailbox",
       "randomLease": "POST /api/lease — Bearer Token (lease scope); random address tied to token owner.",
-      "randomMailboxes": "POST /api/mailboxes — no auth; omit address for random generation, not tied to a user.",
+      "randomMailboxes": "POST /api/mailboxes — returns 401; use POST /api/user/mailboxes (session) or POST /api/lease (Bearer).",
       "randomUserMailboxes": "POST /api/user/mailboxes — login session; omit address for random generation, tied to current user.",
       "customTitle": "Custom mailbox",
-      "customMailboxes": "POST /api/mailboxes — no auth; body {\"address\": \"local-part\"}.",
+      "customMailboxes": "POST /api/mailboxes — returns 401; use POST /api/user/mailboxes (session) or POST /api/lease (Bearer).",
       "customUserMailboxes": "POST /api/user/mailboxes — login session; body {\"address\": \"local-part\"}.",
       "deleteTitle": "Delete mailbox",
-      "deleteMailboxes": "DELETE /api/mailboxes/:address — delete by local-part, no Bearer Token required.",
-      "deleteUserNote": "No DELETE /api/user/mailboxes endpoint yet; use DELETE /api/mailboxes/:address from the web UI.",
-      "usageHint": "No auth required. Pass mailbox local-part in the URL path (e.g. abc123).",
+      "deleteMailboxes": "DELETE /api/mailboxes/:address — session (owner) or Bearer (mail scope + ownership).",
+      "deleteUserNote": "Web UI and API both use DELETE /api/mailboxes/:address with session or Bearer auth.",
+      "usageHint": "Requires session (mailbox owner) or Bearer mail scope. Pass mailbox local-part in the URL path (e.g. abc123).",
       "params": {
         "address": "Required. Mailbox local-part to delete (e.g. abc123)."
       }
@@ -622,7 +622,7 @@
     "colPath": "Path",
     "colScope": "Scope",
     "examplesTitle": "curl examples",
-    "deleteDesc": "Delete a mailbox by local-part. No Bearer token required.",
+    "deleteDesc": "Delete a mailbox by local-part. Requires session (owner) or Bearer mail scope.",
     "rateLimitNote": "All API calls share 60 requests per minute per IP. Responses include X-RateLimit-Limit, X-RateLimit-Remaining, and Retry-After.",
     "viewFullDocs": "Full documentation",
     "viewFullApiDocs": "View full API documentation",

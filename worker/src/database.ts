@@ -176,6 +176,18 @@ export async function createMailbox(db: D1Database, params: CreateMailboxParams)
  * @param address 邮箱地址
  * @returns 邮箱信息
  */
+function rowToMailbox(result: Record<string, unknown>, lastAccessed?: number): Mailbox {
+  return {
+    id: result.id as string,
+    address: result.address as string,
+    createdAt: result.created_at as number,
+    expiresAt: result.expires_at as number,
+    ipAddress: result.ip_address as string,
+    lastAccessed: lastAccessed ?? (result.last_accessed as number),
+    userId: (result.user_id as number | null) ?? null,
+  };
+}
+
 export async function getMailbox(db: D1Database, address: string): Promise<Mailbox | null> {
   const now = getCurrentTimestamp();
   const result = await db.prepare(`SELECT id, address, created_at, expires_at, ip_address, last_accessed, user_id FROM mailboxes WHERE address = ? AND expires_at > ?`).bind(address, now).first();
@@ -185,15 +197,21 @@ export async function getMailbox(db: D1Database, address: string): Promise<Mailb
   // 更新最后访问时间
   await db.prepare(`UPDATE mailboxes SET last_accessed = ? WHERE id = ?`).bind(now, result.id).run();
   
-  return {
-    id: result.id as string,
-    address: result.address as string,
-    createdAt: result.created_at as number,
-    expiresAt: result.expires_at as number,
-    ipAddress: result.ip_address as string,
-    lastAccessed: now,
-    userId: (result.user_id as number | null) ?? null,
-  };
+  return rowToMailbox(result as Record<string, unknown>, now);
+}
+
+export async function getMailboxById(db: D1Database, id: string): Promise<Mailbox | null> {
+  const now = getCurrentTimestamp();
+  const result = await db
+    .prepare(
+      `SELECT id, address, created_at, expires_at, ip_address, last_accessed, user_id
+       FROM mailboxes WHERE id = ? AND expires_at > ?`
+    )
+    .bind(id, now)
+    .first();
+
+  if (!result) return null;
+  return rowToMailbox(result as Record<string, unknown>);
 }
 
 /**

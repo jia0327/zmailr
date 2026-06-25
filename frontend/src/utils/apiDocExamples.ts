@@ -23,7 +23,8 @@ export function curlLatestLink(baseUrl: string): string {
 }
 
 export function curlDeleteMailbox(baseUrl: string): string {
-  return `curl -X DELETE "${baseUrl}/api/mailboxes/abc123"`;
+  return `curl -X DELETE "${baseUrl}/api/mailboxes/abc123" \\
+  -H "Authorization: Bearer YOUR_TOKEN"`;
 }
 
 export function curlRawEmail(baseUrl: string): string {

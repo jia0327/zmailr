@@ -55,9 +55,9 @@
 | `GET /api/mailboxes/:address/latest-code` | mail | 非阻塞查询最新验证码 |
 | `GET /api/mailboxes/:address/latest-link` | mail | 从最新邮件提取验证链接 |
 | `GET /api/mail?to=...` | mail | 长轮询等待新邮件（默认最长 60s），返回 `code` 与邮件摘要 |
-| `GET /api/emails/:id/raw` | mail | 下载原始 `.eml`（Bearer 或 Web 匿名） |
+| `GET /api/emails/:id/raw` | mail | 下载原始 `.eml`（Bearer 或登录会话 + 所有权） |
 | `POST /api/send` | send | 发送邮件（`to`、`subject`、`text`/`html`；可选 `from` 指定已租用邮箱） |
-| `DELETE /api/mailboxes/:address` | — | 按 local-part 删除邮箱（无需 Token） |
+| `DELETE /api/mailboxes/:address` | mail | 按 local-part 删除邮箱（会话所有者或 Bearer + 所有权） |
 
 响应头含 `X-RateLimit-Limit` / `X-RateLimit-Remaining`（默认 60 次/分钟/Token）。完整说明见 [`/api-docs`](/api-docs) 或 Dashboard API Keys 页。
 

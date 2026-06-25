@@ -501,7 +501,7 @@
       "legacyDescription": "无用户配额限制的管理员 Token 仍可在管理后台创建：",
       "headerNote": "每个程序化请求需携带以下 Header：",
       "sessionVsBearerTitle": "会话 vs Bearer",
-      "sessionVsBearer": "Web 界面路由（POST /api/user/mailboxes、POST /api/user/send、浏览器收件箱/发件箱）使用登录会话 Cookie。Bearer Token 供自动化脚本调用 /api/lease、/api/mail、/api/send 等接口。匿名 POST /api/mailboxes 与 DELETE /api/mailboxes/:address 无需鉴权。"
+      "sessionVsBearer": "Web 界面路由（POST /api/user/mailboxes、POST /api/user/send、浏览器收件箱/发件箱）使用登录会话 Cookie（credentials: include）。Bearer Token 供自动化脚本调用 /api/lease、/api/mail、/api/send 等接口。所有邮箱与邮件路由均需有效会话（所有者）或 Bearer Token（mail 权限 + 所有权校验）。匿名 POST /api/mailboxes 返回 401。"
     },
     "lease": {
       "title": "POST /api/lease — 创建随机临时邮箱",
@@ -534,8 +534,8 @@
     },
     "emailDetail": {
       "title": "GET /api/emails/:id — 邮件详情",
-      "description": "以 JSON 返回解析后的邮件字段（主题、发件人、text/html 正文、receivedAt 等）。无需 Bearer Token。",
-      "usageHint": "使用 /api/mail 或邮箱列表响应中的邮件 id。公开读取，无需鉴权头。",
+      "description": "以 JSON 返回解析后的邮件字段（主题、发件人、text/html 正文、receivedAt 等）。需登录会话（邮箱所有者）或 Bearer Token（mail 权限）。",
+      "usageHint": "使用 /api/mail 或邮箱列表响应中的邮件 id。需鉴权 — 会话 Cookie 或 Bearer mail 权限。",
       "params": {
         "id": "必填。来自 API 或 Web 界面响应的邮件 UUID。"
       }
@@ -543,7 +543,7 @@
     "rawEmail": {
       "title": "GET /api/emails/:id/raw — 下载原始 .eml",
       "description": "若已存储原始 MIME 则直接返回，否则从数据库字段重建。",
-      "usageHint": "使用 Bearer 鉴权时需要 mail 权限。将响应保存为 .eml 文件以便调试或归档。",
+      "usageHint": "需 mail 权限（Bearer）或登录会话（所有者）。将响应保存为 .eml 文件以便调试或归档。",
       "params": {
         "id": "必填。来自 API 或 Web 界面响应的邮件 UUID。"
       }
@@ -582,7 +582,7 @@
       "title": "错误码",
       "code": "HTTP",
       "meaning": "说明",
-      "unauthorized": "缺少或无效的 Bearer Token。",
+      "unauthorized": "缺少或无效的鉴权（Bearer Token 或登录会话）。",
       "badRequest": "缺少或无效的请求参数。",
       "notFound": "邮箱不存在或已过期。",
       "timeout": "在超时时间内未收到匹配的邮件。",
@@ -592,20 +592,20 @@
     "param": "参数",
     "description": "说明",
     "responseExample": "响应示例：",
-    "webApiNote": "Web 前端接口（/api/mailboxes、POST /api/user/mailboxes 等）使用登录会话鉴权，无需 Bearer Token。邮件列表接口同样返回 extractedCode 字段。",
+    "webApiNote": "Web 前端路由使用登录会话鉴权（credentials: include）。程序化接口使用 Bearer Token。所有邮箱/邮件读写与删除均需鉴权及所有权校验。",
     "mailboxOps": {
       "title": "邮箱创建与删除",
       "randomTitle": "随机邮箱",
       "randomLease": "POST /api/lease — Bearer Token（lease 权限），随机地址并关联 Token 用户。",
-      "randomMailboxes": "POST /api/mailboxes — 无需鉴权，省略 address 时随机生成，不关联用户。",
+      "randomMailboxes": "POST /api/mailboxes — 返回 401；请使用 POST /api/user/mailboxes（会话）或 POST /api/lease（Bearer）。",
       "randomUserMailboxes": "POST /api/user/mailboxes — 登录会话，省略 address 时随机生成，关联当前用户。",
       "customTitle": "自定义邮箱",
-      "customMailboxes": "POST /api/mailboxes — 无需鉴权，请求体 {\"address\": \"local-part\"}。",
+      "customMailboxes": "POST /api/mailboxes — 返回 401；请使用 POST /api/user/mailboxes（会话）或 POST /api/lease（Bearer）。",
       "customUserMailboxes": "POST /api/user/mailboxes — 登录会话，请求体 {\"address\": \"local-part\"}。",
       "deleteTitle": "删除邮箱",
-      "deleteMailboxes": "DELETE /api/mailboxes/:address — 按 local-part 删除，无需 Bearer Token。",
-      "deleteUserNote": "尚无 DELETE /api/user/mailboxes 接口；Web 端删除请使用 DELETE /api/mailboxes/:address。",
-      "usageHint": "无需鉴权。URL 路径中传入邮箱 local-part（如 abc123）。",
+      "deleteMailboxes": "DELETE /api/mailboxes/:address — 会话（所有者）或 Bearer（mail 权限 + 所有权）。",
+      "deleteUserNote": "Web 与 API 均使用 DELETE /api/mailboxes/:address，需会话或 Bearer 鉴权。",
+      "usageHint": "需会话（邮箱所有者）或 Bearer mail 权限。URL 路径中传入邮箱 local-part（如 abc123）。",
       "params": {
         "address": "必填。要删除的邮箱 local-part（如 abc123）。"
       }
@@ -622,7 +622,7 @@
     "colPath": "路径",
     "colScope": "权限",
     "examplesTitle": "curl 示例",
-    "deleteDesc": "按 local-part 删除邮箱，无需 Bearer Token。",
+    "deleteDesc": "按 local-part 删除邮箱。需会话（所有者）或 Bearer mail 权限。",
     "rateLimitNote": "所有 API 调用共享每 IP 每分钟 60 次限额，响应包含 X-RateLimit-Limit、X-RateLimit-Remaining 与 Retry-After。",
     "viewFullDocs": "完整文档",
     "viewFullApiDocs": "查看完整 API 文档",

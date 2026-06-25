@@ -1,5 +1,5 @@
 import { D1Database } from '@cloudflare/workers-types';
-import { Env, ApiAuthContext, TokenScope, User } from './types';
+import { Env, ApiAuthContext, TokenScope, User, Mailbox } from './types';
 import {
   verifyApiToken,
   verifyUserToken,
@@ -51,6 +51,24 @@ export async function authenticateApiToken(
 
 export function hasScope(auth: ApiAuthContext, scope: TokenScope): boolean {
   return auth.scopes.includes(scope);
+}
+
+export interface AccessContext {
+  user?: User | null;
+  auth?: ApiAuthContext | null;
+}
+
+/** Returns true when the caller may read/write the given mailbox. */
+export function assertMailboxAccess(mailbox: Mailbox, ctx: AccessContext): boolean {
+  if (mailbox.userId != null) {
+    if (ctx.user?.id === mailbox.userId) return true;
+    if (ctx.auth?.type === 'user' && ctx.auth.userId === mailbox.userId) return true;
+    return false;
+  }
+  // Legacy mailboxes without user_id: legacy Bearer token or admin session only
+  if (ctx.auth?.type === 'legacy') return true;
+  if (ctx.user?.role === 'admin') return true;
+  return false;
 }
 
 export function verifyAdminPassword(env: Env, password: string): boolean {

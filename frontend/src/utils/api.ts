@@ -3,36 +3,7 @@ import { API_BASE_URL } from "../config";
 // API请求基础URL
 const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
 
-// 创建随机邮箱（匿名 Web API，保持向后兼容）
-export const createRandomMailbox = async (expiresInHours = 24) => {
-  try {
-    const requestBody = JSON.stringify({
-      expiresInHours,
-    });
-    
-    const response = await fetch(apiUrl('/api/mailboxes'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: requestBody,
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to create mailbox');
-    }
-    
-    const data = await response.json();
-    
-    if (data.success) {
-      return { success: true, mailbox: data.mailbox };
-    } else {
-      throw new Error(data.error || 'Unknown error');
-    }
-  } catch (error) {
-    return { success: false, error };
-  }
-};
+const fetchOpts = { credentials: 'include' as RequestCredentials };
 
 export interface UserMailboxItem {
   id: string;
@@ -74,54 +45,28 @@ export const createUserMailbox = async (address?: string) => {
   }
 };
 
-// 创建自定义邮箱
-export const createCustomMailbox = async (address: string, expiresInHours = 24) => {
-  try {
-    if (!address.trim()) {
-      return { success: false, error: 'Invalid address' };
-    }
-    
-    const response = await fetch(apiUrl('/api/mailboxes'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        address: address.trim(),
-        expiresInHours,
-      }),
-    });
-    
-    // 尝试解析响应内容
-    const data = await response.json();
-    
-    if (!response.ok) {
-      if (response.status === 400) {
-        // 使用后端返回的错误信息
-        return { success: false, error: data.error || 'Address already exists' };
-      }
-      throw new Error(data.error || 'Failed to create mailbox');
-    }
-    
-    if (data.success) {
-      return { success: true, mailbox: data.mailbox };
-    } else {
-      throw new Error(data.error || 'Unknown error');
-    }
-  } catch (error) {
-    console.error('Error creating custom mailbox:', error);
-    return { success: false, error };
+/** @deprecated Use createUserMailbox — anonymous POST /api/mailboxes is disabled */
+export const createRandomMailbox = createUserMailbox;
+
+/** @deprecated Use createUserMailbox — anonymous POST /api/mailboxes is disabled */
+export const createCustomMailbox = async (address: string) => {
+  if (!address.trim()) {
+    return { success: false as const, error: 'Invalid address' };
   }
+  return createUserMailbox(address.trim());
 };
 
 // 获取邮箱信息
 export const getMailbox = async (address: string) => {
   try {
-    const response = await fetch(apiUrl(`/api/mailboxes/${address}`));
+    const response = await fetch(apiUrl(`/api/mailboxes/${address}`), fetchOpts);
     
     if (!response.ok) {
       if (response.status === 404) {
         return { success: false, error: 'Mailbox not found' };
+      }
+      if (response.status === 401) {
+        return { success: false, error: 'Unauthorized' };
       }
       throw new Error('Failed to fetch mailbox');
     }
@@ -141,16 +86,18 @@ export const getMailbox = async (address: string) => {
 // 获取邮件列表
 export const getEmails = async (address: string) => {
   try {
-    // 检查地址是否为空
     if (!address) {
       return { success: false, error: 'Address is empty', emails: [] };
     }
     
-    const response = await fetch(apiUrl(`/api/mailboxes/${address}/emails`));
+    const response = await fetch(apiUrl(`/api/mailboxes/${address}/emails`), fetchOpts);
     
-    // 直接处理404状态码
     if (response.status === 404) {
       return { success: false, error: 'Mailbox not found', notFound: true };
+    }
+
+    if (response.status === 401) {
+      return { success: false, error: 'Unauthorized', emails: [] };
     }
     
     if (!response.ok) {
@@ -162,7 +109,6 @@ export const getEmails = async (address: string) => {
     if (data.success) {
       return { success: true, emails: data.emails };
     } else {
-      // 检查错误信息是否包含"邮箱不存在"
       if (data.error && (data.error.includes('邮箱不存在') || data.error.includes('Mailbox not found'))) {
         return { success: false, error: data.error, notFound: true };
       }
@@ -178,8 +124,13 @@ export const deleteMailbox = async (address: string) => {
   try {
     const response = await fetch(apiUrl(`/api/mailboxes/${address}`), {
       method: 'DELETE',
+      credentials: 'include',
     });
     
+    if (response.status === 401) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
     if (!response.ok) {
       throw new Error('Failed to delete mailbox');
     }
@@ -213,7 +164,6 @@ export const getMailboxFromLocalStorage = (): Mailbox | null => {
     const mailbox = JSON.parse(savedMailbox) as Mailbox & { savedAt: number };
     const now = Date.now() / 1000;
     
-    // 检查邮箱是否过期
     if (mailbox.expiresAt < now) {
       localStorage.removeItem('tempMailbox');
       return null;
@@ -230,8 +180,6 @@ export const getMailboxFromLocalStorage = (): Mailbox | null => {
 export const removeMailboxFromLocalStorage = () => {
   localStorage.removeItem('tempMailbox');
 };
-
-const fetchOpts = { credentials: 'include' as RequestCredentials };
 
 export interface AuthUser {
   id: number;
@@ -473,4 +421,4 @@ export const deleteUserExtractRule = async (id: number) => {
   } catch {
     return { success: false as const, error: 'Network error' };
   }
-}; 
+};

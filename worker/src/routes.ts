@@ -1,11 +1,12 @@
 import { D1Database } from '@cloudflare/workers-types';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { Env, ApiAuthContext, TokenScope, User } from './types';
+import { Env, ApiAuthContext, TokenScope, User, Mailbox, Email } from './types';
 import { 
   createMailbox, 
-  getMailbox, 
-  deleteMailbox, 
+  getMailbox,
+  getMailboxById,
+  deleteMailbox,
   getEmails, 
   getEmail, 
   deleteEmail,
@@ -55,6 +56,7 @@ import { generateRandomAddress, getMailDomain, parseMailboxAddress, getCurrentTi
 import {
   authenticateApiToken,
   hasScope,
+  assertMailboxAccess,
   isAdminAuthenticated,
   verifyAdminPassword,
   createAdminSessionCookie,
@@ -136,46 +138,12 @@ app.get('/api/config', async (c) => {
 });
 
 
-// 创建邮箱
+// 创建邮箱（已废弃匿名创建；请使用 POST /api/user/mailboxes 或 POST /api/lease）
 app.post('/api/mailboxes', async (c) => {
-  try {
-    const body = await c.req.json();
-    
-    // 验证参数
-    if (body.address && typeof body.address !== 'string') {
-      return c.json({ success: false, error: '无效的邮箱地址' }, 400);
-    }
-    
-    const expiresInHours = 24; // 固定24小时有效期
-    
-    // 获取客户端IP
-    const ip = getClientIp(c.req.raw);
-    
-    // 生成或使用提供的地址
-    const address = body.address || generateRandomAddress();
-    
-    // 检查邮箱是否已存在
-    const existingMailbox = await getMailbox(c.env.DB, address);
-    if (existingMailbox) {
-      return c.json({ success: false, error: '邮箱地址已存在' }, 400);
-    }
-    
-    // 创建邮箱
-    const mailbox = await createMailbox(c.env.DB, {
-      address,
-      expiresInHours,
-      ipAddress: ip,
-    });
-    
-    return c.json({ success: true, mailbox });
-  } catch (error) {
-    console.error('创建邮箱失败:', error);
-    return c.json({ 
-      success: false, 
-      error: '创建邮箱失败',
-      message: error instanceof Error ? error.message : String(error)
-    }, 400);
-  }
+  return c.json({
+    success: false,
+    error: '未授权，请登录后使用 POST /api/user/mailboxes，或使用 Bearer Token 调用 POST /api/lease',
+  }, 401);
 });
 
 // 列出活跃邮箱（Bearer Token）
@@ -218,6 +186,9 @@ app.get('/api/mailboxes/:address', async (c) => {
     if (!mailbox) {
       return c.json({ success: false, error: '邮箱不存在' }, 404);
     }
+
+    const accessErr = await requireMailboxAuth(c, mailbox, 'mail');
+    if (accessErr) return accessErr;
     
     return c.json({ success: true, mailbox });
   } catch (error) {
@@ -234,6 +205,14 @@ app.get('/api/mailboxes/:address', async (c) => {
 app.delete('/api/mailboxes/:address', async (c) => {
   try {
     const address = c.req.param('address');
+    const mailbox = await getMailbox(c.env.DB, address);
+    if (!mailbox) {
+      return c.json({ success: false, error: '邮箱不存在' }, 404);
+    }
+
+    const accessErr = await requireMailboxAuth(c, mailbox, 'mail');
+    if (accessErr) return accessErr;
+
     await deleteMailbox(c.env.DB, address);
     
     return c.json({ success: true });
@@ -255,6 +234,9 @@ app.get('/api/mailboxes/:address/latest-code', async (c) => {
   try {
     const resolved = await resolveMailboxFromParam(c, c.req.param('address'));
     if (resolved.error) return resolved.error;
+
+    const accessErr = await requireMailboxAuth(c, resolved.mailbox!, 'mail');
+    if (accessErr) return accessErr;
 
     const email = await findInstantLatestEmailWithCode(c.env.DB, resolved.mailbox!.id);
     if (!email) {
@@ -289,6 +271,9 @@ app.get('/api/mailboxes/:address/latest-link', async (c) => {
   try {
     const resolved = await resolveMailboxFromParam(c, c.req.param('address'));
     if (resolved.error) return resolved.error;
+
+    const accessErr = await requireMailboxAuth(c, resolved.mailbox!, 'mail');
+    if (accessErr) return accessErr;
 
     const email = await findInstantLatestEmail(c.env.DB, resolved.mailbox!.id);
     if (!email) {
@@ -329,6 +314,9 @@ app.get('/api/mailboxes/:address/emails', async (c) => {
     if (!mailbox) {
       return c.json({ success: false, error: '邮箱不存在' }, 404);
     }
+
+    const accessErr = await requireMailboxAuth(c, mailbox, 'mail');
+    if (accessErr) return accessErr;
     
     const emails = await getEmails(c.env.DB, mailbox.id);
     
@@ -347,13 +335,10 @@ app.get('/api/mailboxes/:address/emails', async (c) => {
 app.get('/api/emails/:id', async (c) => {
   try {
     const id = c.req.param('id');
-    const email = await getEmail(c.env.DB, id);
-    
-    if (!email) {
-      return c.json({ success: false, error: '邮件不存在' }, 404);
-    }
-    
-    return c.json({ success: true, email });
+    const access = await requireEmailAccess(c, id, 'mail');
+    if (access instanceof Response) return access;
+
+    return c.json({ success: true, email: access.email });
   } catch (error) {
     console.error('获取邮件详情失败:', error);
     return c.json({ 
@@ -364,17 +349,13 @@ app.get('/api/emails/:id', async (c) => {
   }
 });
 
-// 下载原始邮件（Bearer Token 或公开 Web 路由）
+// 下载原始邮件（Bearer mail scope 或登录会话 + 所有权）
 app.get('/api/emails/:id/raw', async (c) => {
-  const authHeader = c.req.header('Authorization');
-  if (authHeader?.startsWith('Bearer ')) {
-    const authErr = await requireApiAuth(c, 'mail');
-    if (authErr) return authErr;
-  } else {
-  }
-
   try {
     const id = c.req.param('id');
+    const access = await requireEmailAccess(c, id, 'mail');
+    if (access instanceof Response) return access;
+
     const raw = await getEmailRawContent(c.env.DB, id);
     if (!raw) {
       return c.json({ success: false, error: '邮件不存在' }, 404);
@@ -397,14 +378,9 @@ app.get('/api/emails/:id/raw', async (c) => {
 app.get('/api/emails/:id/attachments', async (c) => {
   try {
     const id = c.req.param('id');
+    const access = await requireEmailAccess(c, id, 'mail');
+    if (access instanceof Response) return access;
     
-    // 检查邮件是否存在
-    const email = await getEmail(c.env.DB, id);
-    if (!email) {
-      return c.json({ success: false, error: '邮件不存在' }, 404);
-    }
-    
-    // 获取附件列表
     const attachments = await getAttachments(c.env.DB, id);
     
     return c.json({ success: true, attachments });
@@ -427,6 +403,9 @@ app.get('/api/attachments/:id', async (c) => {
     if (!attachment) {
       return c.json({ success: false, error: '附件不存在' }, 404);
     }
+
+    const access = await requireEmailAccess(c, attachment.emailId, 'mail');
+    if (access instanceof Response) return access;
     
     // 检查是否需要直接返回附件内容
     const download = c.req.query('download') === 'true';
@@ -474,6 +453,9 @@ app.get('/api/attachments/:id', async (c) => {
 app.delete('/api/emails/:id', async (c) => {
   try {
     const id = c.req.param('id');
+    const access = await requireEmailAccess(c, id, 'mail');
+    if (access instanceof Response) return access;
+
     await deleteEmail(c.env.DB, id);
     
     return c.json({ success: true });
@@ -822,6 +804,52 @@ async function resolveMailboxFromParam(c: any, addressParam: string) {
   return { mailbox, localPart };
 }
 
+async function requireMailboxAuth(
+  c: any,
+  mailbox: Mailbox,
+  bearerScope: TokenScope = 'mail'
+): Promise<Response | null> {
+  const authHeader = c.req.header('Authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const authErr = await requireApiAuth(c, bearerScope);
+    if (authErr) return authErr;
+    const auth = c.get('auth') as ApiAuthContext;
+    if (!assertMailboxAccess(mailbox, { auth })) {
+      return c.json({ success: false, error: '无权访问该邮箱' }, 403);
+    }
+    return null;
+  }
+
+  const sessionErr = await requireUserSession(c);
+  if (sessionErr) return sessionErr;
+  const user = c.get('user') as User;
+  if (!assertMailboxAccess(mailbox, { user })) {
+    return c.json({ success: false, error: '无权访问该邮箱' }, 403);
+  }
+  return null;
+}
+
+async function requireEmailAccess(
+  c: any,
+  emailId: string,
+  bearerScope: TokenScope = 'mail'
+): Promise<Response | { email: Email; mailbox: Mailbox }> {
+  const email = await getEmail(c.env.DB, emailId);
+  if (!email) {
+    return c.json({ success: false, error: '邮件不存在' }, 404);
+  }
+
+  const mailbox = await getMailboxById(c.env.DB, email.mailboxId);
+  if (!mailbox) {
+    return c.json({ success: false, error: '邮箱不存在' }, 404);
+  }
+
+  const accessErr = await requireMailboxAuth(c, mailbox, bearerScope);
+  if (accessErr) return accessErr;
+
+  return { email, mailbox };
+}
+
 // 租用临时邮箱
 app.post('/api/lease', async (c) => {
   const authErr = await requireApiAuth(c, 'lease');
@@ -880,6 +908,11 @@ app.get('/api/mail', async (c) => {
     const mailbox = await getMailbox(c.env.DB, localPart);
     if (!mailbox) {
       return c.json({ success: false, error: '邮箱不存在或已过期' }, 404);
+    }
+
+    const auth = c.get('auth')!;
+    if (!assertMailboxAccess(mailbox, { auth })) {
+      return c.json({ success: false, error: '无权访问该邮箱' }, 403);
     }
 
     const pollInterval = 2000;

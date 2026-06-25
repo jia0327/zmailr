@@ -1,7 +1,6 @@
 import React, { createContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  createRandomMailbox,
   createUserMailbox,
   getMailboxFromLocalStorage,
   saveMailboxToLocalStorage,
@@ -162,9 +161,7 @@ export const MailboxProvider: React.FC<MailboxProviderProps> = ({ children }) =>
       setErrorMessage(null);
       setSuccessMessage(null);
       setIsLoading(true);
-      const result = isAuthenticated
-        ? await createUserMailbox()
-        : await createRandomMailbox();
+      const result = await createUserMailbox();
       if (result.success && result.mailbox) {
         setMailbox(result.mailbox);
         saveMailboxToLocalStorage(result.mailbox);

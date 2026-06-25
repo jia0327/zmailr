@@ -32,7 +32,9 @@ const MailboxPage: React.FC = () => {
     const fetchMailbox = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/mailboxes/${address}`);
+        const response = await fetch(`${API_BASE_URL}/api/mailboxes/${address}`, {
+          credentials: 'include',
+        });
         
         if (!response.ok) {
           if (response.status === 404) {
@@ -72,6 +74,7 @@ const MailboxPage: React.FC = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/mailboxes/${address}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
       
       if (!response.ok) {

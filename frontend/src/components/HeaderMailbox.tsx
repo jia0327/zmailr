@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
-import { createRandomMailbox, createCustomMailbox } from '../utils/api';
+import { createUserMailbox } from '../utils/api';
 import MailboxSwitcher from './MailboxSwitcher';
 import { MailboxContext } from '../contexts/MailboxContext';
 
@@ -45,7 +45,7 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
 
   const handleRefreshMailbox = async () => {
     setIsActionLoading(true);
-    const result = await createRandomMailbox();
+    const result = await createUserMailbox();
     setIsActionLoading(false);
 
     if (result.success && result.mailbox) {
@@ -66,7 +66,7 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
     }
 
     setIsActionLoading(true);
-    const result = await createCustomMailbox(customAddress);
+    const result = await createUserMailbox(customAddress.trim());
     setIsActionLoading(false);
 
     if (result.success && result.mailbox) {

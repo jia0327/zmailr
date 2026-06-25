@@ -39,7 +39,9 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
         }
 
         setIsLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/emails/${emailId}`);
+        const response = await fetch(`${API_BASE_URL}/api/emails/${emailId}`, {
+          credentials: 'include',
+        });
 
         if (!response.ok) {
           if (response.status === 404) {
@@ -74,7 +76,9 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
   const fetchAttachments = async (emailId: string, emailData?: Email) => {
     try {
       setIsLoadingAttachments(true);
-      const response = await fetch(`${API_BASE_URL}/api/emails/${emailId}/attachments`);
+      const response = await fetch(`${API_BASE_URL}/api/emails/${emailId}/attachments`, {
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -105,6 +109,7 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/emails/${emailId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (!response.ok) throw new Error('Failed to delete email');
