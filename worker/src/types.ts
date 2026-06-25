@@ -175,6 +175,25 @@ export interface SentEmail {
   tokenId?: number | null;
 }
 
+// 系统公告
+export interface Announcement {
+  id: number;
+  title: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number | null;
+  enabled: boolean;
+  createdBy: string | null;
+  readCount?: number;
+}
+
+export interface SaveAnnouncementParams {
+  title: string;
+  content: string;
+  enabled?: boolean;
+  createdBy?: string | null;
+}
+
 // 管理后台统计（全平台用户维度）
 export interface AdminStats {
   totalUsers: number;

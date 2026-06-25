@@ -137,10 +137,17 @@
     "confirmClearAllSent": "Clear all sent records?",
     "confirmDeleteMailboxes": "Delete {{count}} selected mailbox record(s)? This cannot be undone."
   },
+  "announcements": {
+    "label": "Announcement",
+    "markRead": "Got it",
+    "markAllRead": "Mark all as read",
+    "remaining": "{{count}} more announcement(s)",
+    "lastOne": "Last unread announcement"
+  },
   "extractRules": {
     "builtinTitle": "Built-in rules",
-    "builtinDesc": "Applied when no custom rule matches; read-only",
-    "builtinBadge": "Built-in",
+    "builtinDesc": "Global rules configured by admin; applied when your custom rules do not match (read-only reference)",
+    "noGlobalRules": "No system rules yet",
     "customTitle": "My custom rules",
     "customDesc": "Matched by sender domain; take precedence over global admin rules",
     "addRule": "Add rule",

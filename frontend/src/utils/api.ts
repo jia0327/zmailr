@@ -394,14 +394,11 @@ export interface ExtractRuleItem {
   remark?: string | null;
 }
 
-export interface BuiltinExtractRuleItem {
-  id: string;
-  domain: string;
-  regex: string;
-  priority: number;
-  enabled: boolean;
-  description: string;
-  builtin: true;
+export type GlobalExtractRuleItem = ExtractRuleItem;
+
+function stripSeedRemarkPrefix(remark: string | null | undefined): string {
+  if (!remark) return '-';
+  return remark.replace(/^\[seed:[^\]]+\]\s*/, '');
 }
 
 export const getUserExtractRules = async () => {
@@ -413,7 +410,7 @@ export const getUserExtractRules = async () => {
       return {
         success: true as const,
         rules: data.rules as ExtractRuleItem[],
-        builtinRules: data.builtinRules as BuiltinExtractRuleItem[],
+        globalRules: data.globalRules as GlobalExtractRuleItem[],
       };
     }
     return { success: false as const, error: data.error };
@@ -421,6 +418,8 @@ export const getUserExtractRules = async () => {
     return { success: false as const, error: 'Network error' };
   }
 };
+
+export { stripSeedRemarkPrefix };
 
 export const createUserExtractRule = async (params: {
   domain: string;
@@ -471,6 +470,57 @@ export const deleteUserExtractRule = async (id: number) => {
     });
     const data = await response.json();
     if (data.success) return { success: true as const };
+    return { success: false as const, error: data.error };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export interface AnnouncementItem {
+  id: number;
+  title: string;
+  content: string;
+  createdAt: number;
+  updatedAt?: number | null;
+  enabled?: boolean;
+}
+
+export const getUnreadAnnouncements = async () => {
+  try {
+    const response = await fetch(apiUrl('/api/user/announcements/unread'), fetchOpts);
+    if (response.status === 401) return { success: false as const, error: 'Unauthorized' };
+    const data = await response.json();
+    if (data.success) {
+      return { success: true as const, announcements: data.announcements as AnnouncementItem[] };
+    }
+    return { success: false as const, error: data.error };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export const markAnnouncementRead = async (id: number) => {
+  try {
+    const response = await fetch(apiUrl(`/api/user/announcements/${id}/read`), {
+      method: 'POST',
+      credentials: 'include',
+    });
+    const data = await response.json();
+    if (data.success) return { success: true as const };
+    return { success: false as const, error: data.error };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export const markAllAnnouncementsRead = async () => {
+  try {
+    const response = await fetch(apiUrl('/api/user/announcements/read-all'), {
+      method: 'POST',
+      credentials: 'include',
+    });
+    const data = await response.json();
+    if (data.success) return { success: true as const, marked: data.marked as number };
     return { success: false as const, error: data.error };
   } catch {
     return { success: false as const, error: 'Network error' };

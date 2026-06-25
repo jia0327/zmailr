@@ -57,6 +57,13 @@ import {
   findInstantLatestEmailWithCode,
   findInstantLatestEmail,
   getEmailRawContent,
+  listAnnouncements,
+  createAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncement,
+  listUnreadAnnouncementsForUser,
+  markAnnouncementRead,
+  markAllAnnouncementsRead,
 } from './database';
 import { generateRandomAddress, getMailDomain, parseMailboxAddress, getCurrentTimestamp, validateSendFromAddress, validateExtractRuleInput } from './utils';
 import {
@@ -74,7 +81,7 @@ import {
 } from './auth';
 import { sendMail } from './sender';
 import { getAdminHtml } from './admin';
-import { getBuiltinExtractRules, extractLink } from './extractor';
+import { extractLink } from './extractor';
 import {
   consumeRateLimit,
   DEFAULT_GLOBAL_IP_RATE_LIMIT,
@@ -611,8 +618,8 @@ app.get('/api/user/extract-rules', async (c) => {
   if (authErr) return authErr;
   const user = c.get('user')!;
   const rules = await listUserExtractRules(c.env.DB, user.id);
-  const builtinRules = getBuiltinExtractRules();
-  return c.json({ success: true, rules, builtinRules });
+  const globalRules = await listExtractRules(c.env.DB);
+  return c.json({ success: true, rules, globalRules });
 });
 
 app.post('/api/user/extract-rules', async (c) => {
@@ -663,6 +670,37 @@ app.delete('/api/user/extract-rules/:id', async (c) => {
   const ok = await deleteUserExtractRule(c.env.DB, parseInt(c.req.param('id'), 10), user.id);
   if (!ok) return c.json({ success: false, error: '规则不存在' }, 404);
   return c.json({ success: true });
+});
+
+// ─── 用户公告（会话鉴权） ─────────────────────────────────────
+
+app.get('/api/user/announcements/unread', async (c) => {
+  const authErr = await requireUserSession(c);
+  if (authErr) return authErr;
+  const user = c.get('user')!;
+  const announcements = await listUnreadAnnouncementsForUser(c.env.DB, user.id);
+  return c.json({ success: true, announcements });
+});
+
+app.post('/api/user/announcements/:id/read', async (c) => {
+  const authErr = await requireUserSession(c);
+  if (authErr) return authErr;
+  const user = c.get('user')!;
+  const id = parseInt(c.req.param('id'), 10);
+  if (Number.isNaN(id)) {
+    return c.json({ success: false, error: '无效的公告 ID' }, 400);
+  }
+  const ok = await markAnnouncementRead(c.env.DB, user.id, id);
+  if (!ok) return c.json({ success: false, error: '公告不存在或已禁用' }, 404);
+  return c.json({ success: true });
+});
+
+app.post('/api/user/announcements/read-all', async (c) => {
+  const authErr = await requireUserSession(c);
+  if (authErr) return authErr;
+  const user = c.get('user')!;
+  const marked = await markAllAnnouncementsRead(c.env.DB, user.id);
+  return c.json({ success: true, marked });
 });
 
 app.get('/api/user/sent', async (c) => {
@@ -1203,8 +1241,7 @@ app.get('/admin/api/rules', async (c) => {
   if (authErr) return authErr;
   const rules = await listExtractRules(c.env.DB);
   const userRules = await listAllUserExtractRules(c.env.DB);
-  const builtinRules = getBuiltinExtractRules();
-  return c.json({ success: true, rules, userRules, builtinRules });
+  return c.json({ success: true, rules, userRules });
 });
 
 app.post('/admin/api/rules', async (c) => {
@@ -1313,6 +1350,57 @@ app.delete('/admin/api/users/:id', async (c) => {
   if (authErr) return authErr;
   const ok = await deleteUser(c.env.DB, parseInt(c.req.param('id'), 10));
   if (!ok) return c.json({ success: false, error: '用户不存在' }, 404);
+  return c.json({ success: true });
+});
+
+app.get('/admin/api/announcements', async (c) => {
+  const authErr = await requireAdmin(c);
+  if (authErr) return authErr;
+  const announcements = await listAnnouncements(c.env.DB);
+  return c.json({ success: true, announcements });
+});
+
+app.post('/admin/api/announcements', async (c) => {
+  const authErr = await requireAdmin(c);
+  if (authErr) return authErr;
+  const body = await c.req.json();
+  const title = String(body.title ?? '').trim();
+  const content = String(body.content ?? '').trim();
+  if (!title || !content) {
+    return c.json({ success: false, error: '标题和内容不能为空' }, 400);
+  }
+  const announcement = await createAnnouncement(c.env.DB, {
+    title,
+    content,
+    enabled: body.enabled,
+    createdBy: body.createdBy ?? null,
+  });
+  return c.json({ success: true, announcement });
+});
+
+app.put('/admin/api/announcements/:id', async (c) => {
+  const authErr = await requireAdmin(c);
+  if (authErr) return authErr;
+  const body = await c.req.json();
+  const title = String(body.title ?? '').trim();
+  const content = String(body.content ?? '').trim();
+  if (!title || !content) {
+    return c.json({ success: false, error: '标题和内容不能为空' }, 400);
+  }
+  const announcement = await updateAnnouncement(c.env.DB, parseInt(c.req.param('id'), 10), {
+    title,
+    content,
+    enabled: body.enabled,
+  });
+  if (!announcement) return c.json({ success: false, error: '公告不存在' }, 404);
+  return c.json({ success: true, announcement });
+});
+
+app.delete('/admin/api/announcements/:id', async (c) => {
+  const authErr = await requireAdmin(c);
+  if (authErr) return authErr;
+  const ok = await deleteAnnouncement(c.env.DB, parseInt(c.req.param('id'), 10));
+  if (!ok) return c.json({ success: false, error: '公告不存在' }, 404);
   return c.json({ success: true });
 });
 

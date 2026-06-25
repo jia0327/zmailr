@@ -137,10 +137,17 @@
     "confirmClearAllSent": "确定清空全部发信记录？",
     "confirmDeleteMailboxes": "确定删除选中的 {{count}} 个邮箱记录？删除后无法恢复。"
   },
+  "announcements": {
+    "label": "系统公告",
+    "markRead": "我知道了",
+    "markAllRead": "全部标记已读",
+    "remaining": "还有 {{count}} 条公告",
+    "lastOne": "最后一条未读公告"
+  },
   "extractRules": {
     "builtinTitle": "系统内置规则",
-    "builtinDesc": "自定义规则未匹配时自动启用，不可编辑",
-    "builtinBadge": "内置",
+    "builtinDesc": "管理员配置的全局规则，自定义规则未匹配时生效；只读参考",
+    "noGlobalRules": "暂无系统规则",
     "customTitle": "我的自定义规则",
     "customDesc": "按发件人域名匹配，优先级高于全局规则",
     "addRule": "新增规则",

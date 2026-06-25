@@ -10,41 +10,25 @@ export const SUBJECT_VERIFICATION_HINT =
   /(?:验证码|verification|verify|code|otp)/i;
 export const STANDALONE_SIX_DIGIT = /\b(\d{6})\b/;
 
-export interface BuiltinExtractRule {
-  id: string;
-  domain: string;
-  regex: string;
-  description: string;
-  priority: number;
-  enabled: true;
-  builtin: true;
-}
-
-/** 系统内置兜底规则（自定义规则未匹配时启用，只读展示于管理后台） */
-export function getBuiltinExtractRules(): BuiltinExtractRule[] {
-  return [
-    {
-      id: 'generic-keyword',
-      domain: '*',
-      regex: GENERIC_CODE_REGEX.source,
-      description:
-        '匹配 code、验证码、verification、pin、otp 等关键词后的 4–8 位数字，支持「为/是：」等中文格式',
-      priority: -100,
-      enabled: true,
-      builtin: true,
-    },
-    {
-      id: 'subject-hint-six-digit',
-      domain: '*',
-      regex: `主题 ${SUBJECT_VERIFICATION_HINT.source} + 正文 ${STANDALONE_SIX_DIGIT.source}`,
-      description:
-        '主题含验证码语义时，从正文提取独立的 6 位数字（适用于正文仅含数字、无关键词的场景）',
-      priority: -101,
-      enabled: true,
-      builtin: true,
-    },
-  ];
-}
+/** 首次初始化时写入 extract_rules（user_id IS NULL）的默认全局规则 */
+export const SEED_GLOBAL_EXTRACT_RULES = [
+  {
+    seedKey: 'generic-keyword',
+    domain: '*',
+    regex: GENERIC_CODE_REGEX.source,
+    priority: -100,
+    remark:
+      '匹配 code、验证码、verification、pin、otp 等关键词后的 4–8 位数字，支持「为/是：」等中文格式',
+  },
+  {
+    seedKey: 'subject-hint-six-digit',
+    domain: '*',
+    regex: STANDALONE_SIX_DIGIT.source,
+    priority: -101,
+    remark:
+      '主题含验证码语义时，从正文提取独立的 6 位数字（适用于正文仅含数字、无关键词的场景）',
+  },
+] as const;
 
 /**
  * 从邮件正文中提取验证码
@@ -53,7 +37,7 @@ export function getBuiltinExtractRules(): BuiltinExtractRule[] {
  * 1. 用户自定义规则（mailbox.userId 对应 extract_rules.user_id）
  * 2. 全局自定义规则（admin，extract_rules.user_id IS NULL）
  *    同层内：发件人域名精确匹配 > 通配符 *，再按 priority 降序
- * 3. 内置兜底规则（代码中的 matchGenericCode，只读）
+ * 3. 代码兜底（matchGenericCode：关键词正则 + 主题语义下的 6 位数字）
  */
 export async function extractCode(
   db: D1Database,

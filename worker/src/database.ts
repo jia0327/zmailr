@@ -23,6 +23,8 @@ import {
   UpdateUserParams,
   CreateUserTokenParams,
   TokenScope,
+  Announcement,
+  SaveAnnouncementParams,
 } from './types';
 import { 
   generateId, 
@@ -31,6 +33,7 @@ import {
   generateApiToken,
 } from './utils';
 import { hashPassword, hashToken } from './crypto';
+import { SEED_GLOBAL_EXTRACT_RULES } from './extractor';
 
 // 附件分块大小（字节）
 const CHUNK_SIZE = 500000; // 约500KB
@@ -54,6 +57,8 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await db.exec(`CREATE TABLE IF NOT EXISTS user_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, token_hash TEXT UNIQUE NOT NULL, name TEXT, scopes TEXT NOT NULL DEFAULT '["lease","mail","send"]', expires_at INTEGER NOT NULL, created_at INTEGER DEFAULT (unixepoch()), last_used_at INTEGER, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);`);
     await db.exec(`CREATE TABLE IF NOT EXISTS daily_usage (user_id INTEGER NOT NULL, usage_date TEXT NOT NULL, send_count INTEGER NOT NULL DEFAULT 0, lease_count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, usage_date), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);`);
     await db.exec(`CREATE TABLE IF NOT EXISTS api_rate_limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL DEFAULT 0, window_start INTEGER NOT NULL);`);
+    await db.exec(`CREATE TABLE IF NOT EXISTS announcements (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, content TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER, enabled INTEGER DEFAULT 1, created_by TEXT);`);
+    await db.exec(`CREATE TABLE IF NOT EXISTS announcement_reads (user_id INTEGER NOT NULL, announcement_id INTEGER NOT NULL, read_at INTEGER NOT NULL, PRIMARY KEY (user_id, announcement_id), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE);`);
 
     // Phase 2: add columns to existing tables (must run before indexes on those columns)
     await migrateAddColumn(db, 'emails', 'extracted_code', 'TEXT');
@@ -81,9 +86,12 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_extract_rules_user_id ON extract_rules(user_id);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_sent_emails_created_at ON sent_emails(created_at);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_user_tokens_hash ON user_tokens(token_hash);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_announcement_reads_user ON announcement_reads(user_id);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_announcements_enabled ON announcements(enabled);`);
 
     await seedAdminUser(db, adminPassword);
     await seedGuestUser(db);
+    await seedGlobalExtractRules(db);
 
     console.log('数据库初始化成功');
   } catch (error) {
@@ -123,6 +131,24 @@ async function seedGuestUser(db: D1Database): Promise<void> {
     `INSERT INTO users (username, password_hash, role, daily_send_quota, enabled) VALUES (?, ?, 'user', 10, 1)`
   ).bind('guest', passwordHash).run();
   console.log('已创建 demo guest 用户');
+}
+
+const SEED_RULE_REMARK_PREFIX = '[seed:';
+
+async function seedGlobalExtractRules(db: D1Database): Promise<void> {
+  for (const rule of SEED_GLOBAL_EXTRACT_RULES) {
+    const remark = `${SEED_RULE_REMARK_PREFIX}${rule.seedKey}] ${rule.remark}`;
+    const existing = await db.prepare(
+      `SELECT id FROM extract_rules
+       WHERE user_id IS NULL AND domain = ? AND regex = ?`
+    ).bind(rule.domain, rule.regex).first();
+    if (existing) continue;
+
+    await db.prepare(
+      `INSERT INTO extract_rules (domain, regex, priority, enabled, user_id, remark)
+       VALUES (?, ?, ?, 1, NULL, ?)`
+    ).bind(rule.domain, rule.regex, rule.priority, remark).run();
+  }
 }
 
 export function getTodayUsageDate(): string {
@@ -1514,4 +1540,121 @@ export async function isMailboxOwnedByUser(
     `SELECT id FROM mailboxes WHERE address = ? AND user_id = ? AND expires_at > ?`
   ).bind(localPart, userId, now).first();
   return !!result;
+}
+
+// ─── Announcements ───────────────────────────────────────────
+
+function mapAnnouncementRow(row: Record<string, unknown>): Announcement {
+  return {
+    id: row.id as number,
+    title: row.title as string,
+    content: row.content as string,
+    createdAt: row.created_at as number,
+    updatedAt: (row.updated_at as number | null) ?? null,
+    enabled: !!row.enabled,
+    createdBy: (row.created_by as string | null) ?? null,
+    readCount: row.read_count !== undefined ? (row.read_count as number) : undefined,
+  };
+}
+
+export async function listAnnouncements(db: D1Database): Promise<Announcement[]> {
+  const results = await db.prepare(
+    `SELECT a.id, a.title, a.content, a.created_at, a.updated_at, a.enabled, a.created_by,
+            COUNT(ar.user_id) AS read_count
+     FROM announcements a
+     LEFT JOIN announcement_reads ar ON ar.announcement_id = a.id
+     GROUP BY a.id
+     ORDER BY a.created_at DESC`
+  ).all();
+  if (!results.results) return [];
+  return results.results.map((row) => mapAnnouncementRow(row as Record<string, unknown>));
+}
+
+export async function getAnnouncementById(db: D1Database, id: number): Promise<Announcement | null> {
+  const result = await db.prepare(
+    `SELECT id, title, content, created_at, updated_at, enabled, created_by FROM announcements WHERE id = ?`
+  ).bind(id).first();
+  return result ? mapAnnouncementRow(result as Record<string, unknown>) : null;
+}
+
+export async function createAnnouncement(db: D1Database, params: SaveAnnouncementParams): Promise<Announcement> {
+  const now = getCurrentTimestamp();
+  const result = await db.prepare(
+    `INSERT INTO announcements (title, content, created_at, enabled, created_by)
+     VALUES (?, ?, ?, ?, ?)
+     RETURNING id, title, content, created_at, updated_at, enabled, created_by`
+  ).bind(
+    params.title,
+    params.content,
+    now,
+    params.enabled !== false ? 1 : 0,
+    params.createdBy ?? null
+  ).first();
+  return mapAnnouncementRow(result as Record<string, unknown>);
+}
+
+export async function updateAnnouncement(
+  db: D1Database,
+  id: number,
+  params: SaveAnnouncementParams
+): Promise<Announcement | null> {
+  const existing = await getAnnouncementById(db, id);
+  if (!existing) return null;
+  const now = getCurrentTimestamp();
+  await db.prepare(
+    `UPDATE announcements SET title = ?, content = ?, enabled = ?, updated_at = ? WHERE id = ?`
+  ).bind(
+    params.title,
+    params.content,
+    params.enabled !== false ? 1 : 0,
+    now,
+    id
+  ).run();
+  return getAnnouncementById(db, id);
+}
+
+export async function deleteAnnouncement(db: D1Database, id: number): Promise<boolean> {
+  const result = await db.prepare(`DELETE FROM announcements WHERE id = ?`).bind(id).run();
+  return (result.meta?.changes ?? 0) > 0;
+}
+
+export async function listUnreadAnnouncementsForUser(db: D1Database, userId: number): Promise<Announcement[]> {
+  const results = await db.prepare(
+    `SELECT a.id, a.title, a.content, a.created_at, a.updated_at, a.enabled, a.created_by
+     FROM announcements a
+     WHERE a.enabled = 1
+       AND a.id NOT IN (
+         SELECT announcement_id FROM announcement_reads WHERE user_id = ?
+       )
+     ORDER BY a.created_at ASC`
+  ).bind(userId).all();
+  if (!results.results) return [];
+  return results.results.map((row) => mapAnnouncementRow(row as Record<string, unknown>));
+}
+
+export async function markAnnouncementRead(
+  db: D1Database,
+  userId: number,
+  announcementId: number
+): Promise<boolean> {
+  const announcement = await getAnnouncementById(db, announcementId);
+  if (!announcement || !announcement.enabled) return false;
+  const now = getCurrentTimestamp();
+  await db.prepare(
+    `INSERT OR IGNORE INTO announcement_reads (user_id, announcement_id, read_at) VALUES (?, ?, ?)`
+  ).bind(userId, announcementId, now).run();
+  return true;
+}
+
+export async function markAllAnnouncementsRead(db: D1Database, userId: number): Promise<number> {
+  const unread = await listUnreadAnnouncementsForUser(db, userId);
+  if (unread.length === 0) return 0;
+  const now = getCurrentTimestamp();
+  const stmt = db.prepare(
+    `INSERT OR IGNORE INTO announcement_reads (user_id, announcement_id, read_at) VALUES (?, ?, ?)`
+  );
+  for (const item of unread) {
+    await stmt.bind(userId, item.id, now).run();
+  }
+  return unread.length;
 }

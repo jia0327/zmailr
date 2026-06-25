@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { getBuiltinExtractRules, matchGenericCode, matchWithRegex, extractLink } from './extractor';
+import { SEED_GLOBAL_EXTRACT_RULES, matchGenericCode, matchWithRegex, extractLink } from './extractor';
 import { reconstructRawEmail } from './database';
 
 describe('extractLink', () => {
@@ -70,13 +70,12 @@ describe('matchGenericCode', () => {
   });
 });
 
-describe('getBuiltinExtractRules', () => {
-  it('returns built-in fallback rules with metadata', () => {
-    const rules = getBuiltinExtractRules();
-    assert.equal(rules.length, 2);
-    assert.ok(rules.every((r) => r.builtin && r.enabled && r.domain === '*'));
-    assert.ok(rules[0].regex.includes('验证码'));
-    assert.ok(rules[1].description.includes('6 位数字'));
+describe('SEED_GLOBAL_EXTRACT_RULES', () => {
+  it('defines default global rules for DB seeding', () => {
+    assert.equal(SEED_GLOBAL_EXTRACT_RULES.length, 2);
+    assert.ok(SEED_GLOBAL_EXTRACT_RULES.every((r) => r.domain === '*'));
+    assert.ok(SEED_GLOBAL_EXTRACT_RULES[0].regex.includes('验证码'));
+    assert.ok(SEED_GLOBAL_EXTRACT_RULES[1].remark.includes('6 位数字'));
   });
 });
 
