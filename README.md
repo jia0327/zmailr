@@ -65,9 +65,16 @@
 ### 管理后台（`/admin`）
 
 - 仪表盘：今日收信/发信、有效 Token、启用规则数
-- API Token 的创建与吊销
+- API Token 的创建与吊销（legacy，无配额限制）
+- **用户管理**：创建用户、设置日发信配额、重置密码
 - 验证码提取规则（内置规则只读 + 自定义正则）
 - 发信日志
+
+### 用户认证（Phase 1）
+
+- Web 发信需登录；匿名创建邮箱（`POST /api/mailboxes`）保持不变
+- 用户可创建带 scope（lease / mail / send）的 API Token
+- 详见 [docs/user-auth.md](docs/user-auth.md)
 
 ### 运维
 

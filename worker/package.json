@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "tsx --test src/extractor.test.ts src/utils.test.ts"
+    "test": "tsx --test src/extractor.test.ts src/utils.test.ts src/crypto.test.ts"
   },
   "dependencies": {
     "@types/node": "^22.13.10",

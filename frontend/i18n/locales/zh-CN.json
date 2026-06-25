@@ -5,6 +5,40 @@
   "nav": {
     "api": "API"
   },
+  "auth": {
+    "login": "登录",
+    "logout": "退出",
+    "account": "账户",
+    "loginTitle": "登录 zMailR",
+    "accountTitle": "我的账户",
+    "username": "用户名",
+    "password": "密码",
+    "loginFailed": "用户名或密码错误",
+    "backHome": "返回首页",
+    "profile": "个人信息",
+    "role": "角色",
+    "dailyQuota": "今日发信配额",
+    "unlimited": "无限制",
+    "apiTokens": "API Token",
+    "createToken": "创建 Token",
+    "tokenName": "名称（可选）",
+    "tokenDays": "有效期（天）",
+    "tokenCreated": "Token 已创建，请立即复制：",
+    "tokenCopyWarning": "此 Token 不会再次显示。",
+    "noTokens": "暂无 Token",
+    "confirmDeleteToken": "确定删除此 Token？",
+    "tokenCreateFailed": "创建 Token 失败"
+  },
+  "send": {
+    "title": "发送邮件",
+    "to": "收件人",
+    "from": "发件人（可选）",
+    "fromPlaceholder": "留空则使用 no-reply@域名",
+    "subject": "主题",
+    "body": "正文",
+    "submit": "发送",
+    "failed": "发送失败"
+  },
   "common": {
     "loading": "加载中...",
     "error": "出错了",

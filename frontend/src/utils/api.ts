@@ -189,4 +189,114 @@ export const getMailboxFromLocalStorage = (): Mailbox | null => {
 // 从本地存储删除邮箱信息
 export const removeMailboxFromLocalStorage = () => {
   localStorage.removeItem('tempMailbox');
+};
+
+const fetchOpts = { credentials: 'include' as RequestCredentials };
+
+export interface AuthUser {
+  id: number;
+  username: string;
+  role: string;
+  dailySendQuota: number;
+}
+
+export interface AuthUsage {
+  sendCount: number;
+  leaseCount: number;
+  usageDate: string;
+}
+
+export const authLogin = async (username: string, password: string) => {
+  try {
+    const response = await fetch(apiUrl('/api/auth/login'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await response.json();
+    if (data.success) return { success: true as const };
+    return { success: false as const, error: data.error || 'Login failed' };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export const authLogout = async () => {
+  await fetch(apiUrl('/api/auth/logout'), { method: 'POST', credentials: 'include' });
+};
+
+export const authMe = async (): Promise<{
+  success: boolean;
+  user?: AuthUser;
+  usage?: AuthUsage;
+}> => {
+  try {
+    const response = await fetch(apiUrl('/api/auth/me'), fetchOpts);
+    if (response.status === 401) return { success: false };
+    const data = await response.json();
+    if (data.success) {
+      return { success: true, user: data.user, usage: data.usage };
+    }
+    return { success: false };
+  } catch {
+    return { success: false };
+  }
+};
+
+export interface UserTokenItem {
+  id: number;
+  name: string | null;
+  scopes: string[];
+  expiresAt: number;
+  createdAt: number;
+  lastUsedAt: number | null;
+}
+
+export const createUserToken = async (params: {
+  name?: string;
+  expiresInDays: number;
+  scopes: string[];
+}) => {
+  try {
+    const response = await fetch(apiUrl('/api/user/tokens'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(params),
+    });
+    const data = await response.json();
+    if (data.success) return { success: true as const, token: data.token };
+    return { success: false as const, error: data.error };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export const deleteUserToken = async (id: number) => {
+  await fetch(apiUrl(`/api/user/tokens/${id}`), {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+};
+
+export const sendUserEmail = async (params: {
+  to: string;
+  subject: string;
+  text: string;
+  from?: string;
+}) => {
+  try {
+    const response = await fetch(apiUrl('/api/user/send'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(params),
+    });
+    const data = await response.json();
+    if (data.success) return { success: true as const };
+    return { success: false as const, error: data.error };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
 }; 

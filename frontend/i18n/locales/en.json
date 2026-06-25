@@ -5,6 +5,40 @@
   "nav": {
     "api": "API"
   },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "account": "Account",
+    "loginTitle": "Sign in to zMailR",
+    "accountTitle": "My Account",
+    "username": "Username",
+    "password": "Password",
+    "loginFailed": "Invalid username or password",
+    "backHome": "Back to home",
+    "profile": "Profile",
+    "role": "Role",
+    "dailyQuota": "Daily send quota",
+    "unlimited": "Unlimited",
+    "apiTokens": "API Tokens",
+    "createToken": "Create Token",
+    "tokenName": "Token name (optional)",
+    "tokenDays": "Expires in days",
+    "tokenCreated": "Token created — copy it now:",
+    "tokenCopyWarning": "This token will not be shown again.",
+    "noTokens": "No tokens yet",
+    "confirmDeleteToken": "Delete this token?",
+    "tokenCreateFailed": "Failed to create token"
+  },
+  "send": {
+    "title": "Send Email",
+    "to": "To",
+    "from": "From (optional)",
+    "fromPlaceholder": "Leave empty for no-reply@domain",
+    "subject": "Subject",
+    "body": "Message",
+    "submit": "Send",
+    "failed": "Failed to send email"
+  },
   "common": {
     "loading": "Loading...",
     "error": "Error",

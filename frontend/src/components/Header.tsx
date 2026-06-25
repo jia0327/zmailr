@@ -3,9 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
 import HeaderMailbox from './HeaderMailbox';
+import ComposeModal from './ComposeModal';
 import Container from './Container';
 import { getEmailDomains, getDefaultEmailDomain, EMAIL_DOMAINS, DEFAULT_EMAIL_DOMAIN } from '../config';
 import ThemeSwitcher from './ThemeSwitcher';
+import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
   mailbox: Mailbox | null;
@@ -20,8 +22,10 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const { t } = useTranslation();
   const location = useLocation();
+  const { isAuthenticated, refresh } = useAuth();
   const [emailDomains, setEmailDomains] = useState<string[]>(EMAIL_DOMAINS);
   const [defaultDomain, setDefaultDomain] = useState<string>(DEFAULT_EMAIL_DOMAIN);
+  const [composeOpen, setComposeOpen] = useState(false);
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -63,6 +67,35 @@ const Header: React.FC<HeaderProps> = ({
           </Link>
 
           <div className="flex items-center justify-end gap-1">
+            {isAuthenticated ? (
+              <>
+                <button
+                  onClick={() => setComposeOpen(true)}
+                  className="text-sm px-2 py-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
+                  title={t('send.title')}
+                >
+                  <i className="fas fa-paper-plane mr-1"></i>
+                  <span className="hidden sm:inline">{t('send.title')}</span>
+                </button>
+                <Link
+                  to="/account"
+                  className={`text-sm px-2 py-1 rounded-md transition-colors hover:bg-muted ${
+                    location.pathname === '/account' ? 'text-foreground font-medium' : 'text-muted-foreground'
+                  }`}
+                >
+                  {t('auth.account')}
+                </Link>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className={`text-sm px-2 py-1 rounded-md transition-colors hover:bg-muted ${
+                  location.pathname === '/login' ? 'text-foreground font-medium' : 'text-muted-foreground'
+                }`}
+              >
+                {t('auth.login')}
+              </Link>
+            )}
             <ThemeSwitcher />
             <LanguageSwitcher />
             <a
@@ -92,6 +125,13 @@ const Header: React.FC<HeaderProps> = ({
           </Container>
         </div>
       )}
+
+      <ComposeModal
+        isOpen={composeOpen && isAuthenticated}
+        onClose={() => setComposeOpen(false)}
+        defaultFrom={mailbox ? `${mailbox.address}@${defaultDomain}` : undefined}
+        onSent={refresh}
+      />
     </header>
   );
 };
