@@ -43,7 +43,9 @@
     "scopeMail": "收信与验证码",
     "scopeMailDesc": "轮询邮件、提取验证码",
     "scopeSend": "发信",
-    "scopeSendDesc": "通过 API 发送邮件"
+    "scopeSendDesc": "通过 API 发送邮件",
+    "copyOneClick": "一键复制",
+    "tokenCopySuccess": "Token 已复制到剪贴板"
   },
   "send": {
     "title": "发送邮件",

@@ -4,8 +4,8 @@
   "description": "创建临时邮箱地址，接收邮件，无需注册，保护您的隐私安全",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4f46e5",
+  "background_color": "#0c0a09",
+  "theme_color": "#0c0a09",
   "icons": [
     {
       "src": "/icon-192x192.png",

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createUserToken, deleteUserToken, UserTokenItem } from '../utils/api';
+import { MailboxContext } from '../contexts/MailboxContext';
 
 const ALL_SCOPES = ['lease', 'mail', 'send'] as const;
 
@@ -16,6 +17,7 @@ interface ApiTokenManagerProps {
 
 const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) => {
   const { t } = useTranslation();
+  const { showSuccessMessage, showErrorMessage } = useContext(MailboxContext);
   const [tokens, setTokens] = useState<UserTokenItem[]>([]);
   const [tokensLoading, setTokensLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -23,6 +25,7 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
   const [newTokenDays, setNewTokenDays] = useState(30);
   const [newTokenScopes, setNewTokenScopes] = useState<string[]>([...ALL_SCOPES]);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
 
   const loadTokens = async () => {
@@ -70,6 +73,17 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
     );
   };
 
+  const copyToken = (token: string) => {
+    navigator.clipboard
+      .writeText(token)
+      .then(() => {
+        setCopied(true);
+        showSuccessMessage(t('tokens.tokenCopySuccess'));
+        window.setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => showErrorMessage(t('mailbox.copyFailed')));
+  };
+
   const fmtTime = (ts: number) => new Date(ts > 1e12 ? ts : ts * 1000).toLocaleString();
   const hasToken = tokens.length > 0;
 
@@ -78,7 +92,21 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
       {createdToken && (
         <div className="border border-primary/50 rounded-lg p-4 bg-primary/5">
           <p className="text-sm font-medium mb-2">{t('auth.tokenCreated')}</p>
-          <code className="block text-xs break-all bg-muted p-2 rounded">{createdToken}</code>
+          <div className="flex items-start gap-2">
+            <code className="flex-1 text-xs break-all bg-muted p-2 rounded font-mono">{createdToken}</code>
+            <button
+              type="button"
+              onClick={() => copyToken(createdToken)}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+              title={t('tokens.copyOneClick')}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+              </svg>
+              {copied ? t('common.copied') : t('tokens.copyOneClick')}
+            </button>
+          </div>
           <p className="text-xs text-muted-foreground mt-2">{t('auth.tokenCopyWarning')}</p>
           <button onClick={() => setCreatedToken(null)} className="text-xs mt-2 text-primary">
             {t('common.close')}

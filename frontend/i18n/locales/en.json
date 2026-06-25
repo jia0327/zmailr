@@ -43,7 +43,9 @@
     "scopeMail": "Receive mail & OTP",
     "scopeMailDesc": "Poll mail, extract verification codes",
     "scopeSend": "Send mail",
-    "scopeSendDesc": "Send email via API (POST /api/send)"
+    "scopeSendDesc": "Send email via API (POST /api/send)",
+    "copyOneClick": "Copy",
+    "tokenCopySuccess": "Token copied to clipboard"
   },
   "send": {
     "title": "Send Email",
