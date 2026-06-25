@@ -37,6 +37,11 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  listMailboxesByUser,
+  listActiveMailboxes,
+  findInstantLatestEmailWithCode,
+  findInstantLatestEmail,
+  getEmailRawContent,
 } from './database';
 import { generateRandomAddress, getMailDomain, parseMailboxAddress, getCurrentTimestamp, validateSendFromAddress } from './utils';
 import {
@@ -53,7 +58,8 @@ import {
 } from './auth';
 import { sendMail } from './sender';
 import { getAdminHtml } from './admin';
-import { getBuiltinExtractRules } from './extractor';
+import { getBuiltinExtractRules, extractLink } from './extractor';
+import { consumeRateLimit, rateLimitHeaders } from './rate-limit';
 
 type AppVariables = {
   auth?: ApiAuthContext;
@@ -142,6 +148,37 @@ app.post('/api/mailboxes', async (c) => {
   }
 });
 
+// 列出活跃邮箱（Bearer Token）
+app.get('/api/mailboxes', async (c) => {
+  const authErr = await requireApiAuthWithRateLimit(c, 'mail');
+  if (authErr) return authErr;
+  const auth = c.get('auth')!;
+
+  try {
+    const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '50', 10), 1), 100);
+    const mailboxes =
+      auth.type === 'user' && auth.userId != null
+        ? await listMailboxesByUser(c.env.DB, auth.userId, limit)
+        : await listActiveMailboxes(c.env.DB, limit);
+
+    const domain = getMailDomain(c.env);
+    return c.json({
+      success: true,
+      mailboxes: mailboxes.map((m) => ({
+        ...m,
+        email: `${m.address}@${domain}`,
+      })),
+    });
+  } catch (error) {
+    console.error('列出邮箱失败:', error);
+    return c.json({
+      success: false,
+      error: '列出邮箱失败',
+      message: error instanceof Error ? error.message : String(error),
+    }, 500);
+  }
+});
+
 // 获取邮箱信息
 app.get('/api/mailboxes/:address', async (c) => {
   try {
@@ -176,6 +213,79 @@ app.delete('/api/mailboxes/:address', async (c) => {
       success: false, 
       error: '删除邮箱失败',
       message: error instanceof Error ? error.message : String(error)
+    }, 500);
+  }
+});
+
+// 即时获取最新验证码（Bearer Token，非阻塞）
+app.get('/api/mailboxes/:address/latest-code', async (c) => {
+  const authErr = await requireApiAuthWithRateLimit(c, 'mail');
+  if (authErr) return authErr;
+
+  try {
+    const resolved = await resolveMailboxFromParam(c, c.req.param('address'));
+    if (resolved.error) return resolved.error;
+
+    const email = await findInstantLatestEmailWithCode(c.env.DB, resolved.mailbox!.id);
+    if (!email) {
+      return c.json({ success: false, error: 'no_code', message: '暂无验证码' }, 404);
+    }
+
+    return c.json({
+      success: true,
+      code: email.extractedCode,
+      email: {
+        id: email.id,
+        subject: email.subject,
+        from: email.fromAddress,
+        receivedAt: email.receivedAt,
+      },
+    });
+  } catch (error) {
+    console.error('获取最新验证码失败:', error);
+    return c.json({
+      success: false,
+      error: '获取最新验证码失败',
+      message: error instanceof Error ? error.message : String(error),
+    }, 500);
+  }
+});
+
+// 即时获取最新验证链接（Bearer Token）
+app.get('/api/mailboxes/:address/latest-link', async (c) => {
+  const authErr = await requireApiAuthWithRateLimit(c, 'mail');
+  if (authErr) return authErr;
+
+  try {
+    const resolved = await resolveMailboxFromParam(c, c.req.param('address'));
+    if (resolved.error) return resolved.error;
+
+    const email = await findInstantLatestEmail(c.env.DB, resolved.mailbox!.id);
+    if (!email) {
+      return c.json({ success: false, error: 'no_email', message: '暂无邮件' }, 404);
+    }
+
+    const link = extractLink(email.textContent || '', email.htmlContent || '');
+    if (!link) {
+      return c.json({ success: false, error: 'no_link', message: '未找到验证链接' }, 404);
+    }
+
+    return c.json({
+      success: true,
+      link,
+      email: {
+        id: email.id,
+        subject: email.subject,
+        from: email.fromAddress,
+        receivedAt: email.receivedAt,
+      },
+    });
+  } catch (error) {
+    console.error('获取最新链接失败:', error);
+    return c.json({
+      success: false,
+      error: '获取最新链接失败',
+      message: error instanceof Error ? error.message : String(error),
     }, 500);
   }
 });
@@ -220,6 +330,34 @@ app.get('/api/emails/:id', async (c) => {
       success: false, 
       error: '获取邮件详情失败',
       message: error instanceof Error ? error.message : String(error)
+    }, 500);
+  }
+});
+
+// 下载原始邮件（Bearer Token 或公开 Web 路由）
+app.get('/api/emails/:id/raw', async (c) => {
+  const authHeader = c.req.header('Authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const authErr = await requireApiAuthWithRateLimit(c, 'mail');
+    if (authErr) return authErr;
+  }
+
+  try {
+    const id = c.req.param('id');
+    const raw = await getEmailRawContent(c.env.DB, id);
+    if (!raw) {
+      return c.json({ success: false, error: '邮件不存在' }, 404);
+    }
+
+    c.header('Content-Type', 'message/rfc822');
+    c.header('Content-Disposition', `attachment; filename="${id}.eml"`);
+    return c.body(raw);
+  } catch (error) {
+    console.error('获取原始邮件失败:', error);
+    return c.json({
+      success: false,
+      error: '获取原始邮件失败',
+      message: error instanceof Error ? error.message : String(error),
     }, 500);
   }
 });
@@ -427,6 +565,59 @@ app.get('/api/user/sent', async (c) => {
   return c.json({ success: true, emails });
 });
 
+app.get('/api/user/mailboxes', async (c) => {
+  const authErr = await requireUserSession(c);
+  if (authErr) return authErr;
+  const user = c.get('user')!;
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '50', 10), 1), 100);
+  const mailboxes = await listMailboxesByUser(c.env.DB, user.id, limit);
+  const domain = getMailDomain(c.env);
+  return c.json({
+    success: true,
+    mailboxes: mailboxes.map((m) => ({
+      ...m,
+      email: `${m.address}@${domain}`,
+    })),
+  });
+});
+
+app.post('/api/user/mailboxes', async (c) => {
+  const authErr = await requireUserSession(c);
+  if (authErr) return authErr;
+  const user = c.get('user')!;
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    if (body.address && typeof body.address !== 'string') {
+      return c.json({ success: false, error: '无效的邮箱地址' }, 400);
+    }
+
+    const ip = c.req.header('CF-Connecting-IP') || 'web';
+    const address = body.address || generateRandomAddress();
+
+    const existingMailbox = await getMailbox(c.env.DB, address);
+    if (existingMailbox) {
+      return c.json({ success: false, error: '邮箱地址已存在' }, 400);
+    }
+
+    const mailbox = await createMailbox(c.env.DB, {
+      address,
+      expiresInHours: 24,
+      ipAddress: ip,
+      userId: user.id,
+    });
+
+    return c.json({ success: true, mailbox });
+  } catch (error) {
+    console.error('创建用户邮箱失败:', error);
+    return c.json({
+      success: false,
+      error: '创建邮箱失败',
+      message: error instanceof Error ? error.message : String(error),
+    }, 400);
+  }
+});
+
 // ─── Web 发信（会话鉴权 + 配额） ─────────────────────────────
 
 async function resolveFromAddress(
@@ -516,9 +707,50 @@ async function requireApiAuth(c: any, scope?: TokenScope): Promise<Response | nu
   return null;
 }
 
+function getRateLimitKey(auth: ApiAuthContext): string {
+  if (auth.type === 'user' && auth.tokenId != null) {
+    return `user-token:${auth.userId}:${auth.tokenId}`;
+  }
+  return `legacy-token:${auth.tokenId ?? 'global'}`;
+}
+
+async function applyRateLimit(c: any, rateKey: string): Promise<Response | null> {
+  const result = await consumeRateLimit(c.env.DB, rateKey);
+  const headers = rateLimitHeaders(result.limit, result.remaining);
+  if (!result.ok) {
+    return c.json(
+      { success: false, error: 'rate_limit_exceeded', message: '请求过于频繁，请稍后再试' },
+      429,
+      headers
+    );
+  }
+  for (const [key, value] of Object.entries(headers)) {
+    c.header(key, value);
+  }
+  return null;
+}
+
+async function requireApiAuthWithRateLimit(c: any, scope?: TokenScope): Promise<Response | null> {
+  const authErr = await requireApiAuth(c, scope);
+  if (authErr) return authErr;
+  const auth = c.get('auth') as ApiAuthContext;
+  const rateErr = await applyRateLimit(c, getRateLimitKey(auth));
+  if (rateErr) return rateErr;
+  return null;
+}
+
+async function resolveMailboxFromParam(c: any, addressParam: string) {
+  const localPart = parseMailboxAddress(addressParam);
+  const mailbox = await getMailbox(c.env.DB, localPart);
+  if (!mailbox) {
+    return { error: c.json({ success: false, error: '邮箱不存在或已过期' }, 404) };
+  }
+  return { mailbox, localPart };
+}
+
 // 租用临时邮箱
 app.post('/api/lease', async (c) => {
-  const authErr = await requireApiAuth(c, 'lease');
+  const authErr = await requireApiAuthWithRateLimit(c, 'lease');
   if (authErr) return authErr;
   const auth = c.get('auth')!;
 
@@ -556,7 +788,7 @@ app.post('/api/lease', async (c) => {
 
 // 长轮询等待邮件并返回 extracted_code
 app.get('/api/mail', async (c) => {
-  const authErr = await requireApiAuth(c, 'mail');
+  const authErr = await requireApiAuthWithRateLimit(c, 'mail');
   if (authErr) return authErr;
 
   try {
@@ -616,7 +848,7 @@ app.get('/api/mail', async (c) => {
 
 // 发送邮件
 app.post('/api/send', async (c) => {
-  const authErr = await requireApiAuth(c, 'send');
+  const authErr = await requireApiAuthWithRateLimit(c, 'send');
   if (authErr) return authErr;
   const auth = c.get('auth')!;
 

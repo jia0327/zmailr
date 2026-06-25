@@ -105,6 +105,7 @@ export interface Email {
   hasAttachments: boolean;
   isRead: boolean;
   extractedCode?: string | null;
+  rawContent?: string | null;
 }
 
 // 保存邮件参数
@@ -118,6 +119,7 @@ export interface SaveEmailParams {
   htmlContent?: string;
   hasAttachments?: boolean;
   extractedCode?: string | null;
+  rawContent?: string | null;
 }
 
 // API Token

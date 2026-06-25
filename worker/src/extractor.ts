@@ -85,6 +85,51 @@ export function matchGenericCode(
   return null;
 }
 
+/** Common verification-link patterns (verify, confirm, token, etc.) */
+const VERIFICATION_URL_PATTERN =
+  /https?:\/\/[^\s<>"']+(?:verify|confirm|activation|validate|token|code|auth|signin|login)[^\s<>"']*/gi;
+
+const HREF_VERIFICATION_PATTERN =
+  /href=["'](https?:\/\/[^"']+(?:verify|confirm|activation|validate|token|code|auth|signin|login)[^"']*)["']/gi;
+
+const GENERIC_URL_PATTERN = /https?:\/\/[^\s<>"']+/gi;
+
+function normalizeUrl(url: string): string {
+  return url.replace(/&amp;/g, '&').replace(/[.,;:!?)]+$/, '');
+}
+
+function isLikelyVerificationUrl(url: string): boolean {
+  const lower = url.toLowerCase();
+  if (lower.includes('unsubscribe') || lower.includes('privacy') || lower.includes('logo')) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Extract the most likely verification link from email body/html.
+ */
+export function extractLink(text: string, html?: string): string | null {
+  const combined = [html, text].filter(Boolean).join('\n');
+  if (!combined) return null;
+
+  for (const pattern of [VERIFICATION_URL_PATTERN, HREF_VERIFICATION_PATTERN]) {
+    const matches = combined.matchAll(pattern);
+    for (const match of matches) {
+      const url = normalizeUrl(match[1] || match[0]);
+      if (isLikelyVerificationUrl(url)) return url;
+    }
+  }
+
+  const generic = combined.matchAll(GENERIC_URL_PATTERN);
+  for (const match of generic) {
+    const url = normalizeUrl(match[0]);
+    if (isLikelyVerificationUrl(url)) return url;
+  }
+
+  return null;
+}
+
 export function matchWithRegex(text: string, pattern: string): string | null {
   try {
     const regex = new RegExp(pattern, 'i');

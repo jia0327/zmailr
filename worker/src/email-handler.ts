@@ -48,6 +48,8 @@ export async function handleEmail(message: any, env: Env): Promise<void> {
       console.log('提取到验证码:', extractedCode);
     }
 
+    const rawContent = rawMessageToString(message.raw);
+
     // 保存邮件
     const savedEmail = await saveEmail(env.DB, {
       mailboxId: mailbox.id,
@@ -59,6 +61,7 @@ export async function handleEmail(message: any, env: Env): Promise<void> {
       htmlContent: email.html || '',
       hasAttachments: !!email.attachments?.length,
       extractedCode,
+      rawContent,
     });
 
     // 保存附件（如果有）
@@ -110,4 +113,20 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+const MAX_RAW_STORE_BYTES = 1024 * 1024;
+
+function rawMessageToString(raw: unknown): string | null {
+  if (!raw) return null;
+  let bytes: Uint8Array | null = null;
+  if (typeof raw === 'string') {
+    if (raw.length > MAX_RAW_STORE_BYTES) return raw.slice(0, MAX_RAW_STORE_BYTES);
+    return raw;
+  }
+  if (raw instanceof Uint8Array) bytes = raw;
+  else if (raw instanceof ArrayBuffer) bytes = new Uint8Array(raw);
+  if (!bytes) return null;
+  const slice = bytes.byteLength > MAX_RAW_STORE_BYTES ? bytes.slice(0, MAX_RAW_STORE_BYTES) : bytes;
+  return new TextDecoder('utf-8').decode(slice);
 }

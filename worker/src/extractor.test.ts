@@ -1,6 +1,43 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { getBuiltinExtractRules, matchGenericCode, matchWithRegex } from './extractor';
+import { getBuiltinExtractRules, matchGenericCode, matchWithRegex, extractLink } from './extractor';
+import { reconstructRawEmail } from './database';
+
+describe('extractLink', () => {
+  it('extracts verification URLs from text', () => {
+    const link = extractLink('Click https://example.com/verify?token=abc123 to confirm');
+    assert.equal(link, 'https://example.com/verify?token=abc123');
+  });
+
+  it('extracts from href in html', () => {
+    const link = extractLink(
+      '',
+      '<a href="https://service.com/confirm/email?id=1">Verify</a>'
+    );
+    assert.equal(link, 'https://service.com/confirm/email?id=1');
+  });
+
+  it('skips unsubscribe links', () => {
+    const link = extractLink('https://example.com/unsubscribe?id=1');
+    assert.equal(link, null);
+  });
+});
+
+describe('reconstructRawEmail', () => {
+  it('builds minimal RFC822 from fields', () => {
+    const raw = reconstructRawEmail({
+      fromAddress: 'noreply@test.com',
+      fromName: 'Test',
+      toAddress: 'user@temp.com',
+      subject: 'Hello',
+      textContent: 'Body text',
+      receivedAt: 1710000000,
+    });
+    assert.ok(raw.includes('From: Test <noreply@test.com>'));
+    assert.ok(raw.includes('Subject: Hello'));
+    assert.ok(raw.includes('Body text'));
+  });
+});
 
 describe('matchGenericCode', () => {
   it('extracts digits after English keywords', () => {

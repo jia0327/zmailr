@@ -90,6 +90,8 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await migrateAddColumn(db, 'sent_emails', 'user_id', 'INTEGER');
     await migrateAddColumn(db, 'sent_emails', 'token_id', 'INTEGER');
     await migrateAddColumn(db, 'mailboxes', 'user_id', 'INTEGER');
+    await migrateAddColumn(db, 'emails', 'raw_content', 'TEXT');
+    await db.exec(`CREATE TABLE IF NOT EXISTS api_rate_limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL DEFAULT 0, window_start INTEGER NOT NULL);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_user_tokens_hash ON user_tokens(token_hash);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_mailboxes_user_id ON mailboxes(user_id);`);
 
@@ -219,6 +221,49 @@ export async function getMailboxes(db: D1Database, ipAddress: string): Promise<M
   }));
 }
 
+function mapMailboxRow(result: Record<string, unknown>): Mailbox {
+  return {
+    id: result.id as string,
+    address: result.address as string,
+    createdAt: result.created_at as number,
+    expiresAt: result.expires_at as number,
+    ipAddress: result.ip_address as string,
+    lastAccessed: result.last_accessed as number,
+  };
+}
+
+export async function listMailboxesByUser(
+  db: D1Database,
+  userId: number,
+  limit = 50
+): Promise<Mailbox[]> {
+  const now = getCurrentTimestamp();
+  const results = await db
+    .prepare(
+      `SELECT id, address, created_at, expires_at, ip_address, last_accessed
+       FROM mailboxes WHERE user_id = ? AND expires_at > ?
+       ORDER BY created_at DESC LIMIT ?`
+    )
+    .bind(userId, now, limit)
+    .all();
+  if (!results.results) return [];
+  return results.results.map((row) => mapMailboxRow(row as Record<string, unknown>));
+}
+
+export async function listActiveMailboxes(db: D1Database, limit = 50): Promise<Mailbox[]> {
+  const now = getCurrentTimestamp();
+  const results = await db
+    .prepare(
+      `SELECT id, address, created_at, expires_at, ip_address, last_accessed
+       FROM mailboxes WHERE expires_at > ?
+       ORDER BY last_accessed DESC LIMIT ?`
+    )
+    .bind(now, limit)
+    .all();
+  if (!results.results) return [];
+  return results.results.map((row) => mapMailboxRow(row as Record<string, unknown>));
+}
+
 /**
  * 删除邮箱
  * @param db 数据库实例
@@ -343,11 +388,12 @@ export async function saveEmail(db: D1Database, params: SaveEmailParams): Promis
       hasAttachments: params.hasAttachments || false,
       isRead: false,
       extractedCode: params.extractedCode ?? null,
+      rawContent: params.rawContent ?? null,
     };
     
     console.log('准备插入邮件:', email.id);
     
-    await db.prepare(`INSERT INTO emails (id, mailbox_id, from_address, from_name, to_address, subject, text_content, html_content, received_at, has_attachments, is_read, extracted_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(email.id, email.mailboxId, email.fromAddress, email.fromName, email.toAddress, email.subject, email.textContent, email.htmlContent, email.receivedAt, email.hasAttachments ? 1 : 0, email.isRead ? 1 : 0, email.extractedCode).run();
+    await db.prepare(`INSERT INTO emails (id, mailbox_id, from_address, from_name, to_address, subject, text_content, html_content, received_at, has_attachments, is_read, extracted_code, raw_content) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(email.id, email.mailboxId, email.fromAddress, email.fromName, email.toAddress, email.subject, email.textContent, email.htmlContent, email.receivedAt, email.hasAttachments ? 1 : 0, email.isRead ? 1 : 0, email.extractedCode, email.rawContent).run();
     
     console.log('邮件保存成功:', email.id);
     
@@ -467,7 +513,7 @@ export async function getEmails(db: D1Database, mailboxId: string): Promise<Emai
  * @returns 邮件详情
  */
 export async function getEmail(db: D1Database, id: string): Promise<Email | null> {
-  const result = await db.prepare(`SELECT id, mailbox_id, from_address, from_name, to_address, subject, text_content, html_content, received_at, has_attachments, is_read, extracted_code FROM emails WHERE id = ?`).bind(id).first();
+  const result = await db.prepare(`SELECT id, mailbox_id, from_address, from_name, to_address, subject, text_content, html_content, received_at, has_attachments, is_read, extracted_code, raw_content FROM emails WHERE id = ?`).bind(id).first();
   
   if (!result) return null;
   
@@ -487,7 +533,59 @@ export async function getEmail(db: D1Database, id: string): Promise<Email | null
     hasAttachments: !!result.has_attachments,
     isRead: true,
     extractedCode: (result.extracted_code as string | null) ?? null,
+    rawContent: (result.raw_content as string | null) ?? null,
   };
+}
+
+export async function getEmailRawContent(db: D1Database, id: string): Promise<string | null> {
+  const result = await db
+    .prepare(
+      `SELECT raw_content, from_address, from_name, to_address, subject, text_content, html_content, received_at
+       FROM emails WHERE id = ?`
+    )
+    .bind(id)
+    .first();
+
+  if (!result) return null;
+
+  const stored = result.raw_content as string | null;
+  if (stored) return stored;
+
+  return reconstructRawEmail({
+    fromAddress: result.from_address as string,
+    fromName: (result.from_name as string) || '',
+    toAddress: result.to_address as string,
+    subject: (result.subject as string) || '',
+    textContent: (result.text_content as string) || '',
+    htmlContent: (result.html_content as string) || '',
+    receivedAt: result.received_at as number,
+  });
+}
+
+export function reconstructRawEmail(email: {
+  fromAddress: string;
+  fromName?: string;
+  toAddress: string;
+  subject: string;
+  textContent?: string;
+  htmlContent?: string;
+  receivedAt: number;
+}): string {
+  const date = new Date(email.receivedAt * 1000).toUTCString();
+  const from = email.fromName ? `${email.fromName} <${email.fromAddress}>` : email.fromAddress;
+  let raw = `From: ${from}\r\n`;
+  raw += `To: ${email.toAddress}\r\n`;
+  raw += `Subject: ${email.subject}\r\n`;
+  raw += `Date: ${date}\r\n`;
+  raw += `MIME-Version: 1.0\r\n`;
+  if (email.htmlContent) {
+    raw += `Content-Type: text/html; charset=utf-8\r\n\r\n`;
+    raw += email.htmlContent;
+  } else {
+    raw += `Content-Type: text/plain; charset=utf-8\r\n\r\n`;
+    raw += email.textContent || '';
+  }
+  return raw;
 }
 
 /**
@@ -899,6 +997,44 @@ export async function findLatestEmail(
   if (!result) return null;
 
   return mapPolledEmail(result as Record<string, unknown>);
+}
+
+export async function findInstantLatestEmailWithCode(
+  db: D1Database,
+  mailboxId: string
+): Promise<PolledEmail | null> {
+  const result = await db
+    .prepare(
+      `SELECT id, extracted_code, subject, from_address, received_at FROM emails
+       WHERE mailbox_id = ? AND extracted_code IS NOT NULL
+       ORDER BY received_at DESC LIMIT 1`
+    )
+    .bind(mailboxId)
+    .first();
+
+  if (!result) return null;
+  return mapPolledEmail(result as Record<string, unknown>);
+}
+
+export async function findInstantLatestEmail(
+  db: D1Database,
+  mailboxId: string
+): Promise<(PolledEmail & { textContent?: string; htmlContent?: string }) | null> {
+  const result = await db
+    .prepare(
+      `SELECT id, extracted_code, subject, from_address, received_at, text_content, html_content FROM emails
+       WHERE mailbox_id = ?
+       ORDER BY received_at DESC LIMIT 1`
+    )
+    .bind(mailboxId)
+    .first();
+
+  if (!result) return null;
+  return {
+    ...mapPolledEmail(result as Record<string, unknown>),
+    textContent: (result.text_content as string) || '',
+    htmlContent: (result.html_content as string) || '',
+  };
 }
 
 // ─── Users & Auth ────────────────────────────────────────────
