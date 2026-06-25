@@ -38,11 +38,20 @@ export async function sendMail(
     content.push({ type: 'text/plain', value: '' });
   }
 
+  const apiKey = env.MAILCHANNELS_API_KEY;
+  if (!apiKey) {
+    const error = 'MAILCHANNELS_API_KEY is not configured';
+    console.error(error);
+    await saveSentEmail(db, data.to, data.subject, 'failed');
+    return { success: false, error };
+  }
+
   try {
     const response = await fetch('https://api.mailchannels.net/tx/v1/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Api-Key': apiKey,
         'X-MailChannels-Custom-Sender-Domain': domain,
       },
       body: JSON.stringify({

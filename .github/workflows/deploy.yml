@@ -98,3 +98,7 @@ jobs:
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           # 明确指定要执行的命令是 'deploy'
           command: deploy
+          secrets: |
+            MAILCHANNELS_API_KEY
+        env:
+          MAILCHANNELS_API_KEY: ${{ secrets.MAILCHANNELS_API_KEY }}

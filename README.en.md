@@ -129,7 +129,7 @@ We provide two deployment methods, you can choose according to your needs:
     <li>Fork this project to your GitHub account</li>
     <li>Create a D1 database in your Cloudflare Dashboard and note down the <strong>database_name</strong> and <strong>database_id</strong></li>
     <li>In your GitHub repository, go to <strong>Settings</strong> > <strong>Secrets and variables</strong> > <strong>Actions</strong></li>
-    <li>Click <strong>New repository secret</strong> and add the following six secrets:
+    <li>Click <strong>New repository secret</strong> and add the following seven secrets:
       <ul>
         <li><code>CF_API_TOKEN</code>: Your Cloudflare API Token. You can create one <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">here</a> using the "Edit Cloudflare Workers" template.</li>
         <li><code>CF_ACCOUNT_ID</code>: Your Cloudflare Account ID. You can find it on the right side of the Workers page.</li>
@@ -137,6 +137,7 @@ We provide two deployment methods, you can choose according to your needs:
         <li><code>D1_DATABASE_NAME</code>: The name of the D1 database you created in step 2.</li>
         <li><code>VITE_EMAIL_DOMAIN</code>: Your list of domains, separated by commas (e.g., example.com,test.com).</li>
         <li><code>ADMIN_PASSWORD</code>: Admin panel (<code>/admin</code>) login password for API token and extract-rule management.</li>
+        <li><code>MAILCHANNELS_API_KEY</code>: MailChannels Email API key (scope: <code>api</code>) for <code>/api/send</code>.</li>
       </ul>
     </li>
     <li>After completing the steps above, the project will be automatically deployed on every push to the <code>main</code> branch. You can also trigger the deployment manually from the Actions page.</li>
@@ -353,23 +354,28 @@ Without it, admin login and UI token creation are disabled.
 
 ---
 
-## 📤 MailChannels outbound DNS
+## 📤 MailChannels outbound mail
 
-`/api/send` uses [MailChannels](https://www.mailchannels.com/). Your sending domain (same as `VITE_EMAIL_DOMAIN` / `MAIL_DOMAIN`) must be verified on Cloudflare.
+`/api/send` uses the [MailChannels Email API](https://www.mailchannels.com/). Since 2024, sending requires an **API key** and **Domain Lockdown DNS** (`auth=`); the legacy `cfid=`-only setup no longer works.
 
-Add these DNS records:
+### 1. MailChannels account and API key
+
+1. [Sign up](https://signup.mailchannels.net/pricing/signup?txHandle=email-api-free) (free tier ~100 emails/day)
+2. [MailChannels Console](https://dash.mailchannels.net) → create API key (scope: `api`)
+3. Save **Account ID** (for DNS `auth=`) and **API key** (GitHub Secret `MAILCHANNELS_API_KEY`)
+
+### 2. DNS (Cloudflare)
 
 | Type | Name | Content | Notes |
 |------|------|---------|-------|
-| TXT | `_mailchannels` | `v=mc1 cfid=YOUR_CLOUDFLARE_ACCOUNT_ID` | MailChannels domain verification |
-| TXT | `@` | `v=spf1 a mx include:relay.mailchannels.net ~all` | SPF authorizing MailChannels |
+| TXT | `_mailchannels` | `v=mc1 auth=YOUR_MAILCHANNELS_ACCOUNT_ID` | Domain Lockdown (do not use `cfid=`) |
+| TXT | `@` | `v=spf1 a mx include:relay.mailchannels.net ~all` | Merge into existing SPF if needed |
 
-Steps:
+### 3. Deploy and test
 
-1. Cloudflare Dashboard → your domain → **DNS**
-2. Add both TXT records (merge `include:relay.mailchannels.net` into an existing SPF if you already have one — only one SPF record allowed)
-3. Ensure **Email Routing** is enabled for inbound mail on the same domain
-4. Test with `POST /api/send` or check **Sent logs** in `/admin`; inspect Worker logs on MailChannels errors
+1. Add `MAILCHANNELS_API_KEY` to GitHub Secrets and redeploy
+2. Ensure **Email Routing** is enabled on the same domain
+3. Test via `/admin` sent logs or `POST /api/send`
 
 > Outbound From address is fixed at `no-reply@your-domain`.
 
