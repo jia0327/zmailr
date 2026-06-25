@@ -7,12 +7,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { MailboxContext } from '../contexts/MailboxContext';
 import { getStoredToken, migrateLegacySessionTokens } from '../utils/apiTokenSession';
 
-const SCOPE_I18N: Record<string, string> = {
-  lease: 'tokens.scopeLease',
-  mail: 'tokens.scopeMail',
-  send: 'tokens.scopeSend',
-};
-
 const fmtTime = (ts: number) => new Date(ts > 1e12 ? ts : ts * 1000).toLocaleString();
 
 const CopyIcon = () => (
@@ -39,9 +33,6 @@ const UsagePage: React.FC = () => {
   const outboxQuotaValue = `${sendCount} / ${quotaTotalLabel}`;
 
   const token = stats?.token ?? null;
-  const scopeLabels = token
-    ? token.scopes.map((s) => (SCOPE_I18N[s] ? t(SCOPE_I18N[s]) : s)).join(', ')
-    : '';
 
   useEffect(() => {
     if (!user?.id || !token?.id) {
@@ -107,14 +98,9 @@ const UsagePage: React.FC = () => {
           <SectionHeading title={t('dashboard.sectionApiToken')} />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatCard
-              label={t('tokens.expiresAtLabel')}
-              value={fmtTime(token.expiresAt)}
-              icon="fas fa-clock"
-            />
-            <StatCard
-              label={t('tokens.permissionsLabel')}
-              value={scopeLabels || '—'}
-              icon="fas fa-key"
+              label={t('tokens.nameLabel')}
+              value={token.name ?? '—'}
+              icon="fas fa-tag"
             />
             <div className="rounded-lg border bg-card p-4 flex flex-col justify-between gap-3">
               <div>
@@ -144,6 +130,11 @@ const UsagePage: React.FC = () => {
                 </Link>
               )}
             </div>
+            <StatCard
+              label={t('tokens.expiresAtLabel')}
+              value={fmtTime(token.expiresAt)}
+              icon="fas fa-clock"
+            />
           </div>
         </section>
       )}
