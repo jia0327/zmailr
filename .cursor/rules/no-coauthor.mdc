@@ -13,4 +13,10 @@ When creating or amending commits in this repository, **never** add any of the f
 
 Do not use `--trailer`, HEREDOC footers, or commit templates to inject these lines. Write commit messages with only the human-authored summary and body.
 
-If the user asks you to commit, produce a clean message without agent attribution. The repo `.githooks/commit-msg` hook strips these lines when hooks are enabled, but agents must not add them in the first place.
+If the user asks you to commit, produce a clean message without agent attribution. The repo `.githooks/commit-msg` hook strips these lines when hooks are enabled (`git config core.hooksPath .githooks`), but agents must not add them in the first place.
+
+## Cursor settings (for humans)
+
+- **IDE**: Cursor Settings → **Agents** → **Attribution** → turn OFF **Commit Attribution** and **PR Attribution**
+- **CLI** (if using `cursor` CLI): edit `~/.cursor/cli-config.json` and set `"commitAttribution": false` and `"prAttribution": false` (or `"attribution": { "attributeCommitsToAgent": false, "attributePRsToAgent": false }`)
+- **Cloud / background agents** may still inject co-author trailers server-side; the local IDE toggle does not affect them. Use the hook above or amend before push.
