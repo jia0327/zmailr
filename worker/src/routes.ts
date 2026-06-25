@@ -46,7 +46,7 @@ import {
   findInstantLatestEmail,
   getEmailRawContent,
 } from './database';
-import { generateRandomAddress, getMailDomain, parseMailboxAddress, getCurrentTimestamp, validateSendFromAddress } from './utils';
+import { generateRandomAddress, getMailDomain, parseMailboxAddress, getCurrentTimestamp, validateSendFromAddress, validateExtractRuleInput } from './utils';
 import {
   authenticateApiToken,
   hasScope,
@@ -575,12 +575,11 @@ app.post('/api/user/extract-rules', async (c) => {
   if (authErr) return authErr;
   const user = c.get('user')!;
   const body = await c.req.json();
-  if (!body.regex) {
-    return c.json({ success: false, error: '缺少 regex' }, 400);
-  }
+  const validated = validateExtractRuleInput(body);
+  if (!validated.ok) return c.json({ success: false, error: validated.error }, 400);
   const rule = await createExtractRule(c.env.DB, {
-    domain: body.domain,
-    regex: body.regex,
+    domain: validated.domain,
+    regex: validated.regex,
     priority: body.priority,
     enabled: body.enabled,
     userId: user.id,
@@ -593,11 +592,18 @@ app.put('/api/user/extract-rules/:id', async (c) => {
   if (authErr) return authErr;
   const user = c.get('user')!;
   const body = await c.req.json();
+  const validated = validateExtractRuleInput(body);
+  if (!validated.ok) return c.json({ success: false, error: validated.error }, 400);
   const rule = await updateUserExtractRule(
     c.env.DB,
     parseInt(c.req.param('id'), 10),
     user.id,
-    body
+    {
+      domain: validated.domain,
+      regex: validated.regex,
+      priority: body.priority,
+      enabled: body.enabled,
+    }
   );
   if (!rule) return c.json({ success: false, error: '规则不存在' }, 404);
   return c.json({ success: true, rule });
@@ -1045,10 +1051,14 @@ app.post('/admin/api/rules', async (c) => {
   const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const body = await c.req.json();
-  if (!body.regex) {
-    return c.json({ success: false, error: '缺少 regex' }, 400);
-  }
-  const rule = await createExtractRule(c.env.DB, body);
+  const validated = validateExtractRuleInput(body);
+  if (!validated.ok) return c.json({ success: false, error: validated.error }, 400);
+  const rule = await createExtractRule(c.env.DB, {
+    domain: validated.domain,
+    regex: validated.regex,
+    priority: body.priority,
+    enabled: body.enabled,
+  });
   return c.json({ success: true, rule });
 });
 
@@ -1056,7 +1066,14 @@ app.put('/admin/api/rules/:id', async (c) => {
   const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const body = await c.req.json();
-  const rule = await updateGlobalExtractRule(c.env.DB, parseInt(c.req.param('id'), 10), body);
+  const validated = validateExtractRuleInput(body);
+  if (!validated.ok) return c.json({ success: false, error: validated.error }, 400);
+  const rule = await updateGlobalExtractRule(c.env.DB, parseInt(c.req.param('id'), 10), {
+    domain: validated.domain,
+    regex: validated.regex,
+    priority: body.priority,
+    enabled: body.enabled,
+  });
   if (!rule) return c.json({ success: false, error: '规则不存在' }, 404);
   return c.json({ success: true, rule });
 });

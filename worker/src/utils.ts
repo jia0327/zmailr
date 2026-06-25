@@ -107,6 +107,29 @@ export function generateRandomString(length: number): string {
   /**
    * 校验 /api/send 的 from 地址：格式合法且域名与系统邮件域一致
    */
+  /** Sender domain for extract rules: * or lowercase hostname (e.g. example.com) */
+  const EXTRACT_RULE_DOMAIN = /^(\*|[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*)$/;
+
+  export function validateExtractRuleInput(params: {
+    domain?: string;
+    regex?: string;
+  }): { ok: true; domain: string; regex: string } | { ok: false; error: string } {
+    const regex = params.regex?.trim();
+    if (!regex) {
+      return { ok: false, error: '缺少 regex' };
+    }
+    try {
+      new RegExp(regex, 'i');
+    } catch {
+      return { ok: false, error: '正则表达式无效' };
+    }
+    const domain = (params.domain?.trim() || '*').toLowerCase();
+    if (!EXTRACT_RULE_DOMAIN.test(domain)) {
+      return { ok: false, error: '域名格式无效，请使用 * 或 example.com' };
+    }
+    return { ok: true, domain, regex };
+  }
+
   export function validateSendFromAddress(
     from: string,
     mailDomain: string

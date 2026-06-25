@@ -1,6 +1,40 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateSendFromAddress } from './utils';
+import { validateExtractRuleInput, validateSendFromAddress } from './utils';
+
+describe('validateExtractRuleInput', () => {
+  it('accepts wildcard domain and valid regex', () => {
+    const result = validateExtractRuleInput({ domain: '*', regex: '(\\d{6})' });
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.domain, '*');
+      assert.equal(result.regex, '(\\d{6})');
+    }
+  });
+
+  it('normalizes domain to lowercase', () => {
+    const result = validateExtractRuleInput({ domain: 'Example.COM', regex: '\\d+' });
+    assert.equal(result.ok, true);
+    if (result.ok) assert.equal(result.domain, 'example.com');
+  });
+
+  it('rejects invalid regex', () => {
+    const result = validateExtractRuleInput({ domain: '*', regex: '[invalid' });
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.match(result.error, /正则/);
+  });
+
+  it('rejects invalid domain', () => {
+    const result = validateExtractRuleInput({ domain: 'not a domain!', regex: '\\d+' });
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.match(result.error, /域名/);
+  });
+
+  it('rejects empty regex', () => {
+    const result = validateExtractRuleInput({ domain: '*', regex: '  ' });
+    assert.equal(result.ok, false);
+  });
+});
 
 describe('validateSendFromAddress', () => {
   it('accepts a valid mailbox on the configured domain', () => {
