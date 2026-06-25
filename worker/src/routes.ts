@@ -12,6 +12,8 @@ import {
   getAttachment,
   findLatestEmailWithCode,
   findLatestEmail,
+  getMailboxApiMailCursor,
+  setMailboxApiMailCursor,
   listApiTokens,
   createApiToken,
   deleteApiToken,
@@ -351,13 +353,16 @@ app.get('/api/mail', async (c) => {
 
     const pollInterval = 2000;
     const deadline = Date.now() + timeoutSec * 1000;
+    const excludeAfter = await getMailboxApiMailCursor(c.env.DB, mailbox.id);
 
     while (Date.now() < deadline) {
       const email = requireCode
-        ? await findLatestEmailWithCode(c.env.DB, mailbox.id, sinceTimestamp)
-        : await findLatestEmail(c.env.DB, mailbox.id, sinceTimestamp);
+        ? await findLatestEmailWithCode(c.env.DB, mailbox.id, sinceTimestamp, excludeAfter)
+        : await findLatestEmail(c.env.DB, mailbox.id, sinceTimestamp, excludeAfter);
 
       if (email) {
+        await setMailboxApiMailCursor(c.env.DB, mailbox.id, email.id, email.receivedAt);
+
         return c.json({
           success: true,
           code: email.extractedCode,

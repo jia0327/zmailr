@@ -1,0 +1,2 @@
+# Optional: E2E API verification (scripts/verify_api.py)
+requests>=2.28.0

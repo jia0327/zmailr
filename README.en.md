@@ -267,7 +267,7 @@ Waits for new mail on the given address and returns the auto-extracted verificat
 |-------|-------------|
 | `to` | Required — full address or local-part |
 | `timeout` | Optional — seconds, default 60, max 55 |
-| `since` | Optional — Unix timestamp (seconds) for emails received after this time |
+| `since` | Optional — Unix timestamp (seconds) for emails received after this time; defaults to poll start when omitted. Emails already returned by `/api/mail` are auto-skipped so repeated polls wait for the next message without manual `since` bumps |
 | `require_code` | Optional — default `true`; set `false` to return mail without a code |
 
 ```bash
@@ -328,6 +328,8 @@ mail = requests.get(
 ).json()
 print(mail.get("code"))
 ```
+
+Run `python scripts/verify_api.py --help` locally for E2E checks (`pip install -r requirements-dev.txt`).
 
 ---
 

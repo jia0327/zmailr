@@ -55,6 +55,10 @@ export async function initializeDatabase(db: D1Database): Promise<void> {
     // 迁移：为 emails 表添加 extracted_code 列
     await migrateAddColumn(db, 'emails', 'extracted_code', 'TEXT');
 
+    // 迁移：记录 /api/mail 上次成功返回的邮件，避免重复轮询返回同一封
+    await migrateAddColumn(db, 'mailboxes', 'last_api_mail_email_id', 'TEXT');
+    await migrateAddColumn(db, 'mailboxes', 'last_api_mail_received_at', 'INTEGER');
+
     // API Token 表 (D1 exec requires single-line SQL)
     await db.exec(`CREATE TABLE IF NOT EXISTS api_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT UNIQUE NOT NULL, name TEXT, expires_at INTEGER NOT NULL, created_at INTEGER DEFAULT (unixepoch()));`);
 
@@ -715,19 +719,39 @@ export interface PolledEmail {
   receivedAt: number;
 }
 
-export async function findLatestEmailWithCode(
+export interface ApiMailCursor {
+  emailId: string;
+  receivedAt: number;
+}
+
+export async function getMailboxApiMailCursor(
+  db: D1Database,
+  mailboxId: string
+): Promise<ApiMailCursor | null> {
+  const result = await db.prepare(
+    `SELECT last_api_mail_email_id, last_api_mail_received_at FROM mailboxes WHERE id = ?`
+  ).bind(mailboxId).first();
+
+  if (!result?.last_api_mail_email_id) return null;
+
+  return {
+    emailId: result.last_api_mail_email_id as string,
+    receivedAt: result.last_api_mail_received_at as number,
+  };
+}
+
+export async function setMailboxApiMailCursor(
   db: D1Database,
   mailboxId: string,
-  sinceTimestamp: number
-): Promise<PolledEmail | null> {
-  const result = await db.prepare(
-    `SELECT id, extracted_code, subject, from_address, received_at FROM emails
-     WHERE mailbox_id = ? AND received_at >= ? AND extracted_code IS NOT NULL
-     ORDER BY received_at DESC LIMIT 1`
-  ).bind(mailboxId, sinceTimestamp).first();
+  emailId: string,
+  receivedAt: number
+): Promise<void> {
+  await db.prepare(
+    `UPDATE mailboxes SET last_api_mail_email_id = ?, last_api_mail_received_at = ? WHERE id = ?`
+  ).bind(emailId, receivedAt, mailboxId).run();
+}
 
-  if (!result) return null;
-
+function mapPolledEmail(result: Record<string, unknown>): PolledEmail {
   return {
     id: result.id as string,
     extractedCode: result.extracted_code as string | null,
@@ -737,24 +761,63 @@ export async function findLatestEmailWithCode(
   };
 }
 
-export async function findLatestEmail(
+export async function findLatestEmailWithCode(
   db: D1Database,
   mailboxId: string,
-  sinceTimestamp: number
+  sinceTimestamp: number,
+  excludeAfter?: ApiMailCursor | null
 ): Promise<PolledEmail | null> {
-  const result = await db.prepare(
-    `SELECT id, extracted_code, subject, from_address, received_at FROM emails
-     WHERE mailbox_id = ? AND received_at >= ?
-     ORDER BY received_at DESC LIMIT 1`
-  ).bind(mailboxId, sinceTimestamp).first();
+  const result = excludeAfter
+    ? await db.prepare(
+        `SELECT id, extracted_code, subject, from_address, received_at FROM emails
+         WHERE mailbox_id = ? AND received_at >= ?
+           AND (received_at > ? OR (received_at = ? AND id != ?))
+           AND extracted_code IS NOT NULL
+         ORDER BY received_at DESC LIMIT 1`
+      ).bind(
+        mailboxId,
+        sinceTimestamp,
+        excludeAfter.receivedAt,
+        excludeAfter.receivedAt,
+        excludeAfter.emailId
+      ).first()
+    : await db.prepare(
+        `SELECT id, extracted_code, subject, from_address, received_at FROM emails
+         WHERE mailbox_id = ? AND received_at >= ? AND extracted_code IS NOT NULL
+         ORDER BY received_at DESC LIMIT 1`
+      ).bind(mailboxId, sinceTimestamp).first();
 
   if (!result) return null;
 
-  return {
-    id: result.id as string,
-    extractedCode: result.extracted_code as string | null,
-    subject: result.subject as string,
-    fromAddress: result.from_address as string,
-    receivedAt: result.received_at as number,
-  };
+  return mapPolledEmail(result as Record<string, unknown>);
+}
+
+export async function findLatestEmail(
+  db: D1Database,
+  mailboxId: string,
+  sinceTimestamp: number,
+  excludeAfter?: ApiMailCursor | null
+): Promise<PolledEmail | null> {
+  const result = excludeAfter
+    ? await db.prepare(
+        `SELECT id, extracted_code, subject, from_address, received_at FROM emails
+         WHERE mailbox_id = ? AND received_at >= ?
+           AND (received_at > ? OR (received_at = ? AND id != ?))
+         ORDER BY received_at DESC LIMIT 1`
+      ).bind(
+        mailboxId,
+        sinceTimestamp,
+        excludeAfter.receivedAt,
+        excludeAfter.receivedAt,
+        excludeAfter.emailId
+      ).first()
+    : await db.prepare(
+        `SELECT id, extracted_code, subject, from_address, received_at FROM emails
+         WHERE mailbox_id = ? AND received_at >= ?
+         ORDER BY received_at DESC LIMIT 1`
+      ).bind(mailboxId, sinceTimestamp).first();
+
+  if (!result) return null;
+
+  return mapPolledEmail(result as Record<string, unknown>);
 }

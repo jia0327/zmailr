@@ -292,7 +292,7 @@
       }
     },
     "conclusion": "Thank you for choosing zMailR temporary email service!"
-    },
+  },
   "privacy": {
     "title": "Privacy Policy",
     "intro": "We take your privacy protection very seriously. This privacy policy explains how we collect, use and protect your information.",
@@ -361,11 +361,11 @@
     },
     "mail": {
       "title": "GET /api/mail — Long-poll for mail",
-      "description": "Wait for incoming mail on the specified address and return the auto-extracted verification code.",
+      "description": "Wait for incoming mail and return the auto-extracted code. Repeated polls skip emails already returned—no manual since bump needed.",
       "params": {
         "to": "Required. Full email address or local-part.",
         "timeout": "Optional. Timeout in seconds, default 60, max 55.",
-        "since": "Optional. Unix timestamp (seconds); only match emails received after this time.",
+        "since": "Optional. Unix timestamp (seconds); only match emails received after this time. Defaults to poll start when omitted. Emails already returned by `/api/mail` are auto-skipped on repeat polls.",
         "requireCode": "Optional. Default true; set to false to return emails without a code."
       }
     },

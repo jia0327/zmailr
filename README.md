@@ -263,7 +263,7 @@ curl -X POST "https://你的域名/api/lease" \
 |------|------|
 | `to` | 必填，完整邮箱或 local-part |
 | `timeout` | 可选，超时秒数，默认 60，最大 55 |
-| `since` | 可选，Unix 时间戳（秒），只匹配此时间之后的邮件 |
+| `since` | 可选，Unix 时间戳（秒），只匹配此时间之后的邮件；未传时默认为本次轮询开始时刻。已通过 `/api/mail` 返回过的邮件会自动跳过，连续轮询无需手动递增 `since` |
 | `require_code` | 可选，默认 `true`；设为 `false` 时无验证码也会返回 |
 
 ```bash
@@ -326,6 +326,8 @@ mail = requests.get(
 ).json()
 print(mail.get("code"))
 ```
+
+本地可用 `python scripts/verify_api.py --help` 做 E2E 校验（需 `pip install -r requirements-dev.txt`）。
 
 ---
 
