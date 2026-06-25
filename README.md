@@ -36,69 +36,81 @@
 
 ## 效果图
 
-### 登录
+以下截图来自生产环境 [zmailr.itool.eu.cc](https://zmailr.itool.eu.cc/) 的 E2E 实测（2026-06-26）。完整测试报告见 [docs/testing.md](docs/testing.md)。
 
-![登录页](docs/screenshots/login.png)
+### 用户端
 
-### 仪表板
+#### 登录
 
-![仪表板](docs/screenshots/dashboard.png)
+![登录页 — guest 账号入口](docs/screenshots/login.png)
 
-展示 API Token 状态、收件/发件用量与今日发信配额。
+#### 系统公告
 
-### 收件箱
+登录后弹出未读公告，支持逐条确认与「全部标记已读」。
 
-![收件箱](docs/screenshots/inbox.png)
+![公告弹窗 — 验证 E2E 测试公告展示与已读流程](docs/screenshots/announcement-modal.png)
 
-新建 24 小时临时地址，实时收信，验证码自动提取并在 OTP 列高亮。
+#### 仪表板
 
-### 发件箱
+![仪表板 — API Token 状态、收件/发件用量与今日发信配额](docs/screenshots/dashboard.png)
 
-![发件箱](docs/screenshots/outbox.png)
+#### 收件箱
 
-填写收件人/主题/正文发送事务邮件，查看今日配额与发信记录。
+新建 24 小时临时地址；收信后 OTP 列自动高亮。
 
-### API 密钥
+![新建收件箱 — 点击「新建收件箱」生成地址](docs/screenshots/inbox-new-mailbox.png)
 
-![API 密钥](docs/screenshots/api-keys.png)
+![收信与 OTP — POST /api/send 测试邮件到达，验证码 847291 提取成功](docs/screenshots/inbox-received.png)
+
+#### 发件箱
+
+![发件箱撰写 — 填写收件人/主题/正文（Brevo 出站）](docs/screenshots/outbox-send.png)
+
+![发信记录 — 已发送列表与今日配额计数](docs/screenshots/outbox-sent-list.png)
+
+#### API 密钥
+
+![Token 创建 — 删除并重新创建后一次性展示明文 Bearer Token](docs/screenshots/api-keys-create.png)
 
 每位用户限 1 个 Bearer Token，可选 `lease` / `mail` / `send` scope，含 curl 示例。
 
-### API 调试
+#### API 调试
 
-![API 调试](docs/screenshots/api-debug.png)
+![API 调试 — GET /api/user/quota 返回 200 与速率限制头](docs/screenshots/api-debug-result.png)
 
-浏览器内直接调用 Bearer API，查看 JSON 响应与速率限制头。
+浏览器内直接调用 Bearer API，查看 JSON 响应与 `x-ratelimit-*` 头。
 
-### 提取规则
+#### 提取规则
 
-![提取规则](docs/screenshots/extract-rules.png)
+![自定义提取规则 — 按域名 zmailr.itool.eu.cc 配置 OTP 正则](docs/screenshots/extract-rules-custom.png)
 
 系统内置规则（只读）与用户自定义规则（按域名优先级匹配）。
 
-### 管理后台
+---
 
-![管理后台登录](docs/screenshots/admin-login.png)
+### 管理后台
 
 管理后台 URL 为 `https://你的域名/{ADMIN_PATH}`，需配置 `ADMIN_PASSWORD` 登录。详见 [admin-guide.md](docs/admin-guide.md)。
 
+#### 登录
+
+![管理后台登录](docs/screenshots/admin-login.png)
+
 #### 仪表盘
 
-![管理后台仪表盘](docs/screenshots/admin-dashboard.png)
+![管理后台仪表盘 — 用户/邮箱/收发信统计与 Brevo 套餐信息](docs/screenshots/admin-dashboard.png)
 
-用户/邮箱/收发信统计与 Brevo 套餐信息。
+#### 公告
+
+![创建公告 — 新增 E2E 测试公告表单（标题/内容/启用）](docs/screenshots/admin-announcement-create.png)
+
+![公告列表 — 启用状态与已读人数](docs/screenshots/admin-announcements-list.png)
 
 #### 用户管理
 
 ![管理后台用户](docs/screenshots/admin-users.png)
 
 创建/编辑用户、日发信配额与速率方案（Free / Pro / Team）。
-
-#### 公告
-
-![管理后台公告](docs/screenshots/admin-announcements.png)
-
-面向 Dashboard 用户的系统公告（Markdown/纯文本）。
 
 #### 提取规则（管理）
 
@@ -128,11 +140,22 @@
 
 ## 使用指南（简要）
 
+### 用户端
+
 1. 访问演示站或自托管实例，使用账号登录（演示：`guest` / `guest`）。
-2. 在 **仪表板** 查看配额；若无 API Token，在 **API 密钥** 创建（明文仅显示一次）。
-3. 在 **收件箱** 点击「新建收件箱」生成临时地址，等待收信或配合外部发信测试。
-4. 在 **发件箱** 发送测试邮件（需配置 Brevo，见 [brevo-setup.md](docs/brevo-setup.md)）。
-5. 使用 **API 调试** 或 curl 调用程序化接口；完整流程可用 `scripts/verify_api.py` 验证。
+2. 若有未读**系统公告**，在弹窗中阅读并标记已读。
+3. 在 **仪表板** 查看配额；若无 API Token，在 **API 密钥** 创建（明文仅显示一次）。
+4. 在 **收件箱** 点击「新建收件箱」生成临时地址；可配合 `POST /api/send` 或外部发信测试收信。
+5. 在 **发件箱** 发送测试邮件（需配置 Brevo，见 [brevo-setup.md](docs/brevo-setup.md)）。
+6. 在 **提取规则** 按发件人域名添加 OTP 正则；未匹配时回退到内置规则。
+7. 使用 **API 调试** 或 curl 调用程序化接口；完整流程可用 `scripts/verify_api.py` 验证。
+
+### 管理后台
+
+1. 访问 `https://你的域名/{ADMIN_PATH}`，输入 `ADMIN_PASSWORD` 登录。
+2. 在 **公告** 创建/启用面向用户的系统公告（Markdown/纯文本）。
+3. 在 **用户** 管理账号、日发信配额与速率方案。
+4. 在 **系统设置** 按需开启维护模式；在 **审计日志** 查看操作记录。
 
 ---
 
@@ -144,6 +167,7 @@
 | [docs/admin-guide.md](docs/admin-guide.md) | 管理后台（`ADMIN_PATH`、用户、维护模式、审计日志） |
 | [docs/brevo-setup.md](docs/brevo-setup.md) | Brevo 出站发信与 DNS（SPF/DKIM/DMARC） |
 | [docs/user-auth.md](docs/user-auth.md) | 用户认证、API Token scope、per-user 速率限制 |
+| [docs/testing.md](docs/testing.md) | **生产 E2E 测试报告**（Pass/Fail 与截图索引） |
 | [docs/mailsink-comparison.md](docs/mailsink-comparison.md) | 与 MailSink 功能对照与端点映射 |
 | [README.en.md](README.en.md) | English README |
 
