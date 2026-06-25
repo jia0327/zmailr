@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createUserToken, deleteUserToken, UserTokenItem } from '../utils/api';
+import { getSessionToken, removeSessionToken, saveSessionToken } from '../utils/apiTokenSession';
 import { MailboxContext } from '../contexts/MailboxContext';
 
 const ALL_SCOPES = ['lease', 'mail', 'send'] as const;
@@ -25,7 +26,8 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
   const [newTokenDays, setNewTokenDays] = useState(30);
   const [newTokenScopes, setNewTokenScopes] = useState<string[]>([...ALL_SCOPES]);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copiedId, setCopiedId] = useState<number | 'created' | null>(null);
+  const [sessionTokens, setSessionTokens] = useState<Record<number, string>>({});
   const [error, setError] = useState('');
 
   const loadTokens = async () => {
@@ -43,6 +45,17 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
     loadTokens();
   }, []);
 
+  React.useEffect(() => {
+    setSessionTokens(
+      Object.fromEntries(
+        tokens.map((tok) => {
+          const stored = getSessionToken(tok.id);
+          return stored ? [tok.id, stored] : [];
+        }).filter((entry): entry is [number, string] => entry.length === 2)
+      )
+    );
+  }, [tokens]);
+
   const handleCreateToken = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -52,7 +65,9 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
       scopes: newTokenScopes,
     });
     if (result.success && result.token) {
+      saveSessionToken(result.token.id, result.token.token);
       setCreatedToken(result.token.token);
+      setSessionTokens((prev) => ({ ...prev, [result.token!.id]: result.token!.token }));
       setShowCreate(false);
       setNewTokenName('');
       loadTokens();
@@ -64,6 +79,15 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
   const handleDeleteToken = async (id: number) => {
     if (!confirm(t('auth.confirmDeleteToken'))) return;
     await deleteUserToken(id);
+    removeSessionToken(id);
+    setSessionTokens((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    if (createdToken && sessionTokens[id] === createdToken) {
+      setCreatedToken(null);
+    }
     loadTokens();
   };
 
@@ -73,16 +97,23 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
     );
   };
 
-  const copyToken = (token: string) => {
+  const copyToken = (token: string, copyKey: number | 'created') => {
     navigator.clipboard
       .writeText(token)
       .then(() => {
-        setCopied(true);
+        setCopiedId(copyKey);
         showSuccessMessage(t('tokens.tokenCopySuccess'));
-        window.setTimeout(() => setCopied(false), 2000);
+        window.setTimeout(() => setCopiedId(null), 2000);
       })
       .catch(() => showErrorMessage(t('mailbox.copyFailed')));
   };
+
+  const CopyIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </svg>
+  );
 
   const fmtTime = (ts: number) => new Date(ts > 1e12 ? ts : ts * 1000).toLocaleString();
   const hasToken = tokens.length > 0;
@@ -96,15 +127,12 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
             <code className="flex-1 text-xs break-all bg-muted p-2 rounded font-mono">{createdToken}</code>
             <button
               type="button"
-              onClick={() => copyToken(createdToken)}
+              onClick={() => copyToken(createdToken, 'created')}
               className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
               title={t('tokens.copyOneClick')}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-              </svg>
-              {copied ? t('common.copied') : t('tokens.copyOneClick')}
+              <CopyIcon />
+              {copiedId === 'created' ? t('common.copied') : t('tokens.copyOneClick')}
             </button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">{t('auth.tokenCopyWarning')}</p>
@@ -190,38 +218,57 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
           <p className="text-sm text-muted-foreground">{t('auth.noTokens')}</p>
         ) : (
           <div className="space-y-3">
-            {tokens.map((tok) => (
-              <div key={tok.id} className="border rounded-md p-3 text-sm space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-1 min-w-0">
-                    <p>
-                      <span className="text-muted-foreground">{t('tokens.nameLabel')}: </span>
-                      <span className="font-medium">{tok.name || `#${tok.id}`}</span>
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">{t('tokens.permissionsLabel')}: </span>
-                      <span>
-                        {tok.scopes
-                          .map((s) =>
-                            s in SCOPE_I18N ? t(SCOPE_I18N[s as (typeof ALL_SCOPES)[number]].label) : s
-                          )
-                          .join(', ')}
-                      </span>
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">{t('tokens.expiresAtLabel')}: </span>
-                      <span>{fmtTime(tok.expiresAt)}</span>
-                    </p>
+            {tokens.map((tok) => {
+              const storedToken = sessionTokens[tok.id];
+              const canCopy = Boolean(storedToken);
+
+              return (
+                <div key={tok.id} className="border rounded-md p-3 text-sm space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1 min-w-0">
+                      <p>
+                        <span className="text-muted-foreground">{t('tokens.nameLabel')}: </span>
+                        <span className="font-medium">{tok.name || `#${tok.id}`}</span>
+                      </p>
+                      <p>
+                        <span className="text-muted-foreground">{t('tokens.permissionsLabel')}: </span>
+                        <span>
+                          {tok.scopes
+                            .map((s) =>
+                              s in SCOPE_I18N ? t(SCOPE_I18N[s as (typeof ALL_SCOPES)[number]].label) : s
+                            )
+                            .join(', ')}
+                        </span>
+                      </p>
+                      <p>
+                        <span className="text-muted-foreground">{t('tokens.expiresAtLabel')}: </span>
+                        <span>{fmtTime(tok.expiresAt)}</span>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteToken(tok.id)}
+                      className="text-destructive hover:underline text-xs shrink-0"
+                    >
+                      {t('common.delete')}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleDeleteToken(tok.id)}
-                    className="text-destructive hover:underline text-xs shrink-0"
+                  <span
+                    className="inline-block"
+                    title={canCopy ? t('tokens.copyOneClick') : t('tokens.copyUnavailable')}
                   >
-                    {t('common.delete')}
-                  </button>
+                    <button
+                      type="button"
+                      disabled={!canCopy}
+                      onClick={() => storedToken && copyToken(storedToken, tok.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed"
+                    >
+                      <CopyIcon />
+                      {copiedId === tok.id ? t('common.copied') : t('tokens.copyOneClick')}
+                    </button>
+                  </span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

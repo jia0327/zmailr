@@ -45,7 +45,8 @@
     "scopeSend": "发信",
     "scopeSendDesc": "通过 API 发送邮件",
     "copyOneClick": "一键复制",
-    "tokenCopySuccess": "Token 已复制到剪贴板"
+    "tokenCopySuccess": "Token 已复制到剪贴板",
+    "copyUnavailable": "Token 仅在创建时显示，请删除后重新创建"
   },
   "send": {
     "title": "发送邮件",
@@ -571,6 +572,8 @@
     "deleteDesc": "按 local-part 删除邮箱，无需 Bearer Token。",
     "rateLimitNote": "受速率限制的接口会返回 X-RateLimit-Limit 与 X-RateLimit-Remaining（默认每 Token 每分钟 60 次）。",
     "viewFullDocs": "完整文档",
+    "viewFullApiDocs": "查看完整 API 文档",
+    "docsLinkHint": "接口说明、鉴权方式与 curl 示例请查看完整文档。",
     "scopes": {
       "lease": "lease",
       "mail": "mail",

@@ -45,7 +45,8 @@
     "scopeSend": "Send mail",
     "scopeSendDesc": "Send email via API (POST /api/send)",
     "copyOneClick": "Copy",
-    "tokenCopySuccess": "Token copied to clipboard"
+    "tokenCopySuccess": "Token copied to clipboard",
+    "copyUnavailable": "Token is only shown at creation. Delete and recreate to copy again."
   },
   "send": {
     "title": "Send Email",
@@ -571,6 +572,8 @@
     "deleteDesc": "Delete a mailbox by local-part. No Bearer token required.",
     "rateLimitNote": "Rate-limited endpoints return X-RateLimit-Limit and X-RateLimit-Remaining (60/min per token by default).",
     "viewFullDocs": "Full documentation",
+    "viewFullApiDocs": "View full API documentation",
+    "docsLinkHint": "See the full docs for endpoints, auth, and curl examples.",
     "scopes": {
       "lease": "lease",
       "mail": "mail",
