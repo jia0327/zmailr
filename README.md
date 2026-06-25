@@ -1,4 +1,4 @@
-# <div align="center">🚀 zMailR · 24小时临时邮箱服务</div>
+# <div align="center">zMailR · 24 小时临时邮箱服务</div>
 
 <div align="center">
   <p>
@@ -8,62 +8,107 @@
   <p><strong>Enhanced fork of <a href="https://github.com/zaunist/zmail">zaunist/zmail</a></strong>（MIT License）</p>
 
   <p>
-    <a href="https://zmailr.itool.eu.cc/" target="_blank"><strong>🌐 在线体验</strong></a>
+    <a href="https://zmailr.itool.eu.cc/" target="_blank"><strong>在线体验</strong></a>
   </p>
 </div>
 
 ---
 
-## Fork 后通过 Github Action 自定义部署
+## 项目简介
 
-<div style="background-color: #2d2d2d; color: #ffffff; padding: 15px; border-radius: 5px; margin: 15px 0;">
-  <h4>📋 部署步骤：</h4>
-  <ol>
-    <li>Fork 本项目到您的 GitHub 账户</li>
-    <li>在 Cloudflare Dashboard 中创建一个 D1 数据库，并记录下数据库的 <strong>database_name</strong> 和 <strong>database_id</strong></li>
-    <li>在您的 GitHub 仓库中，前往 <strong>Settings</strong> > <strong>Secrets and variables</strong> > <strong>Actions</strong></li>
-    <li>点击 <strong>New repository secret</strong> 并添加以下密钥：
-      <ul>
-        <li><code>CF_API_TOKEN</code>：Cloudflare API Token，可在 <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">此处</a> 创建，使用 "Edit Cloudflare Workers" 模板</li>
-        <li><code>CF_ACCOUNT_ID</code>：Cloudflare 账户 ID，可在 Workers 页面右侧找到</li>
-        <li><code>D1_DATABASE_ID</code>：第二步创建的 D1 数据库 ID</li>
-        <li><code>D1_DATABASE_NAME</code>：第二步创建的 D1 数据库名称</li>
-        <li><code>VITE_EMAIL_DOMAIN</code>：域名列表，多个域名用逗号分隔（例如：<code>example.com,test.com</code>）</li>
-        <li><code>ADMIN_PASSWORD</code>：管理后台（<code>/admin</code>）登录密码，用于创建 API Token 和管理提取规则</li>
-        <li><code>BREVO_API_KEY</code>：<a href="docs/brevo-setup.md">Brevo</a> Transactional Email API Key，用于 <code>/api/send</code> 发信</li>
-      </ul>
-    </li>
-    <li>完成以上步骤后，项目将在每次推送到 <code>main</code> 分支时自动部署；也可在 Actions 页面手动触发</li>
-    <li>部署完成后，为 Worker 绑定自定义域名</li>
-    <li>配置 Cloudflare Email 路由（见下方）</li>
-  </ol>
-</div>
+**zMailR** 是基于 Cloudflare Workers + D1 部署的临时邮箱服务。用户可在 Web 界面一键生成 24 小时有效的随机地址并实时收信；开发者则可通过 Bearer Token 调用程序化 API，完成「租用邮箱 → 长轮询收信 → 提取验证码 → 可选发信」的自动化流程。
 
-### 📧 配置邮件路由
-
-<div style="background-color: #2d2d2d; color: #ffffff; padding: 15px; border-radius: 5px; margin: 15px 0;">
-  <ol>
-    <li>在 Cloudflare 控制面板中找到您的域名</li>
-    <li>进入 "Email" → "Email Routing"</li>
-    <li>启用 Email Routing</li>
-    <li>添加路由规则：
-      <ul>
-        <li>匹配类型："Catch-all address"</li>
-        <li>操作："Send to a Worker"</li>
-        <li>选择您部署的 Worker</li>
-      </ul>
-    </li>
-    <li>如有多个域名，请为每个域名重复上述步骤</li>
-  </ol>
-</div>
-
-### 📚 相关文档
-
-- **发信配置**：[docs/brevo-setup.md](docs/brevo-setup.md)（Brevo 注册、SPF/DKIM/DMARC、API Key、GitHub Secret 等完整步骤）
-- **程序化 API**：部署后访问 <code>https://你的域名/admin</code> 创建 API Token。接口包括 <code>/api/lease</code>（租用邮箱）、<code>/api/mail</code>（长轮询收信）、<code>/api/send</code>（发信），请求需携带 <code>Authorization: Bearer &lt;token&gt;</code>
+**技术栈**：Cloudflare Workers、D1、Email Routing（入站）、Brevo Transactional API（出站发信）、React + Vite 前端。
 
 ---
 
-## 📄 许可证
+## 功能特性
+
+### Web 前端
+
+- 随机生成 24 小时临时邮箱，支持多域名切换
+- 邮件列表与详情、HTML/纯文本正文、附件下载
+- 自动识别验证码并在界面高亮展示（OtpBox），一键复制
+- 邮件自动刷新、删除邮箱、明暗主题
+- 多语言界面（中文、英文、日文、韩文等）
+- 内置 [API 文档页](/api-docs)（`/api-docs`）
+
+### 入站邮件
+
+- Cloudflare Email Routing Catch-all → Worker 解析 MIME（postal-mime）
+- 入库 D1，支持附件存储与下载
+- 按发件人域名匹配**自定义提取规则**，未命中时回退**内置规则**，自动提取验证码字段
+
+### 出站发信
+
+- `POST /api/send` 通过 **Brevo** 发送事务邮件（发件人 `no-reply@你的域名`）
+- 完整配置见 [docs/brevo-setup.md](docs/brevo-setup.md)
+
+### 程序化 API
+
+需在 `/admin` 创建 API Token，请求头携带 `Authorization: Bearer <token>`：
+
+| 端点 | 说明 |
+|------|------|
+| `POST /api/lease` | 租用新的临时邮箱，返回完整地址与过期时间 |
+| `GET /api/mail?to=...` | 长轮询等待新邮件（默认最长 60s），返回 `code` 与邮件摘要 |
+| `POST /api/send` | 发送邮件（`to`、`subject`，以及 `text` 或 `html`） |
+
+`/api/mail` 要点：
+
+- `to`：完整邮箱或 local-part
+- `timeout`：1–55 秒（默认 60）
+- `since`：Unix 时间戳，只匹配此时间之后的邮件
+- `require_code=false`：不要求提取到验证码也可返回
+- **游标（cursor）**：同一邮箱多次轮询时，已返回过的邮件不会重复匹配
+
+### 管理后台（`/admin`）
+
+- 仪表盘：今日收信/发信、有效 Token、启用规则数
+- API Token 的创建与吊销
+- 验证码提取规则（内置规则只读 + 自定义正则）
+- 发信日志
+
+### 运维
+
+- GitHub Actions 推送 `main` 自动部署至 Cloudflare Workers
+- 定时任务清理过期邮箱、过期邮件及已读邮件
+
+---
+
+## 快速部署
+
+1. **Fork** 本仓库到你的 GitHub 账户
+2. 在 Cloudflare Dashboard 创建 **D1 数据库**，记录 `database_id` 与 `database_name`
+3. 在仓库 **Settings → Secrets and variables → Actions** 中添加以下 Secret：
+
+| Secret | 说明 |
+|--------|------|
+| `CF_API_TOKEN` | Cloudflare API Token（[创建](https://dash.cloudflare.com/profile/api-tokens)，使用 Edit Cloudflare Workers 模板） |
+| `CF_ACCOUNT_ID` | Cloudflare 账户 ID（Workers 页面右侧） |
+| `D1_DATABASE_ID` | D1 数据库 ID |
+| `D1_DATABASE_NAME` | D1 数据库名称 |
+| `VITE_EMAIL_DOMAIN` | 邮箱域名，多个用逗号分隔（如 `example.com,test.com`） |
+| `ADMIN_PASSWORD` | 管理后台 `/admin` 登录密码 |
+| `BREVO_API_KEY` | Brevo Transactional Email API Key，用于 `/api/send`（配置步骤见 [docs/brevo-setup.md](docs/brevo-setup.md)） |
+
+4. 推送至 `main` 分支即触发部署；也可在 Actions 页手动运行 **Deploy to Cloudflare**
+5. 部署完成后为 Worker **绑定自定义域名**
+6. 配置 **Cloudflare Email Routing**（入站收信）：
+
+   - 域名 → Email → Email Routing → 启用
+   - 添加 Catch-all 规则，操作选 **Send to a Worker**，指向已部署的 Worker
+   - 多域名需分别配置
+
+---
+
+## 相关文档
+
+- **发信配置**：[docs/brevo-setup.md](docs/brevo-setup.md)（Brevo 注册、SPF/DKIM/DMARC、API Key、GitHub Secret 等）
+- **API 用法**：部署后访问 `https://你的域名/api-docs`，或在 `/admin` 生成 Token 后调用上述接口
+
+---
+
+## 许可证
 
 [MIT License](./LICENSE)
