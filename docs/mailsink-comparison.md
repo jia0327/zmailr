@@ -47,14 +47,14 @@
 |----------|------------------|------|
 | `POST /v1/inboxes` | `POST /api/lease` | 需 Bearer Token（`lease` scope）；随机地址，24h TTL |
 | | `POST /api/mailboxes` | 匿名 Web 创建，可指定 local-part |
-| `GET /v1/inboxes` | — | **缺失**：无程序化「列出活跃 inbox」API |
+| `GET /v1/inboxes` | `GET /api/mailboxes` | Bearer Token；用户 Token 按 user_id 过滤，legacy 返回最近活跃邮箱 |
 | `DELETE /v1/inboxes/{id}` | `DELETE /api/mailboxes/:address` | 按 local-part 删除；Web 路由，无 Token 鉴权 |
 | `GET /v1/inboxes/{id}/messages` | `GET /api/mailboxes/:address/emails` | 列出邮件（含 `extractedCode` 字段） |
-| `GET /v1/inboxes/{id}/latest-code` | 部分等价 | 无独立端点；可通过邮件列表最新一封的 `extractedCode`，或 `GET /api/mail?require_code=false` 取最近邮件 |
+| `GET /v1/inboxes/{id}/latest-code` | `GET /api/mailboxes/:address/latest-code` | 非阻塞即时查询最新 OTP |
 | `GET /v1/inboxes/{id}/wait-for-code` | `GET /api/mail` | 长轮询（默认 60s，最大 55s）；带 cursor 防重复 |
-| `GET /v1/inboxes/{id}/latest-link` | — | **缺失**：未实现验证链接提取 |
+| `GET /v1/inboxes/{id}/latest-link` | `GET /api/mailboxes/:address/latest-link` | 从最新邮件提取验证链接 |
 | `GET /v1/messages/{id}` | `GET /api/emails/:id` | 完整正文（text/html） |
-| `GET /v1/messages/{id}/raw` | — | **缺失**：未存储原始 `.eml` |
+| `GET /v1/messages/{id}/raw` | `GET /api/emails/:id/raw` | 存储的 raw MIME 或从 DB 重建 |
 | `POST /v1/keys` | `POST /admin/api/tokens` | Legacy 全局 Token（admin 会话） |
 | | `POST /api/user/tokens` | 用户 Token，可配置 scope |
 | `DELETE /v1/keys/{id}` | `DELETE /admin/api/tokens/:id` | Legacy Token 吊销 |
@@ -72,16 +72,16 @@
 | 功能 | MailSink | zMailR | 状态 |
 |------|:--------:|:------:|:----:|
 | 创建 inbox | ✅ | ✅ | 对等（路径/鉴权不同） |
-| 列出 inbox | ✅ | ❌ | **缺口** |
+| 列出 inbox | ✅ | ✅ | 对等 |
 | 删除 inbox | ✅ | ✅ | 对等（Web 路由） |
 | 列出邮件 | ✅ | ✅ | 对等 |
-| 最新 OTP（即时查询） | ✅ | ⚠️ | 无专用端点，需列表或轮询 |
+| 最新 OTP（即时查询） | ✅ | ✅ | `/api/mailboxes/:address/latest-code` |
 | 等待 OTP（阻塞） | ✅ | ✅ | `/api/mail` |
-| 最新验证链接 | ✅ | ❌ | **缺口** |
+| 最新验证链接 | ✅ | ✅ | `/api/mailboxes/:address/latest-link` |
 | 单封邮件详情 | ✅ | ✅ | 对等 |
-| 原始 `.eml` 下载 | ✅ | ❌ | **缺口**（未存 raw） |
+| 原始 `.eml` 下载 | ✅ | ✅ | 入站存 raw + `GET /api/emails/:id/raw` |
 | API Key 创建/吊销 | ✅ | ✅ | 对等（admin + 用户双轨） |
-| 速率限制 | ✅ 按分钟 + Header | ⚠️ | 仅有**日发信配额**（429），无 `X-RateLimit-*` |
+| 速率限制 | ✅ 按分钟 + Header | ✅ | `X-RateLimit-*`，默认 60/min |
 | MCP Server | ✅ `@mailsink/mcp` | ❌ | **缺口**（可选） |
 | 出站发信 | ❌ | ✅ | **zMailR 优势** |
 | 自定义发件人（已租邮箱） | — | ✅ | **zMailR 优势** |
@@ -110,14 +110,10 @@
 
 | 优先级 | 缺口 | 建议方向 |
 |:------:|------|----------|
-| P1 | `latest-link` 端点 | 在 `extractor` 中增加 URL 提取，新增 `GET /api/mailboxes/:address/latest-link` 或 query 参数 |
-| P1 | `latest-code` 即时端点 | `GET /api/mailboxes/:address/latest-code`，对齐 MailSink 非阻塞查询 |
-| P2 | 列出 inbox API | `GET /api/inboxes`（Token 鉴权，返回当前用户/Token 创建的邮箱） |
-| P2 | 速率限制 Header | 中间件计数 + `X-RateLimit-Limit` / `X-RateLimit-Remaining` |
-| P3 | 原始 `.eml` | 入站时存 R2 或 D1 blob，暴露 `GET /api/emails/:id/raw` |
-| P3 | R2 大附件 | 大附件迁 R2，D1 仅存元数据（与愿景栈对齐） |
 | P4 | MCP Server | 可选 npm 包，封装 lease / mail / send 工具 |
 | P4 | OpenAPI | 导出 `openapi.json` 便于 SDK 生成 |
+
+已补齐（2026-06）：`GET /api/mailboxes`、`latest-code`、`latest-link`、`GET /api/emails/:id/raw`、速率限制 Header、Dashboard UI。
 
 ---
 
