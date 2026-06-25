@@ -148,6 +148,11 @@ export interface ExtractRule {
   enabled: boolean;
   createdAt: number;
   userId?: number | null;
+  remark?: string | null;
+}
+
+export interface UserExtractRule extends ExtractRule {
+  username: string;
 }
 
 export interface SaveExtractRuleParams {
@@ -156,6 +161,7 @@ export interface SaveExtractRuleParams {
   priority?: number;
   enabled?: boolean;
   userId?: number | null;
+  remark?: string | null;
 }
 
 // 发信审计
@@ -169,12 +175,16 @@ export interface SentEmail {
   tokenId?: number | null;
 }
 
-// 管理后台统计
+// 管理后台统计（全平台用户维度）
 export interface AdminStats {
+  totalUsers: number;
+  activeUsers: number;
+  totalMailboxes: number;
+  activeMailboxes: number;
   receivedToday: number;
   sentToday: number;
-  activeTokens: number;
-  activeRules: number;
+  activeUsersToday: number;
+  activeUserTokens: number;
 }
 
 // 邮件列表项（不包含内容）

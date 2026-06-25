@@ -14,6 +14,7 @@ const emptyForm = {
   regex: '',
   priority: 0,
   enabled: true,
+  remark: '',
 };
 
 const ExtractRuleManager: React.FC = () => {
@@ -57,6 +58,7 @@ const ExtractRuleManager: React.FC = () => {
       regex: rule.regex,
       priority: rule.priority,
       enabled: rule.enabled,
+      remark: rule.remark || '',
     });
     setShowForm(true);
     setError('');
@@ -75,6 +77,7 @@ const ExtractRuleManager: React.FC = () => {
       regex: form.regex.trim(),
       priority: form.priority,
       enabled: form.enabled,
+      remark: form.remark.trim() || null,
     };
 
     const result = editingId
@@ -101,6 +104,7 @@ const ExtractRuleManager: React.FC = () => {
       regex: rule.regex,
       priority: rule.priority,
       enabled: !rule.enabled,
+      remark: rule.remark,
     });
     if (result.success) loadRules();
   };
@@ -203,6 +207,19 @@ const ExtractRuleManager: React.FC = () => {
                 className="w-full px-3 py-2 border rounded-md bg-background text-sm font-mono"
               />
             </div>
+            <div>
+              <label htmlFor="rule-remark" className="text-sm font-medium block mb-1">
+                {t('extractRules.colRemark')}
+              </label>
+              <input
+                id="rule-remark"
+                type="text"
+                value={form.remark}
+                onChange={(e) => setForm((f) => ({ ...f, remark: e.target.value }))}
+                placeholder={t('extractRules.remarkPlaceholder')}
+                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+              />
+            </div>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input
                 type="checkbox"
@@ -234,6 +251,7 @@ const ExtractRuleManager: React.FC = () => {
                   <th className="py-2 pr-3 font-medium">{t('extractRules.colDomain')}</th>
                   <th className="py-2 pr-3 font-medium">{t('extractRules.colRegex')}</th>
                   <th className="py-2 pr-3 font-medium">{t('extractRules.colPriority')}</th>
+                  <th className="py-2 pr-3 font-medium">{t('extractRules.colRemark')}</th>
                   <th className="py-2 pr-3 font-medium">{t('extractRules.colStatus')}</th>
                   <th className="py-2 font-medium">{t('extractRules.colActions')}</th>
                 </tr>
@@ -246,6 +264,7 @@ const ExtractRuleManager: React.FC = () => {
                       <code className="text-xs bg-muted px-1.5 py-0.5 rounded break-all">{rule.regex}</code>
                     </td>
                     <td className="py-2 pr-3">{rule.priority}</td>
+                    <td className="py-2 pr-3 text-muted-foreground">{rule.remark || '-'}</td>
                     <td className="py-2 pr-3">
                       <button
                         type="button"

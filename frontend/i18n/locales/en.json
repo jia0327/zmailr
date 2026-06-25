@@ -124,6 +124,19 @@
     "extractRulesSubtitle": "Customize OTP extraction regex; overrides apply before built-in fallbacks",
     "breadcrumbExtractRules": "Workspace / Extract rules"
   },
+  "history": {
+    "mailboxList": "Mailbox history",
+    "noMailboxes": "No mailbox history yet",
+    "reactivate": "Renew",
+    "reactivateSuccess": "Mailbox renewed — ready to receive mail",
+    "deleteSelected": "Delete selected",
+    "clearAll": "Clear all",
+    "confirmDeleteEmails": "Delete {{count}} selected email(s)?",
+    "confirmClearAllEmails": "Clear all emails in this mailbox?",
+    "confirmDeleteSent": "Delete {{count}} selected sent record(s)?",
+    "confirmClearAllSent": "Clear all sent records?",
+    "confirmDeleteMailboxes": "Delete {{count}} selected mailbox record(s)? This cannot be undone."
+  },
   "extractRules": {
     "builtinTitle": "Built-in rules",
     "builtinDesc": "Applied when no custom rule matches; read-only",
@@ -136,6 +149,7 @@
     "colDescription": "Description",
     "colRegex": "Regex",
     "colPriority": "Priority",
+    "colRemark": "Remark",
     "colStatus": "Status",
     "colActions": "Actions",
     "enabled": "Enabled",
@@ -144,7 +158,8 @@
     "confirmDelete": "Delete this rule?",
     "regexRequired": "Regex is required",
     "saveFailed": "Save failed",
-    "edit": "Edit"
+    "edit": "Edit",
+    "remarkPlaceholder": "Optional note about this rule"
   },
   "common": {
     "loading": "Loading...",

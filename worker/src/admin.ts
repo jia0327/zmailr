@@ -73,19 +73,12 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
   </header>
   <div class="tabs">
     <div class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">仪表盘</div>
-    <div class="tab" data-tab="tokens" onclick="switchTab('tokens')">API Token</div>
     <div class="tab" data-tab="users" onclick="switchTab('users')">用户</div>
     <div class="tab" data-tab="rules" onclick="switchTab('rules')">提取规则</div>
     <div class="tab" data-tab="sent" onclick="switchTab('sent')">发信日志</div>
   </div>
   <div id="panel-dashboard" class="panel active">
     <div class="stats" id="statsGrid"></div>
-  </div>
-  <div id="panel-tokens" class="panel">
-    <div class="toolbar">
-      <button class="btn" onclick="showTokenModal()">生成 Token</button>
-    </div>
-    <table><thead><tr><th>ID</th><th>名称</th><th>Token</th><th>过期时间</th><th>操作</th></tr></thead><tbody id="tokensBody"></tbody></table>
   </div>
   <div id="panel-users" class="panel">
     <div class="toolbar">
@@ -95,27 +88,20 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
   </div>
   <div id="panel-rules" class="panel">
     <h3 class="section-title">系统内置规则</h3>
-    <p class="section-desc">自定义规则未匹配时自动启用，不可编辑或删除</p>
+    <p class="section-desc">自定义规则未匹配时自动启用，只读不可编辑</p>
     <table><thead><tr><th>域名</th><th>说明</th><th>正则</th><th>优先级</th><th>状态</th></tr></thead><tbody id="builtinRulesBody"></tbody></table>
-    <h3 class="section-title" style="margin-top:24px">自定义规则</h3>
+    <h3 class="section-title" style="margin-top:24px">全局自定义规则</h3>
+    <p class="section-desc">系统级规则，对所有用户生效</p>
     <div class="toolbar">
       <button class="btn" onclick="showRuleModal()">新增规则</button>
     </div>
-    <table><thead><tr><th>ID</th><th>域名</th><th>正则</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead><tbody id="rulesBody"></tbody></table>
+    <table><thead><tr><th>ID</th><th>域名</th><th>正则</th><th>优先级</th><th>状态</th><th>备注</th><th>操作</th></tr></thead><tbody id="rulesBody"></tbody></table>
+    <h3 class="section-title" style="margin-top:24px">所有用户自定义规则</h3>
+    <p class="section-desc">汇总展示所有用户创建的规则，便于参考优质规则并提升平台提取能力</p>
+    <table><thead><tr><th>ID</th><th>用户名</th><th>域名</th><th>正则</th><th>优先级</th><th>状态</th><th>备注</th><th>操作</th></tr></thead><tbody id="userRulesBody"></tbody></table>
   </div>
   <div id="panel-sent" class="panel">
     <table><thead><tr><th>ID</th><th>收件人</th><th>主题</th><th>状态</th><th>时间</th></tr></thead><tbody id="sentBody"></tbody></table>
-  </div>
-</div>
-<div id="tokenModal" class="modal">
-  <div class="modal-box">
-    <h3>生成 API Token</h3>
-    <div class="form-group"><label>名称</label><input id="tokenName" placeholder="可选，如 Python 脚本"></div>
-    <div class="form-group"><label>有效期（天）</label><input id="tokenDays" type="number" value="30" min="1" max="365"></div>
-    <div class="modal-actions">
-      <button class="btn" onclick="hideModal('tokenModal')">取消</button>
-      <button class="btn" onclick="createToken()">生成</button>
-    </div>
   </div>
 </div>
 <div id="userModal" class="modal">
@@ -135,11 +121,12 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
 </div>
 <div id="ruleModal" class="modal">
   <div class="modal-box">
-    <h3 id="ruleModalTitle">新增提取规则</h3>
+    <h3 id="ruleModalTitle">新增全局规则</h3>
     <input type="hidden" id="ruleId">
     <div class="form-group"><label>域名（* 为通用）</label><input id="ruleDomain" placeholder="glados.rocks 或 *"></div>
     <div class="form-group"><label>正则表达式</label><textarea id="ruleRegex" placeholder="(?:code|验证码)[:\\s]*(\\d{6})"></textarea></div>
     <div class="form-group"><label>优先级</label><input id="rulePriority" type="number" value="0"></div>
+    <div class="form-group"><label>备注</label><input id="ruleRemark" placeholder="可选，说明规则用途"></div>
     <div class="form-group"><label>启用</label><select id="ruleEnabled"><option value="1">启用</option><option value="0">禁用</option></select></div>
     <div class="modal-actions">
       <button class="btn" onclick="hideModal('ruleModal')">取消</button>
@@ -154,28 +141,26 @@ function showLogin(){document.getElementById('loginView').style.display='flex';d
 function showApp(){document.getElementById('loginView').style.display='none';document.getElementById('appView').style.display='block'}
 async function doLogin(){const pw=document.getElementById('passwordInput').value;const err=document.getElementById('loginError');err.style.display='none';try{const r=await fetch('/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({password:pw})});const d=await r.json();if(!d.success){err.textContent=d.error||'登录失败';err.style.display='block';return}showApp();loadAll()}catch(e){err.textContent='网络错误';err.style.display='block'}}
 async function doLogout(){await fetch('/admin/logout',{method:'POST',credentials:'include'});showLogin()}
-function switchTab(name){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+name));if(name==='tokens')loadTokens();if(name==='users')loadUsers();if(name==='rules')loadRules();if(name==='sent')loadSent()}
+function switchTab(name){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+name));if(name==='users')loadUsers();if(name==='rules')loadRules();if(name==='sent')loadSent()}
 function hideModal(id){document.getElementById(id).classList.remove('show')}
 function showModal(id){document.getElementById(id).classList.add('show')}
 function fmtTime(ts){if(!ts)return'-';const d=new Date(ts>1e12?ts:ts*1000);return d.toLocaleString('zh-CN')}
 async function loadAll(){await loadStats()}
 async function loadStats(){const d=await api('/stats');const s=d.stats;document.getElementById('statsGrid').innerHTML=[
-  ['今日收信',s.receivedToday],['今日发信',s.sentToday],['有效 Token',s.activeTokens],['启用规则',s.activeRules]
+  ['用户总数',s.totalUsers],['启用用户',s.activeUsers],['有效邮箱',s.activeMailboxes],['邮箱总数',s.totalMailboxes],
+  ['今日收信',s.receivedToday],['今日发信',s.sentToday],['今日活跃用户',s.activeUsersToday],['有效用户 Token',s.activeUserTokens]
 ].map(([l,v])=>'<div class="stat"><div class="label">'+l+'</div><div class="value">'+v+'</div></div>').join('')}
-async function loadTokens(){const d=await api('/tokens');const b=document.getElementById('tokensBody');if(!d.tokens.length){b.innerHTML='<tr><td colspan="5" class="empty">暂无 Token</td></tr>';return}b.innerHTML=d.tokens.map(t=>'<tr><td>'+t.id+'</td><td>'+(t.name||'-')+'</td><td><code>'+t.token+'</code></td><td>'+fmtTime(t.expiresAt)+'</td><td><button class="btn btn-danger btn-sm" onclick="deleteToken('+t.id+')">删除</button></td></tr>').join('')}
-function showTokenModal(){document.getElementById('tokenName').value='';document.getElementById('tokenDays').value='30';showModal('tokenModal')}
-async function createToken(){const name=document.getElementById('tokenName').value;const days=parseInt(document.getElementById('tokenDays').value)||30;await api('/tokens',{method:'POST',body:JSON.stringify({name,expiresInDays:days})});hideModal('tokenModal');loadTokens();loadStats()}
-async function deleteToken(id){if(!confirm('确定删除此 Token？'))return;await api('/tokens/'+id,{method:'DELETE'});loadTokens();loadStats()}
 async function loadUsers(){const d=await api('/users');const b=document.getElementById('usersBody');if(!d.users.length){b.innerHTML='<tr><td colspan="6" class="empty">暂无用户</td></tr>';return}b.innerHTML=d.users.map(u=>'<tr><td>'+u.id+'</td><td>'+u.username+'</td><td>'+u.role+'</td><td>'+(u.dailySendQuota<0?'无限':u.dailySendQuota)+'</td><td><span class="badge '+(u.enabled?'badge-ok':'badge-off')+'">'+(u.enabled?'启用':'禁用')+'</span></td><td><button class="btn btn-sm" onclick="editUser('+u.id+')">编辑</button> <button class="btn btn-danger btn-sm" onclick="deleteUser('+u.id+')">删除</button></td></tr>').join('');window._users=d.users}
 function showUserModal(){document.getElementById('userModalTitle').textContent='新增用户';document.getElementById('userId').value='';document.getElementById('userUsername').value='';document.getElementById('userPassword').value='';document.getElementById('userRole').value='user';document.getElementById('userQuota').value='50';document.getElementById('userEnabledGroup').style.display='none';showModal('userModal')}
 function editUser(id){const u=(window._users||[]).find(x=>x.id===id);if(!u)return;document.getElementById('userModalTitle').textContent='编辑用户';document.getElementById('userId').value=u.id;document.getElementById('userUsername').value=u.username;document.getElementById('userUsername').disabled=true;document.getElementById('userPassword').value='';document.getElementById('userRole').value=u.role;document.getElementById('userQuota').value=u.dailySendQuota;document.getElementById('userEnabled').value=u.enabled?'1':'0';document.getElementById('userEnabledGroup').style.display='block';showModal('userModal')}
 async function saveUser(){const id=document.getElementById('userId').value;const body={username:document.getElementById('userUsername').value,password:document.getElementById('userPassword').value,role:document.getElementById('userRole').value,dailySendQuota:parseInt(document.getElementById('userQuota').value)||50};if(id){body.enabled=document.getElementById('userEnabled').value==='1';if(!body.password)delete body.password;await api('/users/'+id,{method:'PUT',body:JSON.stringify(body)})}else{if(!body.username||!body.password){alert('用户名和密码必填');return}await api('/users',{method:'POST',body:JSON.stringify(body)})}document.getElementById('userUsername').disabled=false;hideModal('userModal');loadUsers()}
 async function deleteUser(id){if(!confirm('确定删除此用户？'))return;await api('/users/'+id,{method:'DELETE'});loadUsers()}
-async function loadRules(){const d=await api('/rules');document.getElementById('builtinRulesBody').innerHTML=(d.builtinRules||[]).map(r=>'<tr><td>'+r.domain+'</td><td>'+r.description+'</td><td><code>'+r.regex+'</code></td><td>'+r.priority+'</td><td><span class="badge badge-builtin">内置</span></td></tr>').join('');const b=document.getElementById('rulesBody');if(!d.rules.length){b.innerHTML='<tr><td colspan="6" class="empty">暂无自定义规则</td></tr>';return}b.innerHTML=d.rules.map(r=>'<tr><td>'+r.id+'</td><td>'+r.domain+'</td><td><code>'+r.regex+'</code></td><td>'+r.priority+'</td><td><span class="badge '+(r.enabled?'badge-ok':'badge-off')+'">'+(r.enabled?'启用':'禁用')+'</span></td><td><button class="btn btn-sm" onclick="editRule('+r.id+')">编辑</button> <button class="btn btn-danger btn-sm" onclick="deleteRule('+r.id+')">删除</button></td></tr>').join('');window._rules=d.rules}
-function showRuleModal(){document.getElementById('ruleModalTitle').textContent='新增提取规则';document.getElementById('ruleId').value='';document.getElementById('ruleDomain').value='*';document.getElementById('ruleRegex').value='';document.getElementById('rulePriority').value='0';document.getElementById('ruleEnabled').value='1';showModal('ruleModal')}
-function editRule(id){const r=(window._rules||[]).find(x=>x.id===id);if(!r)return;document.getElementById('ruleModalTitle').textContent='编辑提取规则';document.getElementById('ruleId').value=r.id;document.getElementById('ruleDomain').value=r.domain;document.getElementById('ruleRegex').value=r.regex;document.getElementById('rulePriority').value=r.priority;document.getElementById('ruleEnabled').value=r.enabled?'1':'0';showModal('ruleModal')}
-async function saveRule(){const id=document.getElementById('ruleId').value;const body={domain:document.getElementById('ruleDomain').value,regex:document.getElementById('ruleRegex').value,priority:parseInt(document.getElementById('rulePriority').value)||0,enabled:document.getElementById('ruleEnabled').value==='1'};if(id){await api('/rules/'+id,{method:'PUT',body:JSON.stringify(body)})}else{await api('/rules',{method:'POST',body:JSON.stringify(body)})}hideModal('ruleModal');loadRules();loadStats()}
-async function deleteRule(id){if(!confirm('确定删除此规则？'))return;await api('/rules/'+id,{method:'DELETE'});loadRules();loadStats()}
+async function loadRules(){const d=await api('/rules');const b=document.getElementById('rulesBody');const ub=document.getElementById('userRulesBody');if(!d.rules.length){b.innerHTML='<tr><td colspan="7" class="empty">暂无全局规则</td></tr>'}else{b.innerHTML=d.rules.map(r=>'<tr><td>'+r.id+'</td><td>'+r.domain+'</td><td><code>'+r.regex+'</code></td><td>'+r.priority+'</td><td><span class="badge '+(r.enabled?'badge-ok':'badge-off')+'">'+(r.enabled?'启用':'禁用')+'</span></td><td>'+(r.remark||'-')+'</td><td><button class="btn btn-sm" onclick="editRule('+r.id+')">编辑</button> <button class="btn btn-danger btn-sm" onclick="deleteRule('+r.id+')">删除</button></td></tr>').join('')};window._rules=d.rules;if(!d.userRules||!d.userRules.length){ub.innerHTML='<tr><td colspan="8" class="empty">暂无用户规则</td></tr>'}else{ub.innerHTML=d.userRules.map(r=>'<tr><td>'+r.id+'</td><td>'+r.username+'</td><td>'+r.domain+'</td><td><code>'+r.regex+'</code></td><td>'+r.priority+'</td><td><span class="badge '+(r.enabled?'badge-ok':'badge-off')+'">'+(r.enabled?'启用':'禁用')+'</span></td><td>'+(r.remark||'-')+'</td><td><button class="btn btn-danger btn-sm" onclick="deleteUserRule('+r.id+')">删除</button></td></tr>').join('')};document.getElementById('builtinRulesBody').innerHTML=(d.builtinRules||[]).map(r=>'<tr><td>'+r.domain+'</td><td>'+r.description+'</td><td><code>'+r.regex+'</code></td><td>'+r.priority+'</td><td><span class="badge badge-builtin">内置</span></td></tr>').join('')}
+function showRuleModal(){document.getElementById('ruleModalTitle').textContent='新增全局规则';document.getElementById('ruleId').value='';document.getElementById('ruleDomain').value='*';document.getElementById('ruleRegex').value='';document.getElementById('rulePriority').value='0';document.getElementById('ruleRemark').value='';document.getElementById('ruleEnabled').value='1';showModal('ruleModal')}
+function editRule(id){const r=(window._rules||[]).find(x=>x.id===id);if(!r)return;document.getElementById('ruleModalTitle').textContent='编辑全局规则';document.getElementById('ruleId').value=r.id;document.getElementById('ruleDomain').value=r.domain;document.getElementById('ruleRegex').value=r.regex;document.getElementById('rulePriority').value=r.priority;document.getElementById('ruleRemark').value=r.remark||'';document.getElementById('ruleEnabled').value=r.enabled?'1':'0';showModal('ruleModal')}
+async function saveRule(){const id=document.getElementById('ruleId').value;const remark=document.getElementById('ruleRemark').value.trim();const body={domain:document.getElementById('ruleDomain').value,regex:document.getElementById('ruleRegex').value,priority:parseInt(document.getElementById('rulePriority').value)||0,enabled:document.getElementById('ruleEnabled').value==='1',remark:remark||null};if(id){await api('/rules/'+id,{method:'PUT',body:JSON.stringify(body)})}else{await api('/rules',{method:'POST',body:JSON.stringify(body)})}hideModal('ruleModal');loadRules()}
+async function deleteRule(id){if(!confirm('确定删除此规则？'))return;await api('/rules/'+id,{method:'DELETE'});loadRules()}
+async function deleteUserRule(id){if(!confirm('确定删除此用户规则？'))return;await api('/rules/user/'+id,{method:'DELETE'});loadRules()}
 async function loadSent(){const d=await api('/sent-emails');const b=document.getElementById('sentBody');if(!d.emails.length){b.innerHTML='<tr><td colspan="5" class="empty">暂无记录</td></tr>';return}b.innerHTML=d.emails.map(e=>'<tr><td>'+e.id+'</td><td>'+e.toEmail+'</td><td>'+e.subject+'</td><td><span class="badge '+(e.status==='sent'?'badge-ok':'badge-off')+'">'+e.status+'</span></td><td>'+fmtTime(e.createdAt)+'</td></tr>').join('')}
 (async()=>{try{const d=await api('/stats');if(d.success){showApp();loadAll()}}catch{showLogin()}})();
 document.getElementById('passwordInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});

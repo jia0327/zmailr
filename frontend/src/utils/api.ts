@@ -13,16 +13,68 @@ export interface UserMailboxItem {
   expiresAt: number;
   ipAddress: string;
   lastAccessed: number;
+  isExpired?: boolean;
 }
 
-export const getUserMailboxes = async () => {
+export const getUserMailboxes = async (includeExpired = false) => {
   try {
-    const response = await fetch(apiUrl('/api/user/mailboxes'), fetchOpts);
+    const query = includeExpired ? '?includeExpired=true' : '';
+    const response = await fetch(apiUrl(`/api/user/mailboxes${query}`), fetchOpts);
     if (response.status === 401) return { success: false as const, error: 'Unauthorized' };
     const data = await response.json();
     if (data.success) {
       return { success: true as const, mailboxes: data.mailboxes as UserMailboxItem[] };
     }
+    return { success: false as const, error: data.error };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export const reactivateUserMailbox = async (address: string) => {
+  try {
+    const response = await fetch(apiUrl(`/api/user/mailboxes/${encodeURIComponent(address)}/reactivate`), {
+      method: 'POST',
+      credentials: 'include',
+    });
+    const data = await response.json();
+    if (data.success) return { success: true as const, mailbox: data.mailbox as UserMailboxItem };
+    return { success: false as const, error: data.error };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export const deleteUserEmails = async (params: {
+  mailboxAddress: string;
+  ids?: string[];
+  all?: boolean;
+}) => {
+  try {
+    const response = await fetch(apiUrl('/api/user/emails'), {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(params),
+    });
+    const data = await response.json();
+    if (data.success) return { success: true as const, deleted: data.deleted as number };
+    return { success: false as const, error: data.error };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export const deleteUserSentEmails = async (params: { ids?: number[]; all?: boolean }) => {
+  try {
+    const response = await fetch(apiUrl('/api/user/sent'), {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(params),
+    });
+    const data = await response.json();
+    if (data.success) return { success: true as const, deleted: data.deleted as number };
     return { success: false as const, error: data.error };
   } catch {
     return { success: false as const, error: 'Network error' };
@@ -339,6 +391,7 @@ export interface ExtractRuleItem {
   priority: number;
   enabled: boolean;
   createdAt?: number;
+  remark?: string | null;
 }
 
 export interface BuiltinExtractRuleItem {
@@ -374,6 +427,7 @@ export const createUserExtractRule = async (params: {
   regex: string;
   priority: number;
   enabled: boolean;
+  remark?: string | null;
 }) => {
   try {
     const response = await fetch(apiUrl('/api/user/extract-rules'), {
@@ -392,7 +446,7 @@ export const createUserExtractRule = async (params: {
 
 export const updateUserExtractRule = async (
   id: number,
-  params: { domain: string; regex: string; priority: number; enabled: boolean }
+  params: { domain: string; regex: string; priority: number; enabled: boolean; remark?: string | null }
 ) => {
   try {
     const response = await fetch(apiUrl(`/api/user/extract-rules/${id}`), {

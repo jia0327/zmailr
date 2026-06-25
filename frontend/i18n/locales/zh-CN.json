@@ -124,6 +124,19 @@
     "extractRulesSubtitle": "自定义 OTP 验证码提取正则，覆盖内置兜底规则",
     "breadcrumbExtractRules": "工作区 / 提取规则"
   },
+  "history": {
+    "mailboxList": "邮箱历史",
+    "noMailboxes": "暂无邮箱记录",
+    "reactivate": "续期",
+    "reactivateSuccess": "邮箱已续期，可继续收信",
+    "deleteSelected": "删除选中",
+    "clearAll": "清空全部",
+    "confirmDeleteEmails": "确定删除选中的 {{count}} 封邮件？",
+    "confirmClearAllEmails": "确定清空当前邮箱的全部邮件？",
+    "confirmDeleteSent": "确定删除选中的 {{count}} 条发信记录？",
+    "confirmClearAllSent": "确定清空全部发信记录？",
+    "confirmDeleteMailboxes": "确定删除选中的 {{count}} 个邮箱记录？删除后无法恢复。"
+  },
   "extractRules": {
     "builtinTitle": "系统内置规则",
     "builtinDesc": "自定义规则未匹配时自动启用，不可编辑",
@@ -136,6 +149,7 @@
     "colDescription": "说明",
     "colRegex": "正则",
     "colPriority": "优先级",
+    "colRemark": "备注",
     "colStatus": "状态",
     "colActions": "操作",
     "enabled": "启用",
@@ -144,7 +158,8 @@
     "confirmDelete": "确定删除此规则？",
     "regexRequired": "请填写正则表达式",
     "saveFailed": "保存失败",
-    "edit": "编辑"
+    "edit": "编辑",
+    "remarkPlaceholder": "可选，说明规则用途"
   },
   "common": {
     "loading": "加载中...",

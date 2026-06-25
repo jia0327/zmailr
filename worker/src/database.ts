@@ -11,6 +11,7 @@ import {
   ApiToken,
   CreateApiTokenParams,
   ExtractRule,
+  UserExtractRule,
   SaveExtractRuleParams,
   SentEmail,
   AdminStats,
@@ -63,6 +64,7 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await migrateAddColumn(db, 'sent_emails', 'user_id', 'INTEGER');
     await migrateAddColumn(db, 'sent_emails', 'token_id', 'INTEGER');
     await migrateAddColumn(db, 'extract_rules', 'user_id', 'INTEGER');
+    await migrateAddColumn(db, 'extract_rules', 'remark', 'TEXT');
 
     // Phase 3: create indexes (after all columns exist)
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_mailboxes_address ON mailboxes(address);`);
@@ -200,6 +202,18 @@ export async function getMailbox(db: D1Database, address: string): Promise<Mailb
   return rowToMailbox(result as Record<string, unknown>, now);
 }
 
+export async function getMailboxRaw(db: D1Database, address: string): Promise<Mailbox | null> {
+  const result = await db
+    .prepare(
+      `SELECT id, address, created_at, expires_at, ip_address, last_accessed, user_id
+       FROM mailboxes WHERE address = ?`
+    )
+    .bind(address)
+    .first();
+  if (!result) return null;
+  return rowToMailbox(result as Record<string, unknown>);
+}
+
 export async function getMailboxById(db: D1Database, id: string): Promise<Mailbox | null> {
   const now = getCurrentTimestamp();
   const result = await db
@@ -210,6 +224,18 @@ export async function getMailboxById(db: D1Database, id: string): Promise<Mailbo
     .bind(id, now)
     .first();
 
+  if (!result) return null;
+  return rowToMailbox(result as Record<string, unknown>);
+}
+
+export async function getMailboxRawById(db: D1Database, id: string): Promise<Mailbox | null> {
+  const result = await db
+    .prepare(
+      `SELECT id, address, created_at, expires_at, ip_address, last_accessed, user_id
+       FROM mailboxes WHERE id = ?`
+    )
+    .bind(id)
+    .first();
   if (!result) return null;
   return rowToMailbox(result as Record<string, unknown>);
 }
@@ -250,19 +276,46 @@ function mapMailboxRow(result: Record<string, unknown>): Mailbox {
 export async function listMailboxesByUser(
   db: D1Database,
   userId: number,
-  limit = 50
+  limit = 50,
+  includeExpired = false
 ): Promise<Mailbox[]> {
   const now = getCurrentTimestamp();
-  const results = await db
-    .prepare(
-      `SELECT id, address, created_at, expires_at, ip_address, last_accessed
-       FROM mailboxes WHERE user_id = ? AND expires_at > ?
-       ORDER BY created_at DESC LIMIT ?`
-    )
-    .bind(userId, now, limit)
-    .all();
+  const results = includeExpired
+    ? await db
+        .prepare(
+          `SELECT id, address, created_at, expires_at, ip_address, last_accessed, user_id
+           FROM mailboxes WHERE user_id = ?
+           ORDER BY created_at DESC LIMIT ?`
+        )
+        .bind(userId, limit)
+        .all()
+    : await db
+        .prepare(
+          `SELECT id, address, created_at, expires_at, ip_address, last_accessed, user_id
+           FROM mailboxes WHERE user_id = ? AND expires_at > ?
+           ORDER BY created_at DESC LIMIT ?`
+        )
+        .bind(userId, now, limit)
+        .all();
   if (!results.results) return [];
-  return results.results.map((row) => mapMailboxRow(row as Record<string, unknown>));
+  return results.results.map((row) => rowToMailbox(row as Record<string, unknown>));
+}
+
+export async function reactivateMailbox(
+  db: D1Database,
+  address: string,
+  userId: number,
+  expiresInHours = 24
+): Promise<Mailbox | null> {
+  const mailbox = await getMailboxRaw(db, address);
+  if (!mailbox || mailbox.userId !== userId) return null;
+  const now = getCurrentTimestamp();
+  const expiresAt = calculateExpiryTimestamp(expiresInHours);
+  await db
+    .prepare(`UPDATE mailboxes SET expires_at = ?, last_accessed = ? WHERE id = ?`)
+    .bind(expiresAt, now, mailbox.id)
+    .run();
+  return { ...mailbox, expiresAt, lastAccessed: now };
 }
 
 export async function listActiveMailboxes(db: D1Database, limit = 50): Promise<Mailbox[]> {
@@ -690,6 +743,54 @@ export async function deleteEmail(db: D1Database, id: string): Promise<void> {
   await db.prepare(`DELETE FROM emails WHERE id = ?`).bind(id).run();
 }
 
+export async function deleteUserMailboxEmails(
+  db: D1Database,
+  userId: number,
+  mailboxAddress: string,
+  options: { ids?: string[]; all?: boolean }
+): Promise<number | null> {
+  const mailbox = await getMailboxRaw(db, mailboxAddress);
+  if (!mailbox || mailbox.userId !== userId) return null;
+
+  if (options.all) {
+    const result = await db.prepare(`DELETE FROM emails WHERE mailbox_id = ?`).bind(mailbox.id).run();
+    return result.meta?.changes ?? 0;
+  }
+
+  if (options.ids && options.ids.length > 0) {
+    const placeholders = options.ids.map(() => '?').join(',');
+    const result = await db
+      .prepare(`DELETE FROM emails WHERE mailbox_id = ? AND id IN (${placeholders})`)
+      .bind(mailbox.id, ...options.ids)
+      .run();
+    return result.meta?.changes ?? 0;
+  }
+
+  return 0;
+}
+
+export async function deleteUserSentEmails(
+  db: D1Database,
+  userId: number,
+  options: { ids?: number[]; all?: boolean }
+): Promise<number> {
+  if (options.all) {
+    const result = await db.prepare(`DELETE FROM sent_emails WHERE user_id = ?`).bind(userId).run();
+    return result.meta?.changes ?? 0;
+  }
+
+  if (options.ids && options.ids.length > 0) {
+    const placeholders = options.ids.map(() => '?').join(',');
+    const result = await db
+      .prepare(`DELETE FROM sent_emails WHERE user_id = ? AND id IN (${placeholders})`)
+      .bind(userId, ...options.ids)
+      .run();
+    return result.meta?.changes ?? 0;
+  }
+
+  return 0;
+}
+
 // ─── API Token ───────────────────────────────────────────────
 
 export async function verifyApiToken(db: D1Database, token: string): Promise<boolean> {
@@ -735,6 +836,9 @@ export async function deleteApiToken(db: D1Database, id: number): Promise<void> 
 
 // ─── Extract Rules ───────────────────────────────────────────
 
+const EXTRACT_RULE_COLUMNS =
+  'id, domain, regex, priority, enabled, created_at, user_id, remark';
+
 function mapExtractRuleRow(row: Record<string, unknown>): ExtractRule {
   return {
     id: row.id as number,
@@ -744,12 +848,20 @@ function mapExtractRuleRow(row: Record<string, unknown>): ExtractRule {
     enabled: !!row.enabled,
     createdAt: row.created_at as number,
     userId: (row.user_id as number | null) ?? null,
+    remark: (row.remark as string | null) ?? null,
+  };
+}
+
+function mapUserExtractRuleRow(row: Record<string, unknown>): UserExtractRule {
+  return {
+    ...mapExtractRuleRow(row),
+    username: row.username as string,
   };
 }
 
 export async function listExtractRules(db: D1Database): Promise<ExtractRule[]> {
   const results = await db.prepare(
-    `SELECT id, domain, regex, priority, enabled, created_at, user_id FROM extract_rules
+    `SELECT ${EXTRACT_RULE_COLUMNS} FROM extract_rules
      WHERE user_id IS NULL
      ORDER BY priority DESC, id ASC`
   ).all();
@@ -759,12 +871,24 @@ export async function listExtractRules(db: D1Database): Promise<ExtractRule[]> {
 
 export async function listUserExtractRules(db: D1Database, userId: number): Promise<ExtractRule[]> {
   const results = await db.prepare(
-    `SELECT id, domain, regex, priority, enabled, created_at, user_id FROM extract_rules
+    `SELECT ${EXTRACT_RULE_COLUMNS} FROM extract_rules
      WHERE user_id = ?
      ORDER BY priority DESC, id ASC`
   ).bind(userId).all();
   if (!results.results) return [];
   return results.results.map((row) => mapExtractRuleRow(row as Record<string, unknown>));
+}
+
+export async function listAllUserExtractRules(db: D1Database): Promise<UserExtractRule[]> {
+  const results = await db.prepare(
+    `SELECT er.id, er.domain, er.regex, er.priority, er.enabled, er.created_at, er.user_id, er.remark, u.username
+     FROM extract_rules er
+     JOIN users u ON er.user_id = u.id
+     WHERE er.user_id IS NOT NULL
+     ORDER BY er.id DESC`
+  ).all();
+  if (!results.results) return [];
+  return results.results.map((row) => mapUserExtractRuleRow(row as Record<string, unknown>));
 }
 
 function sortExtractRulesForDomain(rules: ExtractRule[], senderDomain: string): ExtractRule[] {
@@ -786,14 +910,14 @@ export async function getEnabledExtractRules(
   userId?: number | null
 ): Promise<ExtractRule[]> {
   const globalResults = await db.prepare(
-    `SELECT id, domain, regex, priority, enabled, created_at, user_id FROM extract_rules
+    `SELECT ${EXTRACT_RULE_COLUMNS} FROM extract_rules
      WHERE enabled = 1 AND user_id IS NULL AND (domain = ? OR domain = '*')`
   ).bind(senderDomain).all();
 
   let userRules: ExtractRule[] = [];
   if (userId != null) {
     const userResults = await db.prepare(
-      `SELECT id, domain, regex, priority, enabled, created_at, user_id FROM extract_rules
+      `SELECT ${EXTRACT_RULE_COLUMNS} FROM extract_rules
        WHERE enabled = 1 AND user_id = ? AND (domain = ? OR domain = '*')`
     ).bind(userId, senderDomain).all();
     if (userResults.results) {
@@ -810,21 +934,22 @@ export async function getEnabledExtractRules(
 
 export async function getExtractRuleById(db: D1Database, id: number): Promise<ExtractRule | null> {
   const result = await db.prepare(
-    `SELECT id, domain, regex, priority, enabled, created_at, user_id FROM extract_rules WHERE id = ?`
+    `SELECT ${EXTRACT_RULE_COLUMNS} FROM extract_rules WHERE id = ?`
   ).bind(id).first();
   return result ? mapExtractRuleRow(result as Record<string, unknown>) : null;
 }
 
 export async function createExtractRule(db: D1Database, params: SaveExtractRuleParams): Promise<ExtractRule> {
   const result = await db.prepare(
-    `INSERT INTO extract_rules (domain, regex, priority, enabled, user_id) VALUES (?, ?, ?, ?, ?)
-     RETURNING id, domain, regex, priority, enabled, created_at, user_id`
+    `INSERT INTO extract_rules (domain, regex, priority, enabled, user_id, remark) VALUES (?, ?, ?, ?, ?, ?)
+     RETURNING ${EXTRACT_RULE_COLUMNS}`
   ).bind(
     params.domain || '*',
     params.regex,
     params.priority ?? 0,
     params.enabled !== false ? 1 : 0,
-    params.userId ?? null
+    params.userId ?? null,
+    params.remark ?? null
   ).first();
   return mapExtractRuleRow(result as Record<string, unknown>);
 }
@@ -832,13 +957,15 @@ export async function createExtractRule(db: D1Database, params: SaveExtractRuleP
 export async function updateExtractRule(db: D1Database, id: number, params: SaveExtractRuleParams): Promise<ExtractRule | null> {
   const existing = await getExtractRuleById(db, id);
   if (!existing) return null;
+  const remark = params.remark !== undefined ? (params.remark ?? null) : (existing.remark ?? null);
   await db.prepare(
-    `UPDATE extract_rules SET domain = ?, regex = ?, priority = ?, enabled = ? WHERE id = ?`
+    `UPDATE extract_rules SET domain = ?, regex = ?, priority = ?, enabled = ?, remark = ? WHERE id = ?`
   ).bind(
     params.domain || '*',
     params.regex,
     params.priority ?? 0,
     params.enabled !== false ? 1 : 0,
+    remark,
     id
   ).run();
   return getExtractRuleById(db, id);
@@ -879,6 +1006,13 @@ export async function deleteUserExtractRule(db: D1Database, id: number, userId: 
 export async function deleteGlobalExtractRule(db: D1Database, id: number): Promise<boolean> {
   const existing = await getExtractRuleById(db, id);
   if (!existing || existing.userId != null) return false;
+  await deleteExtractRule(db, id);
+  return true;
+}
+
+export async function deleteAnyUserExtractRule(db: D1Database, id: number): Promise<boolean> {
+  const existing = await getExtractRuleById(db, id);
+  if (!existing || existing.userId == null) return false;
   await deleteExtractRule(db, id);
   return true;
 }
@@ -944,28 +1078,50 @@ export async function listUserSentEmails(db: D1Database, userId: number, limit =
 export async function getAdminStats(db: D1Database): Promise<AdminStats> {
   const now = getCurrentTimestamp();
   const startOfDay = now - (now % 86400);
+  const todayDate = getTodayUsageDate();
+  const nowMs = Date.now();
 
-  const received = await db.prepare(
-    `SELECT COUNT(*) as count FROM emails WHERE received_at >= ?`
-  ).bind(startOfDay).first<{ count: number }>();
-
-  const sent = await db.prepare(
-    `SELECT COUNT(*) as count FROM sent_emails WHERE created_at >= ?`
-  ).bind(startOfDay).first<{ count: number }>();
-
-  const tokens = await db.prepare(
-    `SELECT COUNT(*) as count FROM api_tokens WHERE expires_at > ?`
-  ).bind(Date.now()).first<{ count: number }>();
-
-  const rules = await db.prepare(
-    `SELECT COUNT(*) as count FROM extract_rules WHERE enabled = 1`
-  ).first<{ count: number }>();
+  const [
+    totalUsers,
+    activeUsers,
+    totalMailboxes,
+    activeMailboxes,
+    received,
+    sent,
+    activeUsersToday,
+    activeUserTokens,
+  ] = await Promise.all([
+    db.prepare(`SELECT COUNT(*) as count FROM users`).first<{ count: number }>(),
+    db.prepare(`SELECT COUNT(*) as count FROM users WHERE enabled = 1`).first<{ count: number }>(),
+    db.prepare(`SELECT COUNT(*) as count FROM mailboxes`).first<{ count: number }>(),
+    db.prepare(`SELECT COUNT(*) as count FROM mailboxes WHERE expires_at > ?`).bind(now).first<{ count: number }>(),
+    db.prepare(`SELECT COUNT(*) as count FROM emails WHERE received_at >= ?`).bind(startOfDay).first<{ count: number }>(),
+    db.prepare(`SELECT COUNT(*) as count FROM sent_emails WHERE created_at >= ?`).bind(startOfDay).first<{ count: number }>(),
+    db.prepare(
+      `SELECT COUNT(DISTINCT user_id) as count FROM (
+         SELECT user_id FROM daily_usage
+         WHERE usage_date = ? AND (send_count > 0 OR lease_count > 0)
+         UNION
+         SELECT user_id FROM sent_emails
+         WHERE created_at >= ? AND user_id IS NOT NULL
+         UNION
+         SELECT m.user_id FROM emails e
+         INNER JOIN mailboxes m ON e.mailbox_id = m.id
+         WHERE e.received_at >= ? AND m.user_id IS NOT NULL
+       )`
+    ).bind(todayDate, startOfDay, startOfDay).first<{ count: number }>(),
+    db.prepare(`SELECT COUNT(*) as count FROM user_tokens WHERE expires_at > ?`).bind(nowMs).first<{ count: number }>(),
+  ]);
 
   return {
+    totalUsers: totalUsers?.count ?? 0,
+    activeUsers: activeUsers?.count ?? 0,
+    totalMailboxes: totalMailboxes?.count ?? 0,
+    activeMailboxes: activeMailboxes?.count ?? 0,
     receivedToday: received?.count ?? 0,
     sentToday: sent?.count ?? 0,
-    activeTokens: tokens?.count ?? 0,
-    activeRules: rules?.count ?? 0,
+    activeUsersToday: activeUsersToday?.count ?? 0,
+    activeUserTokens: activeUserTokens?.count ?? 0,
   };
 }
 

@@ -35,6 +35,7 @@ interface MailboxContextType {
   setAutoRefresh: (autoRefresh: boolean) => void;
   createNewMailbox: () => Promise<void>;
   deleteMailbox: () => Promise<void>;
+  switchToMailbox: (mailbox: Mailbox) => void;
   refreshEmails: (isManual?: boolean) => Promise<void>; // feat: 添加一个参数以区分手动刷新
   emailCache: EmailCache;
   addToEmailCache: (emailId: string, email: Email, attachments: any[]) => void;
@@ -61,6 +62,7 @@ export const MailboxContext = createContext<MailboxContextType>({
   setAutoRefresh: () => {},
   createNewMailbox: async () => {},
   deleteMailbox: async () => {},
+  switchToMailbox: () => {},
   refreshEmails: async () => {},
   emailCache: {},
   addToEmailCache: () => {},
@@ -354,6 +356,14 @@ export const MailboxProvider: React.FC<MailboxProviderProps> = ({ children }) =>
     saveMailboxToLocalStorage(newMailbox);
   };
 
+  const switchToMailbox = (newMailbox: Mailbox) => {
+    setMailbox(newMailbox);
+    saveMailboxToLocalStorage(newMailbox);
+    setEmails([]);
+    setSelectedEmail(null);
+    clearEmailCache();
+  };
+
   return (
     <MailboxContext.Provider
       value={{
@@ -370,6 +380,7 @@ export const MailboxProvider: React.FC<MailboxProviderProps> = ({ children }) =>
         setAutoRefresh,
         createNewMailbox,
         deleteMailbox,
+        switchToMailbox,
         refreshEmails,
         emailCache,
         addToEmailCache,

@@ -4,20 +4,24 @@ import EmailList from '../components/EmailList';
 import HeaderMailbox from '../components/HeaderMailbox';
 import DashboardPageHeader from '../components/DashboardPageHeader';
 import StatCard from '../components/StatCard';
+import MailboxHistoryList from '../components/MailboxHistoryList';
 import { MailboxContext } from '../contexts/MailboxContext';
 import { getEmailDomains, getDefaultEmailDomain, EMAIL_DOMAINS, DEFAULT_EMAIL_DOMAIN } from '../config';
+import { UserMailboxItem } from '../utils/api';
 
 const InboxPage: React.FC = () => {
   const { t } = useTranslation();
   const {
     mailbox,
     setMailbox,
+    switchToMailbox,
     isLoading,
     emails,
     selectedEmail,
     setSelectedEmail,
     isEmailsLoading,
     createNewMailbox,
+    showSuccessMessage,
   } = useContext(MailboxContext);
 
   const [emailDomains, setEmailDomains] = React.useState<string[]>(EMAIL_DOMAINS);
@@ -47,6 +51,35 @@ const InboxPage: React.FC = () => {
     const minutes = Math.floor((timeLeftSeconds % 3600) / 60);
     if (hours > 0) return t('mailbox.expiresInTime', { hours, minutes });
     return t('mailbox.expiresInMinutes', { minutes });
+  };
+
+  const handleSelectHistoryMailbox = (mb: UserMailboxItem) => {
+    switchToMailbox({
+      id: mb.id,
+      address: mb.address,
+      createdAt: mb.createdAt,
+      expiresAt: mb.expiresAt,
+      ipAddress: mb.ipAddress,
+      lastAccessed: mb.lastAccessed,
+    });
+  };
+
+  const handleReactivated = (mb: UserMailboxItem) => {
+    switchToMailbox({
+      id: mb.id,
+      address: mb.address,
+      createdAt: mb.createdAt,
+      expiresAt: mb.expiresAt,
+      ipAddress: mb.ipAddress,
+      lastAccessed: mb.lastAccessed,
+    });
+    showSuccessMessage(t('history.reactivateSuccess'));
+  };
+
+  const handleHistoryDeleted = (address: string) => {
+    if (mailbox?.address === address) {
+      createNewMailbox();
+    }
   };
 
   const handleNewInbox = async () => {
@@ -115,6 +148,13 @@ const InboxPage: React.FC = () => {
           />
         </div>
       )}
+
+      <MailboxHistoryList
+        activeAddress={mailbox?.address}
+        onSelect={handleSelectHistoryMailbox}
+        onReactivated={handleReactivated}
+        onDeleted={handleHistoryDeleted}
+      />
 
       <EmailList
         emails={emails}

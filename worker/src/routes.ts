@@ -5,11 +5,15 @@ import { Env, ApiAuthContext, TokenScope, User, Mailbox, Email } from './types';
 import { 
   createMailbox, 
   getMailbox,
-  getMailboxById,
+  getMailboxRaw,
+  getMailboxRawById,
   deleteMailbox,
+  reactivateMailbox,
   getEmails, 
   getEmail, 
   deleteEmail,
+  deleteUserMailboxEmails,
+  deleteUserSentEmails,
   getAttachments,
   getAttachment,
   findLatestEmailWithCode,
@@ -21,9 +25,11 @@ import {
   deleteApiToken,
   listExtractRules,
   listUserExtractRules,
+  listAllUserExtractRules,
   createExtractRule,
   updateGlobalExtractRule,
   deleteGlobalExtractRule,
+  deleteAnyUserExtractRule,
   updateUserExtractRule,
   deleteUserExtractRule,
   listSentEmails,
@@ -177,20 +183,37 @@ app.get('/api/mailboxes', async (c) => {
   }
 });
 
+async function resolveMailboxForAccess(c: any, addressParam: string) {
+  const localPart = parseMailboxAddress(addressParam);
+  let mailbox = await getMailbox(c.env.DB, localPart);
+  if (!mailbox) {
+    const raw = await getMailboxRaw(c.env.DB, localPart);
+    if (raw) {
+      const sessionErr = await requireUserSession(c);
+      if (!sessionErr) {
+        const user = c.get('user') as User;
+        if (assertMailboxAccess(raw, { user })) {
+          mailbox = raw;
+        }
+      }
+    }
+  }
+  if (!mailbox) {
+    return { error: c.json({ success: false, error: '邮箱不存在或已过期' }, 404) };
+  }
+  return { mailbox, localPart };
+}
+
 // 获取邮箱信息
 app.get('/api/mailboxes/:address', async (c) => {
   try {
-    const address = c.req.param('address');
-    const mailbox = await getMailbox(c.env.DB, address);
-    
-    if (!mailbox) {
-      return c.json({ success: false, error: '邮箱不存在' }, 404);
-    }
+    const resolved = await resolveMailboxForAccess(c, c.req.param('address'));
+    if (resolved.error) return resolved.error;
 
-    const accessErr = await requireMailboxAuth(c, mailbox, 'mail');
+    const accessErr = await requireMailboxAuth(c, resolved.mailbox!, 'mail');
     if (accessErr) return accessErr;
     
-    return c.json({ success: true, mailbox });
+    return c.json({ success: true, mailbox: resolved.mailbox });
   } catch (error) {
     console.error('获取邮箱失败:', error);
     return c.json({ 
@@ -204,8 +227,8 @@ app.get('/api/mailboxes/:address', async (c) => {
 // 删除邮箱
 app.delete('/api/mailboxes/:address', async (c) => {
   try {
-    const address = c.req.param('address');
-    const mailbox = await getMailbox(c.env.DB, address);
+    const localPart = parseMailboxAddress(c.req.param('address'));
+    const mailbox = await getMailboxRaw(c.env.DB, localPart);
     if (!mailbox) {
       return c.json({ success: false, error: '邮箱不存在' }, 404);
     }
@@ -213,7 +236,7 @@ app.delete('/api/mailboxes/:address', async (c) => {
     const accessErr = await requireMailboxAuth(c, mailbox, 'mail');
     if (accessErr) return accessErr;
 
-    await deleteMailbox(c.env.DB, address);
+    await deleteMailbox(c.env.DB, localPart);
     
     return c.json({ success: true });
   } catch (error) {
@@ -308,17 +331,13 @@ app.get('/api/mailboxes/:address/latest-link', async (c) => {
 // 获取邮件列表
 app.get('/api/mailboxes/:address/emails', async (c) => {
   try {
-    const address = c.req.param('address');
-    const mailbox = await getMailbox(c.env.DB, address);
-    
-    if (!mailbox) {
-      return c.json({ success: false, error: '邮箱不存在' }, 404);
-    }
+    const resolved = await resolveMailboxForAccess(c, c.req.param('address'));
+    if (resolved.error) return resolved.error;
 
-    const accessErr = await requireMailboxAuth(c, mailbox, 'mail');
+    const accessErr = await requireMailboxAuth(c, resolved.mailbox!, 'mail');
     if (accessErr) return accessErr;
     
-    const emails = await getEmails(c.env.DB, mailbox.id);
+    const emails = await getEmails(c.env.DB, resolved.mailbox!.id);
     
     return c.json({ success: true, emails });
   } catch (error) {
@@ -608,6 +627,7 @@ app.post('/api/user/extract-rules', async (c) => {
     regex: validated.regex,
     priority: body.priority,
     enabled: body.enabled,
+    remark: body.remark,
     userId: user.id,
   });
   return c.json({ success: true, rule });
@@ -629,6 +649,7 @@ app.put('/api/user/extract-rules/:id', async (c) => {
       regex: validated.regex,
       priority: body.priority,
       enabled: body.enabled,
+      remark: body.remark,
     }
   );
   if (!rule) return c.json({ success: false, error: '规则不存在' }, 404);
@@ -653,20 +674,107 @@ app.get('/api/user/sent', async (c) => {
   return c.json({ success: true, emails });
 });
 
+app.delete('/api/user/sent', async (c) => {
+  const authErr = await requireUserSession(c);
+  if (authErr) return authErr;
+  const user = c.get('user')!;
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const all = body.all === true;
+    const ids = Array.isArray(body.ids)
+      ? body.ids.map((id: unknown) => parseInt(String(id), 10)).filter((id: number) => !Number.isNaN(id))
+      : undefined;
+
+    if (!all && (!ids || ids.length === 0)) {
+      return c.json({ success: false, error: '请提供 ids 或设置 all: true' }, 400);
+    }
+
+    const deleted = await deleteUserSentEmails(c.env.DB, user.id, { ids, all });
+    return c.json({ success: true, deleted });
+  } catch (error) {
+    console.error('删除发信记录失败:', error);
+    return c.json({
+      success: false,
+      error: '删除发信记录失败',
+      message: error instanceof Error ? error.message : String(error),
+    }, 500);
+  }
+});
+
 app.get('/api/user/mailboxes', async (c) => {
   const authErr = await requireUserSession(c);
   if (authErr) return authErr;
   const user = c.get('user')!;
   const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '50', 10), 1), 100);
-  const mailboxes = await listMailboxesByUser(c.env.DB, user.id, limit);
+  const includeExpired = c.req.query('includeExpired') === 'true';
+  const mailboxes = await listMailboxesByUser(c.env.DB, user.id, limit, includeExpired);
   const domain = getMailDomain(c.env);
+  const now = getCurrentTimestamp();
   return c.json({
     success: true,
     mailboxes: mailboxes.map((m) => ({
       ...m,
       email: `${m.address}@${domain}`,
+      isExpired: m.expiresAt <= now,
     })),
   });
+});
+
+app.post('/api/user/mailboxes/:address/reactivate', async (c) => {
+  const authErr = await requireUserSession(c);
+  if (authErr) return authErr;
+  const user = c.get('user')!;
+
+  try {
+    const localPart = parseMailboxAddress(c.req.param('address'));
+    const mailbox = await reactivateMailbox(c.env.DB, localPart, user.id);
+    if (!mailbox) {
+      return c.json({ success: false, error: '邮箱不存在或无权操作' }, 404);
+    }
+    return c.json({ success: true, mailbox });
+  } catch (error) {
+    console.error('续期邮箱失败:', error);
+    return c.json({
+      success: false,
+      error: '续期邮箱失败',
+      message: error instanceof Error ? error.message : String(error),
+    }, 500);
+  }
+});
+
+app.delete('/api/user/emails', async (c) => {
+  const authErr = await requireUserSession(c);
+  if (authErr) return authErr;
+  const user = c.get('user')!;
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const mailboxAddress = body.mailboxAddress ? parseMailboxAddress(String(body.mailboxAddress)) : '';
+    if (!mailboxAddress) {
+      return c.json({ success: false, error: '缺少 mailboxAddress' }, 400);
+    }
+
+    const all = body.all === true;
+    const ids = Array.isArray(body.ids) ? body.ids.map(String) : undefined;
+
+    if (!all && (!ids || ids.length === 0)) {
+      return c.json({ success: false, error: '请提供 ids 或设置 all: true' }, 400);
+    }
+
+    const deleted = await deleteUserMailboxEmails(c.env.DB, user.id, mailboxAddress, { ids, all });
+    if (deleted === null) {
+      return c.json({ success: false, error: '邮箱不存在或无权操作' }, 404);
+    }
+    return c.json({ success: true, deleted });
+  } catch (error) {
+    console.error('删除邮件失败:', error);
+    return c.json({
+      success: false,
+      error: '删除邮件失败',
+      message: error instanceof Error ? error.message : String(error),
+    }, 500);
+  }
 });
 
 app.post('/api/user/mailboxes', async (c) => {
@@ -839,13 +947,19 @@ async function requireEmailAccess(
     return c.json({ success: false, error: '邮件不存在' }, 404);
   }
 
-  const mailbox = await getMailboxById(c.env.DB, email.mailboxId);
+  const mailbox = await getMailboxRawById(c.env.DB, email.mailboxId);
   if (!mailbox) {
     return c.json({ success: false, error: '邮箱不存在' }, 404);
   }
 
   const accessErr = await requireMailboxAuth(c, mailbox, bearerScope);
   if (accessErr) return accessErr;
+
+  // Bearer tokens cannot access expired mailboxes
+  const authHeader = c.req.header('Authorization');
+  if (authHeader?.startsWith('Bearer ') && mailbox.expiresAt <= getCurrentTimestamp()) {
+    return c.json({ success: false, error: '邮箱已过期' }, 403);
+  }
 
   return { email, mailbox };
 }
@@ -1088,8 +1202,9 @@ app.get('/admin/api/rules', async (c) => {
   const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const rules = await listExtractRules(c.env.DB);
+  const userRules = await listAllUserExtractRules(c.env.DB);
   const builtinRules = getBuiltinExtractRules();
-  return c.json({ success: true, rules, builtinRules });
+  return c.json({ success: true, rules, userRules, builtinRules });
 });
 
 app.post('/admin/api/rules', async (c) => {
@@ -1103,6 +1218,7 @@ app.post('/admin/api/rules', async (c) => {
     regex: validated.regex,
     priority: body.priority,
     enabled: body.enabled,
+    remark: body.remark,
   });
   return c.json({ success: true, rule });
 });
@@ -1118,6 +1234,7 @@ app.put('/admin/api/rules/:id', async (c) => {
     regex: validated.regex,
     priority: body.priority,
     enabled: body.enabled,
+    remark: body.remark,
   });
   if (!rule) return c.json({ success: false, error: '规则不存在' }, 404);
   return c.json({ success: true, rule });
@@ -1127,6 +1244,14 @@ app.delete('/admin/api/rules/:id', async (c) => {
   const authErr = await requireAdmin(c);
   if (authErr) return authErr;
   const ok = await deleteGlobalExtractRule(c.env.DB, parseInt(c.req.param('id'), 10));
+  if (!ok) return c.json({ success: false, error: '规则不存在' }, 404);
+  return c.json({ success: true });
+});
+
+app.delete('/admin/api/rules/user/:id', async (c) => {
+  const authErr = await requireAdmin(c);
+  if (authErr) return authErr;
+  const ok = await deleteAnyUserExtractRule(c.env.DB, parseInt(c.req.param('id'), 10));
   if (!ok) return c.json({ success: false, error: '规则不存在' }, 404);
   return c.json({ success: true });
 });
