@@ -5,14 +5,14 @@ import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (isAuthenticated) {
+  if (!isLoading && isAuthenticated) {
     return <Navigate to="/dashboard/usage" replace />;
   }
 

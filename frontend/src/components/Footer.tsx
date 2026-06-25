@@ -21,19 +21,19 @@ const Footer: React.FC<FooterProps> = ({ onShowInfo }) => {
               onClick={() => onShowInfo("privacy")}
               className="hover:text-foreground transition-colors"
             >
-              {t("common.privacyPolicy", "隐私政策")}
+              {t("common.privacyPolicy")}
             </button>
             <button
               onClick={() => onShowInfo("terms")}
               className="hover:text-foreground transition-colors"
             >
-              {t("common.terms", "使用条款")}
+              {t("common.terms")}
             </button>
             <button
               onClick={() => onShowInfo("about")}
               className="hover:text-foreground transition-colors"
             >
-              {t("common.about", "关于我们")}
+              {t("common.about")}
             </button>
           </div>
         </div>

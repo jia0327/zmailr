@@ -38,6 +38,28 @@ import { SEED_GLOBAL_EXTRACT_RULES } from './extractor';
 // 附件分块大小（字节）
 const CHUNK_SIZE = 500000; // 约500KB
 
+const DB_INIT_KEY = '__zmailDbInitialized';
+
+function isDatabaseInitializedInIsolate(): boolean {
+  return (globalThis as Record<string, unknown>)[DB_INIT_KEY] === true;
+}
+
+function markDatabaseInitializedInIsolate(): void {
+  (globalThis as Record<string, unknown>)[DB_INIT_KEY] = true;
+}
+
+/**
+ * 每个 Worker isolate 仅执行一次完整迁移；同 isolate 内后续请求跳过 30+ D1 操作。
+ * 新部署后冷启动 isolate 仍会跑完整 init；?init= 可强制重跑。
+ */
+export async function ensureDatabaseInitialized(db: D1Database, adminPassword?: string): Promise<void> {
+  if (isDatabaseInitializedInIsolate()) {
+    return;
+  }
+  await initializeDatabase(db, adminPassword);
+  markDatabaseInitializedInIsolate();
+}
+
 /**
  * 初始化数据库
  * @param db 数据库实例

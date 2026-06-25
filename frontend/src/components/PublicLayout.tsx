@@ -13,7 +13,7 @@ const PublicLayout: React.FC = () => {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <SEO title="zMailR" description="zMailR temporary email service" />
+      <SEO title={t('seo.publicTitle')} description={t('seo.description')} />
       <header className="border-b">
         <Container className="py-3">
           <div className="flex items-center justify-between gap-4">

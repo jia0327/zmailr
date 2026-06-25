@@ -7,10 +7,11 @@ import Container from '../components/Container';
 
 // 添加结构化数据组件
 const StructuredData: React.FC = () => {
+  const { t } = useTranslation();
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "name": "zMailR · 24小时临时邮箱",
+    "name": t('app.title'),
     "applicationCategory": "UtilityApplication",
     "operatingSystem": "All",
     "offers": {
@@ -18,7 +19,7 @@ const StructuredData: React.FC = () => {
       "price": "0",
       "priceCurrency": "CNY"
     },
-    "description": "创建临时邮箱地址，接收邮件，无需注册，保护您的隐私安全",
+    "description": t('seo.description'),
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "4.8",

@@ -1,57 +1,105 @@
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
-
-// 导入翻译文件
-import jp from '../i18n/locales/jp.json';
-import zhCN from '../i18n/locales/zh-CN.json';
-import en from '../i18n/locales/en.json';
-import kr from '../i18n/locales/kr.json';
-import ru from '../i18n/locales/ru.json';
-import fa from '../i18n/locales/Fa.json';
-import zhTW from '../i18n/locales/zh-TW.json';
-
-
-// 配置i18next
-i18n
-  // 检测用户语言
-  .use(LanguageDetector)
-  // 将i18n实例传递给react-i18next
-  .use(initReactI18next)
-  // 初始化i18next
-  .init({
-    resources: {
-      'jp': {
-        translation: jp,
-      },
-      'zh-TW': {
-        translation: zhTW,
-      },
-      'Fa': {
-        translation: fa,
-      },
-      'ru': {
-        translation: ru,
-      },
-      'kr': {
-        translation: kr,
-      },
-      'zh-CN': {
-        translation: zhCN,
-      },
-      en: {
-        translation: en,
-      },
-    },
-    fallbackLng: 'jp',
-    debug: import.meta.env.MODE === 'development',
-    interpolation: {
-      escapeValue: false, // 不转义HTML
-    },
-    detection: {
-      order: ['navigator', 'htmlTag', 'path', 'localStorage'],
-      caches: ['localStorage'],
-    },
-  });
-
-export default i18n;
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
+
+const localeLoaders: Record<string, () => Promise<{ default: Record<string, unknown> }>> = {
+  'zh-CN': () => import('../i18n/locales/zh-CN.json'),
+  en: () => import('../i18n/locales/en.json'),
+};
+
+export const CORE_LOCALES = ['zh-CN', 'en'] as const;
+export type CoreLocale = (typeof CORE_LOCALES)[number];
+
+function normalizeLocale(lng: string | null | undefined): CoreLocale {
+  if (!lng) return 'en';
+  if (lng === 'zh-CN' || lng === 'en') return lng;
+  if (lng.startsWith('zh')) return 'zh-CN';
+  if (lng.startsWith('en')) return 'en';
+  return 'en';
+}
+
+function detectPreferredLocale(): CoreLocale {
+  try {
+    const stored = localStorage.getItem('i18nextLng');
+    if (stored) {
+      return normalizeLocale(stored);
+    }
+  } catch {
+    // ignore
+  }
+
+  const nav = typeof navigator !== 'undefined' ? navigator.language : 'en';
+  return normalizeLocale(nav);
+}
+
+async function loadLocaleBundle(lng: string): Promise<Record<string, unknown> | null> {
+  const loader = localeLoaders[lng];
+  if (!loader) return null;
+  const mod = await loader();
+  return mod.default;
+}
+
+export async function ensureLocaleLoaded(lng: string): Promise<void> {
+  const normalized = normalizeLocale(lng);
+  if (i18n.hasResourceBundle(normalized, 'translation')) {
+    return;
+  }
+  const bundle = await loadLocaleBundle(normalized);
+  if (bundle) {
+    i18n.addResourceBundle(normalized, 'translation', bundle, true, true);
+  }
+}
+
+async function buildInitialResources(): Promise<Record<string, { translation: Record<string, unknown> }>> {
+  const entries = await Promise.all(
+    CORE_LOCALES.map(async (lng) => {
+      const bundle = await loadLocaleBundle(lng);
+      return bundle ? ([lng, { translation: bundle }] as const) : null;
+    }),
+  );
+
+  return Object.fromEntries(entries.filter(Boolean) as [string, { translation: Record<string, unknown> }][]) as Record<
+    string,
+    { translation: Record<string, unknown> }
+  >;
+}
+
+let initPromise: Promise<typeof i18n> | null = null;
+
+export function initI18n(): Promise<typeof i18n> {
+  if (!initPromise) {
+    initPromise = (async () => {
+      const preferred = detectPreferredLocale();
+      const resources = await buildInitialResources();
+
+      await i18n
+        .use(LanguageDetector)
+        .use(initReactI18next)
+        .init({
+          resources,
+          lng: preferred,
+          fallbackLng: [...CORE_LOCALES],
+          supportedLngs: [...CORE_LOCALES],
+          nonExplicitSupportedLngs: true,
+          debug: import.meta.env.MODE === 'development',
+          interpolation: {
+            escapeValue: false,
+          },
+          detection: {
+            order: ['localStorage', 'navigator', 'htmlTag', 'path'],
+            caches: ['localStorage'],
+            convertDetectedLanguage: (lng) => normalizeLocale(lng),
+          },
+        });
+
+      i18n.on('languageChanged', (lng) => {
+        void ensureLocaleLoaded(lng);
+      });
+
+      return i18n;
+    })();
+  }
+  return initPromise;
+}
+
+export default i18n;

@@ -175,8 +175,8 @@ const MailboxSwitcher: React.FC<MailboxSwitcherProps> = ({
       <button
         onClick={() => setShowDropdown(!showDropdown)}
         className="h-full px-3 py-2.5 hover:bg-muted transition-colors"
-        aria-label={t('mailbox.switch') || "切换邮箱"}
-        title={t('mailbox.switch') || "切换邮箱"}
+        aria-label={t('mailbox.switch')}
+        title={t('mailbox.switch')}
       >
         <i className="fas fa-exchange-alt text-sm"></i>
       </button>
@@ -185,14 +185,14 @@ const MailboxSwitcher: React.FC<MailboxSwitcherProps> = ({
         // [fix]: 将 bg-white 替换为 bg-popover 和 text-popover-foreground 以支持黑暗模式
         <div className="absolute top-9 left-0 bg-popover text-popover-foreground border rounded-md shadow-lg p-1 z-20 min-w-[250px]">
           <div className="text-xs font-medium px-2 py-1 text-muted-foreground flex justify-between items-center">
-            {t('mailbox.savedMailboxes') || "已保存的邮箱"}
+            {t('mailbox.savedMailboxes')}
             <button
               onClick={handleClearAllMailboxes}
               className="text-red-500 hover:text-red-700 text-xs"
-              title={t('mailbox.clearAll') || "全部清除"}
+              title={t('mailbox.clearAll')}
             >
               <i className="fas fa-trash-alt mr-1"></i>
-              {t('mailbox.clearAll') || "全部清除"}
+              {t('mailbox.clearAll')}
             </button>
           </div>
           <div className="max-h-[400px] overflow-y-auto">
@@ -210,7 +210,7 @@ const MailboxSwitcher: React.FC<MailboxSwitcherProps> = ({
                   <button
                     onClick={() => handleDeleteMailbox(m.address)}
                     className="p-2 text-red-500 hover:text-red-700"
-                    title={t('common.delete') || "删除"}
+                    title={t('common.delete')}
                   >
                     <i className="fas fa-trash-alt text-xs"></i>
                   </button>

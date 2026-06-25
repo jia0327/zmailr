@@ -1,5 +1,5 @@
 import { Env } from './types';
-import { initializeDatabase, cleanupExpiredMailboxes, cleanupExpiredMails, cleanupReadMails } from './database';
+import { ensureDatabaseInitialized, initializeDatabase, cleanupExpiredMailboxes, cleanupExpiredMails, cleanupReadMails } from './database';
 import { handleEmail } from './email-handler';
 import app from './routes';
 
@@ -10,18 +10,20 @@ export default {
     const url = new URL(request.url);
     
     try {
-      // 自动初始化数据库（如果需要）
-      await initializeDatabase(env.DB, env.ADMIN_PASSWORD);
-      
-      // 手动初始化数据库（如果请求中包含init参数）
+      // 手动初始化数据库（如果请求中包含 init 参数，强制重跑迁移）
       if (url.searchParams.has('init')) {
-        return new Response(JSON.stringify({ 
-          success: true, 
-          message: '数据库初始化成功' 
+        (globalThis as Record<string, unknown>).__zmailDbInitialized = false;
+        await initializeDatabase(env.DB, env.ADMIN_PASSWORD);
+        (globalThis as Record<string, unknown>).__zmailDbInitialized = true;
+        return new Response(JSON.stringify({
+          success: true,
+          message: '数据库初始化成功',
         }), {
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         });
       }
+
+      await ensureDatabaseInitialized(env.DB, env.ADMIN_PASSWORD);
       
       // 处理API请求
       return app.fetch(request, env, ctx);

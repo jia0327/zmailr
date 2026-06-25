@@ -170,7 +170,9 @@
     "regexRequired": "Regex is required",
     "saveFailed": "Save failed",
     "edit": "Edit",
-    "remarkPlaceholder": "Optional note about this rule"
+    "remarkPlaceholder": "Optional note about this rule",
+    "regexPlaceholder": "(?:code|verification)[:\\s]*(\\d{4,8})",
+    "domainPlaceholder": "example.com or *"
   },
   "common": {
     "loading": "Loading...",
@@ -269,7 +271,21 @@
   },
   "settings": {
     "language": "Language",
+    "languageZhCN": "简体中文",
+    "languageEn": "English",
     "toggleTheme": "Toggle Theme"
+  },
+  "seo": {
+    "titleSuffix": "Create temp mailboxes, receive email, no registration required",
+    "description": "Create temporary email addresses, receive mail instantly, no registration — protect your privacy",
+    "keywords": "temp mail,anonymous email,disposable email,privacy,email,zMailR",
+    "mailboxDescription": "Inbox for {{address}} — receive temp mail, no registration required",
+    "apiDocsTitle": "zMailR API Documentation",
+    "apiDocsDescription": "Bearer-authenticated API for automation: lease mailboxes, poll OTP codes, send email",
+    "apiDocsKeywords": "zMailR API, temp mail API, OTP, Bearer token",
+    "dashboardTitle": "zMailR Dashboard",
+    "dashboardDescription": "zMailR temporary email dashboard",
+    "publicTitle": "zMailR"
   },
   "errors": {
     "generic": "An error occurred, please try again later",

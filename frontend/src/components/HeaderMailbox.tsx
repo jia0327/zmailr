@@ -77,7 +77,7 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
         setCustomAddress('');
       }, 1500);
     } else {
-      const isAddressExistsError = result.error === 'Address already exists' || String(result.error).includes('已存在');
+      const isAddressExistsError = result.error === 'Address already exists';
       if (isAddressExistsError) {
         setCustomAddressError(t('mailbox.addressExists'));
       } else {

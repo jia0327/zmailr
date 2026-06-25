@@ -190,7 +190,7 @@ const ExtractRuleManager: React.FC = () => {
                   type="text"
                   value={form.domain}
                   onChange={(e) => setForm((f) => ({ ...f, domain: e.target.value }))}
-                  placeholder="example.com or *"
+                  placeholder={t('extractRules.domainPlaceholder')}
                   className="w-full px-3 py-2 border rounded-md bg-background text-sm"
                 />
               </div>
@@ -216,7 +216,7 @@ const ExtractRuleManager: React.FC = () => {
                 type="text"
                 value={form.regex}
                 onChange={(e) => setForm((f) => ({ ...f, regex: e.target.value }))}
-                placeholder="(?:code|验证码)[：:\s]*(\d{4,8})"
+                placeholder={t('extractRules.regexPlaceholder')}
                 className="w-full px-3 py-2 border rounded-md bg-background text-sm font-mono"
               />
             </div>

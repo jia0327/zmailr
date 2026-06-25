@@ -48,7 +48,7 @@ const DashboardLayout: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <SEO title="zMailR Dashboard" description="zMailR temporary email dashboard" />
+      <SEO title={t('seo.dashboardTitle')} description={t('seo.dashboardDescription')} />
 
       {mobileOpen && (
         <button

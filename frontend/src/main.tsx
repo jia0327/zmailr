@@ -4,9 +4,8 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './index.css'
 import '@fortawesome/fontawesome-free/css/all.min.css'
-import './i18n'
+import { initI18n } from './i18n'
 
-// 创建路由器配置，添加未来标志
 const router = {
   future: {
     v7_startTransition: true,
@@ -14,10 +13,12 @@ const router = {
   },
 };
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <BrowserRouter {...router}>
-      <App />
-    </BrowserRouter>
-  </React.StrictMode>,
-) 
+initI18n().then(() => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <BrowserRouter {...router}>
+        <App />
+      </BrowserRouter>
+    </React.StrictMode>,
+  );
+});

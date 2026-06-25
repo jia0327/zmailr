@@ -34,8 +34,8 @@ const ThemeSwitcher: React.FC = () => {
     <button
       onClick={toggleTheme}
       className="w-8 h-8 flex items-center justify-center rounded-md transition-all duration-200 hover:bg-primary/20 hover:text-primary hover:scale-110"
-      aria-label={t('settings.toggleTheme', '切换主题')}
-      title={t('settings.toggleTheme', '切换主题')}
+      aria-label={t('settings.toggleTheme')}
+      title={t('settings.toggleTheme')}
     >
       {/* 根据当前主题显示不同的图标 */}
       {theme === 'light' ? (

@@ -31,31 +31,29 @@ const Layout: React.FC = () => {
   // 根据当前路径设置不同的SEO信息
   const getSEOProps = () => {
     const path = location.pathname;
-    
-    // 默认SEO属性
+
     const defaultProps = {
-      title: 'zMailR · 24小时临时邮箱',
-      description: '创建临时邮箱地址，接收邮件，无需注册，保护您的隐私安全',
-      keywords: '临时邮箱,匿名邮箱,一次性邮箱,隐私保护,电子邮件,zMailR',
+      title: t('app.title'),
+      description: t('seo.description'),
+      keywords: t('seo.keywords'),
     };
-    
+
     if (path === '/api-docs') {
       return {
-        title: 'zMailR API Documentation',
-        description: 'Programmatic API for leasing temp mailboxes, polling OTP codes, and sending email.',
-        keywords: 'zMailR API, temp mail API, OTP, Bearer token',
+        title: t('seo.apiDocsTitle'),
+        description: t('seo.apiDocsDescription'),
+        keywords: t('seo.apiDocsKeywords'),
       };
     }
 
-    // 如果有邮箱信息，添加到标题中
     if (mailbox) {
       return {
         ...defaultProps,
-        title: `zMailR · 24小时临时邮箱`,
-        description: `查看 ${mailbox.address} 的临时邮箱收件箱，接收邮件，无需注册，保护您的隐私安全`,
+        title: t('app.title'),
+        description: t('seo.mailboxDescription', { address: mailbox.address }),
       };
     }
-    
+
     return defaultProps;
   };
   
