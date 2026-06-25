@@ -11,6 +11,10 @@ on:
   workflow_dispatch:
 
 # 'jobs' 关键字定义了工作流中要执行的一系列任务
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # 定义一个名为 'deploy' 的任务
   deploy:
