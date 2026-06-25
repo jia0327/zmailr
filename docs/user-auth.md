@@ -1,14 +1,15 @@
 # User Authentication (zMailR Phase 1)
 
-zMailR adds optional user accounts for **web send** and **scoped API tokens**, while keeping anonymous mailbox creation unchanged.
+zMailR uses user accounts for the web Dashboard, scoped API tokens, and mailbox ownership. **Anonymous API access is not supported** — create mailboxes in Dashboard or via `POST /api/lease` with a Bearer token.
 
 ## Overview
 
 | Feature | Auth | Notes |
 |---------|------|-------|
-| `POST /api/mailboxes` | None | Public demo — create temp inbox |
+| Web Dashboard (inbox, outbox, rules) | Session cookie | Login required; demo: `guest` / `guest` on [zmailr.itool.eu.cc](https://zmailr.itool.eu.cc/) |
+| `POST /api/mailboxes` | Session or Bearer (`mail`) | Create temp inbox for authenticated user |
 | Web send (`POST /api/user/send`) | Session cookie | Requires login |
-| Programmatic API (`/api/lease`, `/api/mail`, `/api/send`) | Bearer token | User tokens or legacy admin tokens |
+| Programmatic API (`/api/lease`, `/api/mail`, `/api/send`, …) | Bearer token | User tokens or legacy admin tokens; all require auth |
 | Admin `/admin` | Admin password cookie | Unchanged |
 
 ## First-time setup
@@ -35,11 +36,11 @@ Sets HttpOnly cookie `zmail_user_session` (24h).
 - `GET /api/auth/me` — profile + today's usage/quota
 - `POST /api/auth/logout` — clear session
 
-Frontend: `/login`, `/account` (token management + usage).
+Frontend: `/login`, Dashboard (`/dashboard/usage`, `/dashboard/api-keys`, …).
 
 ## User API tokens
 
-Logged-in users create tokens at `/account` or via API:
+Logged-in users create tokens at **Dashboard → API 密钥** (`/dashboard/api-keys`) or via API:
 
 ```http
 POST /api/user/tokens
