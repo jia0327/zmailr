@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './index.css'
+import '@fortawesome/fontawesome-free/css/all.min.css'
 import './i18n'
 
 // 创建路由器配置，添加未来标志

@@ -64,7 +64,7 @@ const UsagePage: React.FC = () => {
           <button
             type="button"
             onClick={refresh}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md border bg-card hover:bg-muted"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 min-h-10 text-sm font-medium rounded-md border bg-card hover:bg-muted w-full sm:w-auto"
           >
             <i className="fas fa-sync-alt" />
             {t('common.refresh')}

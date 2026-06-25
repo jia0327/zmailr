@@ -26,6 +26,16 @@ export interface ApiEndpointDef {
 
 export const API_DEBUG_ENDPOINTS: ApiEndpointDef[] = [
   {
+    id: 'user-quota',
+    method: 'GET',
+    pathTemplate: '/api/user/quota',
+    categoryKey: 'apiDebug.categories.account',
+    scope: 'none',
+    requiresAuth: true,
+    responseType: 'json',
+    fields: [],
+  },
+  {
     id: 'lease',
     method: 'POST',
     pathTemplate: '/api/lease',
@@ -141,6 +151,7 @@ export const API_DEBUG_ENDPOINTS: ApiEndpointDef[] = [
 ];
 
 export const API_DEBUG_CATEGORIES = [
+  'apiDebug.categories.account',
   'apiDebug.categories.lease',
   'apiDebug.categories.mailbox',
   'apiDebug.categories.receive',

@@ -77,7 +77,6 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
     <div class="tab" data-tab="users" onclick="switchTab('users')">用户</div>
     <div class="tab" data-tab="announcements" onclick="switchTab('announcements')">公告</div>
     <div class="tab" data-tab="rules" onclick="switchTab('rules')">提取规则</div>
-    <div class="tab" data-tab="sent" onclick="switchTab('sent')">发信日志</div>
   </div>
   <div id="panel-dashboard" class="panel active">
     <div class="stats" id="statsGrid"></div>
@@ -104,9 +103,6 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
     <h3 class="section-title" style="margin-top:24px">所有用户自定义规则</h3>
     <p class="section-desc">汇总展示所有用户创建的规则，便于参考优质规则并提升平台提取能力</p>
     <table><thead><tr><th>ID</th><th>用户名</th><th>域名</th><th>正则</th><th>优先级</th><th>状态</th><th>备注</th><th>操作</th></tr></thead><tbody id="userRulesBody"></tbody></table>
-  </div>
-  <div id="panel-sent" class="panel">
-    <table><thead><tr><th>ID</th><th>收件人</th><th>主题</th><th>状态</th><th>时间</th></tr></thead><tbody id="sentBody"></tbody></table>
   </div>
 </div>
 <div id="announcementModal" class="modal">
@@ -159,7 +155,7 @@ function showLogin(){document.getElementById('loginView').style.display='flex';d
 function showApp(){document.getElementById('loginView').style.display='none';document.getElementById('appView').style.display='block'}
 async function doLogin(){const pw=document.getElementById('passwordInput').value;const err=document.getElementById('loginError');err.style.display='none';try{const r=await fetch('/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({password:pw})});const d=await r.json();if(!d.success){err.textContent=d.error||'登录失败';err.style.display='block';return}showApp();loadAll()}catch(e){err.textContent='网络错误';err.style.display='block'}}
 async function doLogout(){await fetch('/admin/logout',{method:'POST',credentials:'include'});showLogin()}
-function switchTab(name){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+name));if(name==='users')loadUsers();if(name==='announcements')loadAnnouncements();if(name==='rules')loadRules();if(name==='sent')loadSent()}
+function switchTab(name){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+name));if(name==='users')loadUsers();if(name==='announcements')loadAnnouncements();if(name==='rules')loadRules()}
 function hideModal(id){document.getElementById(id).classList.remove('show')}
 function showModal(id){document.getElementById(id).classList.add('show')}
 function fmtTime(ts){if(!ts)return'-';const d=new Date(ts>1e12?ts:ts*1000);return d.toLocaleString('zh-CN')}
@@ -184,7 +180,6 @@ function editRule(id){const r=(window._rules||[]).find(x=>x.id===id);if(!r)retur
 async function saveRule(){const id=document.getElementById('ruleId').value;const remark=document.getElementById('ruleRemark').value.trim();const body={domain:document.getElementById('ruleDomain').value,regex:document.getElementById('ruleRegex').value,priority:parseInt(document.getElementById('rulePriority').value)||0,enabled:document.getElementById('ruleEnabled').value==='1',remark:remark||null};if(id){await api('/rules/'+id,{method:'PUT',body:JSON.stringify(body)})}else{await api('/rules',{method:'POST',body:JSON.stringify(body)})}hideModal('ruleModal');loadRules()}
 async function deleteRule(id){if(!confirm('确定删除此规则？'))return;await api('/rules/'+id,{method:'DELETE'});loadRules()}
 async function deleteUserRule(id){if(!confirm('确定删除此用户规则？'))return;await api('/rules/user/'+id,{method:'DELETE'});loadRules()}
-async function loadSent(){const d=await api('/sent-emails');const b=document.getElementById('sentBody');if(!d.emails.length){b.innerHTML='<tr><td colspan="5" class="empty">暂无记录</td></tr>';return}b.innerHTML=d.emails.map(e=>'<tr><td>'+e.id+'</td><td>'+e.toEmail+'</td><td>'+e.subject+'</td><td><span class="badge '+(e.status==='sent'?'badge-ok':'badge-off')+'">'+e.status+'</span></td><td>'+fmtTime(e.createdAt)+'</td></tr>').join('')}
 (async()=>{try{const d=await api('/stats');if(d.success){showApp();loadAll()}}catch{showLogin()}})();
 document.getElementById('passwordInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 </script>

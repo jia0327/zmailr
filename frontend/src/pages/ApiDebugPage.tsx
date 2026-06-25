@@ -414,7 +414,7 @@ const ApiDebugPage: React.FC = () => {
           type="button"
           onClick={handleSend}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 min-h-10 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 w-full sm:w-auto"
         >
           {loading ? (
             <>
@@ -491,7 +491,7 @@ const ApiDebugPage: React.FC = () => {
               <tr className="border-b">
                 <th className="text-left py-2 pr-3 font-medium">{t('apiUsage.colMethod')}</th>
                 <th className="text-left py-2 pr-3 font-medium">{t('apiUsage.colPath')}</th>
-                <th className="text-left py-2 font-medium">{t('apiUsage.colDescription')}</th>
+                <th className="hidden lg:table-cell text-left py-2 font-medium">{t('apiUsage.colDescription')}</th>
               </tr>
             </thead>
             <tbody className="text-muted-foreground">
@@ -499,7 +499,7 @@ const ApiDebugPage: React.FC = () => {
                 <tr key={ep.id} className="border-b border-border/50">
                   <td className="py-2 pr-3 font-mono text-foreground">{ep.method}</td>
                   <td className="py-2 pr-3 font-mono">{ep.pathTemplate}</td>
-                  <td className="py-2 font-sans">{t(getEndpointDescriptionKey(ep.id))}</td>
+                  <td className="hidden lg:table-cell py-2 font-sans">{t(getEndpointDescriptionKey(ep.id))}</td>
                 </tr>
               ))}
             </tbody>

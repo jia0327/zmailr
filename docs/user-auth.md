@@ -34,6 +34,7 @@ Content-Type: application/json
 Sets HttpOnly cookie `zmail_user_session` (24h).
 
 - `GET /api/auth/me` — profile + today's usage/quota
+- `GET /api/user/quota` — daily send quota only (session or user Bearer token; any scope)
 - `POST /api/auth/logout` — clear session
 
 Frontend: `/login`, Dashboard (`/dashboard/usage`, `/dashboard/api-keys`, …).
@@ -56,6 +57,37 @@ Scopes:
 - `send` — `POST /api/send`
 
 Plaintext token is returned **once** on creation; only SHA-256 hash is stored.
+
+### Check remaining send quota
+
+```http
+GET /api/user/quota
+Authorization: Bearer <user-token>
+```
+
+Response (limited quota):
+
+```json
+{
+  "dailySendQuota": 50,
+  "sentToday": 10,
+  "remaining": 40,
+  "unlimited": false
+}
+```
+
+Unlimited users (`daily_send_quota = -1`):
+
+```json
+{
+  "dailySendQuota": -1,
+  "sentToday": 10,
+  "remaining": null,
+  "unlimited": true
+}
+```
+
+Also works with the login session cookie (no Bearer header).
 
 ## Daily send quota
 

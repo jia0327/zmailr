@@ -11,6 +11,13 @@ export interface EndpointMeta {
 
 /** Maps debug endpoint id → shared documentation metadata (i18n keys). */
 export const ENDPOINT_META: Record<string, EndpointMeta> = {
+  'user-quota': {
+    docsSection: 'quota',
+    docsAnchor: 'user-quota',
+    titleKey: 'apiDocs.quota.title',
+    descriptionKey: 'apiDocs.quota.description',
+    usageHintKey: 'apiDocs.quota.usageHint',
+  },
   lease: {
     docsSection: 'lease',
     docsAnchor: 'lease',

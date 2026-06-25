@@ -11,12 +11,14 @@ import {
   curlLease,
   curlMail,
   curlMailboxes,
+  curlQuota,
   curlRawEmail,
   curlSend,
   getApiBaseUrl,
   leaseResponse,
   mailResponse,
   pythonExample,
+  quotaResponse,
   rateLimitHeaderExample,
   sendResponse,
 } from '../utils/apiDocExamples';
@@ -67,6 +69,16 @@ const ApiDocsPage: React.FC = () => {
             <p className="text-sm font-medium">{t('apiDocs.auth.sessionVsBearerTitle')}</p>
             <p className="text-sm text-muted-foreground mt-1">{t('apiDocs.auth.sessionVsBearer')}</p>
           </div>
+        </section>
+
+        <section id="user-quota" className="space-y-4">
+          <h2 className="text-lg font-semibold">{t('apiDocs.quota.title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('apiDocs.quota.description')}</p>
+          <p className="text-xs text-muted-foreground italic">{t('apiDocs.quota.usageHint')}</p>
+          <p className="text-sm font-medium">GET /api/user/quota</p>
+          <ApiDocCodeBlock>{curlQuota(baseUrl)}</ApiDocCodeBlock>
+          <p className="text-sm text-muted-foreground">{t('apiDocs.responseExample')}</p>
+          <ApiDocCodeBlock>{quotaResponse}</ApiDocCodeBlock>
         </section>
 
         <section id="lease" className="space-y-4">

@@ -138,14 +138,14 @@ const OutboxPage: React.FC = () => {
                 <button
                   onClick={handleDeleteSelected}
                   disabled={bulkBusy || selectedIds.size === 0}
-                  className="px-2 py-1 text-xs rounded-md hover:bg-muted transition-colors text-muted-foreground disabled:opacity-40"
+                  className="px-3 py-2 min-h-10 text-xs rounded-md hover:bg-muted transition-colors text-muted-foreground disabled:opacity-40"
                 >
                   {t('history.deleteSelected')}
                 </button>
                 <button
                   onClick={handleDeleteAll}
                   disabled={bulkBusy}
-                  className="px-2 py-1 text-xs rounded-md hover:bg-muted transition-colors text-muted-foreground"
+                  className="px-3 py-2 min-h-10 text-xs rounded-md hover:bg-muted transition-colors text-muted-foreground"
                 >
                   {t('history.clearAll')}
                 </button>
@@ -154,7 +154,7 @@ const OutboxPage: React.FC = () => {
             <button
               onClick={loadSent}
               disabled={bulkBusy}
-              className="p-2 rounded-md hover:bg-muted transition-colors text-muted-foreground"
+              className="p-2 min-w-10 min-h-10 rounded-md hover:bg-muted transition-colors text-muted-foreground"
               title={t('common.refresh')}
             >
               <i className={`fas fa-sync-alt text-sm ${loadingSent ? 'animate-spin' : ''}`} />

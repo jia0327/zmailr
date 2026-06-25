@@ -123,9 +123,9 @@ const ExtractRuleManager: React.FC = () => {
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="py-2 pr-3 font-medium">{t('extractRules.colDomain')}</th>
-                  <th className="py-2 pr-3 font-medium">{t('extractRules.colDescription')}</th>
+                  <th className="hidden sm:table-cell py-2 pr-3 font-medium">{t('extractRules.colDescription')}</th>
                   <th className="py-2 pr-3 font-medium">{t('extractRules.colRegex')}</th>
-                  <th className="py-2 pr-3 font-medium">{t('extractRules.colPriority')}</th>
+                  <th className="hidden md:table-cell py-2 pr-3 font-medium">{t('extractRules.colPriority')}</th>
                   <th className="py-2 font-medium">{t('extractRules.colStatus')}</th>
                 </tr>
               </thead>
@@ -133,13 +133,13 @@ const ExtractRuleManager: React.FC = () => {
                 {globalRules.map((rule) => (
                   <tr key={rule.id} className="border-b last:border-b-0">
                     <td className="py-2 pr-3">{rule.domain}</td>
-                    <td className="py-2 pr-3 text-muted-foreground">
+                    <td className="hidden sm:table-cell py-2 pr-3 text-muted-foreground">
                       {stripSeedRemarkPrefix(rule.remark)}
                     </td>
                     <td className="py-2 pr-3">
                       <code className="text-xs bg-muted px-1.5 py-0.5 rounded break-all">{rule.regex}</code>
                     </td>
-                    <td className="py-2 pr-3">{rule.priority}</td>
+                    <td className="hidden md:table-cell py-2 pr-3">{rule.priority}</td>
                     <td className="py-2">
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full ${
@@ -160,8 +160,8 @@ const ExtractRuleManager: React.FC = () => {
       </div>
 
       <div className="border rounded-lg p-4 bg-card">
-        <div className="flex items-center justify-between mb-4">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+          <div className="min-w-0">
             <h2 className="font-semibold">{t('extractRules.customTitle')}</h2>
             <p className="text-sm text-muted-foreground mt-1">{t('extractRules.customDesc')}</p>
           </div>
@@ -171,7 +171,7 @@ const ExtractRuleManager: React.FC = () => {
               resetForm();
               setShowForm(true);
             }}
-            className="text-sm px-3 py-1.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 shrink-0"
+            className="text-sm px-4 py-2 min-h-10 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 shrink-0 w-full sm:w-auto"
           >
             {t('extractRules.addRule')}
           </button>
@@ -241,11 +241,11 @@ const ExtractRuleManager: React.FC = () => {
               />
               {t('extractRules.enabled')}
             </label>
-            <div className="flex gap-2">
-              <button type="submit" className="text-sm px-3 py-1.5 bg-primary text-primary-foreground rounded-md">
+            <div className="flex flex-wrap gap-2">
+              <button type="submit" className="text-sm px-4 py-2 min-h-10 bg-primary text-primary-foreground rounded-md">
                 {editingId ? t('common.save') : t('common.create')}
               </button>
-              <button type="button" onClick={resetForm} className="text-sm px-3 py-1.5 border rounded-md">
+              <button type="button" onClick={resetForm} className="text-sm px-4 py-2 min-h-10 border rounded-md">
                 {t('common.cancel')}
               </button>
             </div>
@@ -263,8 +263,8 @@ const ExtractRuleManager: React.FC = () => {
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="py-2 pr-3 font-medium">{t('extractRules.colDomain')}</th>
                   <th className="py-2 pr-3 font-medium">{t('extractRules.colRegex')}</th>
-                  <th className="py-2 pr-3 font-medium">{t('extractRules.colPriority')}</th>
-                  <th className="py-2 pr-3 font-medium">{t('extractRules.colRemark')}</th>
+                  <th className="hidden sm:table-cell py-2 pr-3 font-medium">{t('extractRules.colPriority')}</th>
+                  <th className="hidden md:table-cell py-2 pr-3 font-medium">{t('extractRules.colRemark')}</th>
                   <th className="py-2 pr-3 font-medium">{t('extractRules.colStatus')}</th>
                   <th className="py-2 font-medium">{t('extractRules.colActions')}</th>
                 </tr>
@@ -276,13 +276,13 @@ const ExtractRuleManager: React.FC = () => {
                     <td className="py-2 pr-3">
                       <code className="text-xs bg-muted px-1.5 py-0.5 rounded break-all">{rule.regex}</code>
                     </td>
-                    <td className="py-2 pr-3">{rule.priority}</td>
-                    <td className="py-2 pr-3 text-muted-foreground">{rule.remark || '-'}</td>
+                    <td className="hidden sm:table-cell py-2 pr-3">{rule.priority}</td>
+                    <td className="hidden md:table-cell py-2 pr-3 text-muted-foreground">{rule.remark || '-'}</td>
                     <td className="py-2 pr-3">
                       <button
                         type="button"
                         onClick={() => handleToggleEnabled(rule)}
-                        className={`text-xs px-2 py-0.5 rounded-full ${
+                        className={`text-xs px-2 py-1 min-h-8 rounded-full ${
                           rule.enabled
                             ? 'bg-green-500/10 text-green-600 dark:text-green-400'
                             : 'bg-muted text-muted-foreground'
@@ -296,14 +296,14 @@ const ExtractRuleManager: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleEdit(rule)}
-                          className="text-xs text-primary hover:underline"
+                          className="text-xs text-primary hover:underline min-h-8 px-1"
                         >
                           {t('extractRules.edit')}
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDelete(rule.id)}
-                          className="text-xs text-destructive hover:underline"
+                          className="text-xs text-destructive hover:underline min-h-8 px-1"
                         >
                           {t('common.delete')}
                         </button>

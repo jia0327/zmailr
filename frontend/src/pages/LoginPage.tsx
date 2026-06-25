@@ -45,7 +45,7 @@ const LoginPage: React.FC = () => {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="guest"
-              className="w-full px-3 py-2 border rounded-md bg-background"
+              className="w-full px-3 py-2 min-h-10 border rounded-md bg-background"
               autoComplete="username"
               required
             />
@@ -57,7 +57,7 @@ const LoginPage: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="guest"
-              className="w-full px-3 py-2 border rounded-md bg-background"
+              className="w-full px-3 py-2 min-h-10 border rounded-md bg-background"
               autoComplete="current-password"
               required
             />
@@ -65,7 +65,7 @@ const LoginPage: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
+            className="w-full py-2 min-h-10 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
           >
             {loading ? t('common.loading') : t('auth.login')}
           </button>

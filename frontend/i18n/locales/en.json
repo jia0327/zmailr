@@ -69,6 +69,10 @@
     "apiKeys": "API Keys",
     "apiDebug": "API Playground",
     "usage": "Dashboard",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
     "docs": "Docs",
     "inboxTitle": "Inbox",
     "inboxSubtitle": "Receive temp mail, view OTP codes and attachments",
@@ -525,6 +529,11 @@
       "sessionVsBearerTitle": "Session vs Bearer",
       "sessionVsBearer": "Web UI routes (POST /api/user/mailboxes, POST /api/user/send, inbox/outbox in the browser) use the login session cookie with credentials: include. Bearer tokens are for automation scripts calling /api/lease, /api/mail, /api/send, and related programmatic endpoints. All mailbox and email routes require either a valid session (owner) or Bearer token (mail scope + ownership). Anonymous POST /api/mailboxes returns 401."
     },
+    "quota": {
+      "title": "GET /api/user/quota — Daily send quota",
+      "description": "Returns today's send usage and remaining daily quota for the authenticated user.",
+      "usageHint": "Accepts login session cookie or any valid user Bearer token (lease / mail / send scope). Legacy admin tokens are not supported."
+    },
     "lease": {
       "title": "POST /api/lease — Create random mailbox",
       "description": "Create a new random 24-hour temporary mailbox via Bearer Token, associated with the token owner.",
@@ -694,6 +703,7 @@
     "error502": "Send failed (Brevo / MailChannels)",
     "supportedEndpoints": "Supported endpoints",
     "categories": {
+      "account": "Account",
       "lease": "Random mailbox",
       "mailbox": "Mailbox",
       "receive": "Receive mail",

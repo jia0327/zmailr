@@ -69,6 +69,10 @@
     "apiKeys": "API 密钥",
     "apiDebug": "API 调试",
     "usage": "仪表板",
+    "collapseSidebar": "收起侧边栏",
+    "expandSidebar": "展开侧边栏",
+    "openMenu": "打开菜单",
+    "closeMenu": "关闭菜单",
     "docs": "文档",
     "inboxTitle": "收件箱",
     "inboxSubtitle": "接收临时邮件，查看验证码与附件",
@@ -525,6 +529,11 @@
       "sessionVsBearerTitle": "会话 vs Bearer",
       "sessionVsBearer": "Web 界面路由（POST /api/user/mailboxes、POST /api/user/send、浏览器收件箱/发件箱）使用登录会话 Cookie（credentials: include）。Bearer Token 供自动化脚本调用 /api/lease、/api/mail、/api/send 等接口。所有邮箱与邮件路由均需有效会话（所有者）或 Bearer Token（mail 权限 + 所有权校验）。匿名 POST /api/mailboxes 返回 401。"
     },
+    "quota": {
+      "title": "GET /api/user/quota — 每日发信配额",
+      "description": "返回当前用户今日发信用量与剩余每日配额。",
+      "usageHint": "支持登录会话 Cookie，或任意有效用户 Bearer Token（lease / mail / send 任一 scope）。不支持旧版管理员 Token。"
+    },
     "lease": {
       "title": "POST /api/lease — 创建随机临时邮箱",
       "description": "通过 Bearer Token 创建一个新的 24 小时随机临时邮箱地址，并关联到当前 Token 所属用户。",
@@ -694,6 +703,7 @@
     "error502": "发信失败（Brevo / MailChannels）",
     "supportedEndpoints": "支持的接口",
     "categories": {
+      "account": "账户",
       "lease": "随机邮箱",
       "mailbox": "邮箱",
       "receive": "收信",

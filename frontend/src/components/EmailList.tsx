@@ -146,13 +146,13 @@ const EmailList: React.FC<EmailListProps> = ({
               <button
                 onClick={handleDeleteSelected}
                 disabled={selectedIds.size === 0}
-                className="px-2 py-1 text-xs rounded-md hover:bg-muted transition-colors text-muted-foreground disabled:opacity-40"
+                className="px-3 py-2 min-h-10 text-xs rounded-md hover:bg-muted transition-colors text-muted-foreground disabled:opacity-40"
               >
                 {t('history.deleteSelected')}
               </button>
               <button
                 onClick={handleDeleteAll}
-                className="px-2 py-1 text-xs rounded-md hover:bg-muted transition-colors text-muted-foreground"
+                className="px-3 py-2 min-h-10 text-xs rounded-md hover:bg-muted transition-colors text-muted-foreground"
               >
                 {t('history.clearAll')}
               </button>
@@ -165,14 +165,14 @@ const EmailList: React.FC<EmailListProps> = ({
           )}
           <button
             onClick={handleRefresh}
-            className="p-2 rounded-md hover:bg-muted transition-colors"
+            className="p-2 min-w-10 min-h-10 rounded-md hover:bg-muted transition-colors"
             title={t('email.refresh')}
           >
             <i className="fas fa-sync-alt text-sm"></i>
           </button>
           <button
             onClick={toggleAutoRefresh}
-            className={`p-2 rounded-md transition-colors ${autoRefresh ? 'text-foreground' : 'text-muted-foreground'}`}
+            className={`p-2 min-w-10 min-h-10 rounded-md transition-colors ${autoRefresh ? 'text-foreground' : 'text-muted-foreground'}`}
             title={autoRefresh ? t('email.autoRefreshOn') : t('email.autoRefreshOff')}
           >
             <i className="fas fa-clock text-sm"></i>
@@ -180,7 +180,7 @@ const EmailList: React.FC<EmailListProps> = ({
           {mailbox && (
             <button
               onClick={handleDeleteMailbox}
-              className="p-2 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
+              className="p-2 min-w-10 min-h-10 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
               title={t('mailbox.delete')}
             >
               <i className="fas fa-trash-alt text-sm"></i>

@@ -152,6 +152,23 @@ export function clearUserSessionCookie(): string {
   return `${USER_SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`;
 }
 
+/** Session cookie or user Bearer token (any scope); legacy admin tokens are not accepted. */
+export async function resolveUserFromSessionOrBearer(
+  db: D1Database,
+  request: Request,
+  env: Env
+): Promise<User | null> {
+  const sessionUser = await getAuthenticatedUser(db, request, env);
+  if (sessionUser) return sessionUser;
+
+  const auth = await authenticateApiToken(db, request);
+  if (auth?.type === 'user' && auth.userId != null) {
+    const user = await getUserById(db, auth.userId);
+    if (user?.enabled) return user;
+  }
+  return null;
+}
+
 export async function getAuthenticatedUser(
   db: D1Database,
   request: Request,

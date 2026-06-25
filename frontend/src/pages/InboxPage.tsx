@@ -109,7 +109,7 @@ const InboxPage: React.FC = () => {
           <button
             onClick={handleNewInbox}
             disabled={creating}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 min-h-10 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 w-full sm:w-auto"
           >
             <i className={`fas fa-plus ${creating ? 'animate-spin' : ''}`} />
             {t('dashboard.newInbox')}

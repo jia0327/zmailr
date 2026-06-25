@@ -75,6 +75,7 @@ import {
   createAdminSessionCookie,
   clearAdminSessionCookie,
   getAuthenticatedUser,
+  resolveUserFromSessionOrBearer,
   authenticateUserLogin,
   createUserSessionCookie,
   clearUserSessionCookie,
@@ -565,6 +566,25 @@ app.get('/api/auth/me', async (c) => {
       token,
     },
   });
+});
+
+function buildQuotaPayload(user: User, sentToday: number) {
+  const unlimited = user.dailySendQuota < 0;
+  return {
+    dailySendQuota: user.dailySendQuota,
+    sentToday,
+    remaining: unlimited ? null : Math.max(0, user.dailySendQuota - sentToday),
+    unlimited,
+  };
+}
+
+app.get('/api/user/quota', async (c) => {
+  const user = await resolveUserFromSessionOrBearer(c.env.DB, c.req.raw, c.env);
+  if (!user) {
+    return c.json({ success: false, error: '未授权' }, 401);
+  }
+  const usage = await getDailyUsage(c.env.DB, user.id);
+  return c.json(buildQuotaPayload(user, usage.sendCount));
 });
 
 // ─── 用户 Token 管理（会话鉴权） ─────────────────────────────

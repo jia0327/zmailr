@@ -18,8 +18,8 @@ const ApiEndpointParamTable: React.FC<ApiEndpointParamTableProps> = ({ rows, cla
         <thead>
           <tr className="border-b">
             <th className="text-left py-2 pr-3 font-medium">{t('apiDebug.colName')}</th>
-            <th className="text-left py-2 pr-3 font-medium">{t('apiDebug.colType')}</th>
-            <th className="text-left py-2 pr-3 font-medium">{t('apiDebug.colRequired')}</th>
+            <th className="hidden sm:table-cell text-left py-2 pr-3 font-medium">{t('apiDebug.colType')}</th>
+            <th className="hidden sm:table-cell text-left py-2 pr-3 font-medium">{t('apiDebug.colRequired')}</th>
             <th className="text-left py-2 font-medium">{t('apiDebug.colDescription')}</th>
           </tr>
         </thead>
@@ -27,8 +27,8 @@ const ApiEndpointParamTable: React.FC<ApiEndpointParamTableProps> = ({ rows, cla
           {rows.map((row) => (
             <tr key={row.name} className="border-b border-border/50">
               <td className="py-2 pr-3 font-mono text-foreground">{row.name}</td>
-              <td className="py-2 pr-3 font-mono text-xs">{row.type}</td>
-              <td className="py-2 pr-3">{row.required ? t('apiDebug.requiredYes') : t('apiDebug.requiredNo')}</td>
+              <td className="hidden sm:table-cell py-2 pr-3 font-mono text-xs">{row.type}</td>
+              <td className="hidden sm:table-cell py-2 pr-3">{row.required ? t('apiDebug.requiredYes') : t('apiDebug.requiredNo')}</td>
               <td className="py-2">{t(row.descriptionKey)}</td>
             </tr>
           ))}

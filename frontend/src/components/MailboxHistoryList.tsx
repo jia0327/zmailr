@@ -102,7 +102,7 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
               <button
                 onClick={handleDeleteSelected}
                 disabled={busy || selected.size === 0}
-                className="px-2 py-1 text-xs rounded-md hover:bg-muted transition-colors text-muted-foreground disabled:opacity-40"
+                className="px-3 py-2 min-h-10 text-xs rounded-md hover:bg-muted transition-colors text-muted-foreground disabled:opacity-40"
               >
                 {t('history.deleteSelected')}
               </button>
@@ -111,7 +111,7 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
           <button
             onClick={load}
             disabled={busy}
-            className="p-2 rounded-md hover:bg-muted transition-colors text-muted-foreground"
+            className="p-2 min-w-10 min-h-10 rounded-md hover:bg-muted transition-colors text-muted-foreground"
             title={t('common.refresh')}
           >
             <i className={`fas fa-sync-alt text-sm ${loading ? 'animate-spin' : ''}`} />
@@ -175,7 +175,7 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
                       <button
                         onClick={() => handleReactivate(mb.address)}
                         disabled={busy}
-                        className="text-xs px-2 py-0.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20"
+                        className="text-xs px-2 py-1 min-h-8 rounded-md bg-primary/10 text-primary hover:bg-primary/20"
                         title={t('history.reactivate')}
                       >
                         {t('history.reactivate')}
@@ -184,7 +184,7 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
                     <button
                       onClick={() => handleDeleteOne(mb.address)}
                       disabled={busy}
-                      className="text-muted-foreground hover:text-destructive p-1"
+                      className="text-muted-foreground hover:text-destructive p-2 min-w-8 min-h-8"
                       title={t('common.delete')}
                     >
                       <i className="fas fa-trash-alt text-xs" />

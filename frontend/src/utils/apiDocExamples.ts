@@ -7,6 +7,11 @@ export function curlLease(baseUrl: string): string {
   -H "Authorization: Bearer YOUR_TOKEN"`;
 }
 
+export function curlQuota(baseUrl: string): string {
+  return `curl "${baseUrl}/api/user/quota" \\
+  -H "Authorization: Bearer YOUR_TOKEN"`;
+}
+
 export function curlMailboxes(baseUrl: string): string {
   return `curl "${baseUrl}/api/mailboxes" \\
   -H "Authorization: Bearer YOUR_TOKEN"`;
@@ -54,6 +59,13 @@ export const leaseResponse = `{
   "email": "abc123@example.com",
   "address": "abc123",
   "expiresAt": 1719360000
+}`;
+
+export const quotaResponse = `{
+  "dailySendQuota": 50,
+  "sentToday": 10,
+  "remaining": 40,
+  "unlimited": false
 }`;
 
 export const mailResponse = `{
