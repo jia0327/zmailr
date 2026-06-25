@@ -29,6 +29,18 @@
     "confirmDeleteToken": "Delete this token?",
     "tokenCreateFailed": "Failed to create token"
   },
+  "tokens": {
+    "expiresDaysLabel": "Validity (days)",
+    "expiresDaysPlaceholder": "30",
+    "daysUnit": "days",
+    "scopesLabel": "Permissions",
+    "scopeLease": "Lease mailbox",
+    "scopeLeaseDesc": "Create temporary mailbox (POST /api/lease)",
+    "scopeMail": "Receive mail & OTP",
+    "scopeMailDesc": "Poll mail, extract verification codes",
+    "scopeSend": "Send mail",
+    "scopeSendDesc": "Send email via API (POST /api/send)"
+  },
   "send": {
     "title": "Send Email",
     "to": "To",

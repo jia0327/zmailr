@@ -4,6 +4,12 @@ import { createUserToken, deleteUserToken, UserTokenItem } from '../utils/api';
 
 const ALL_SCOPES = ['lease', 'mail', 'send'] as const;
 
+const SCOPE_I18N: Record<(typeof ALL_SCOPES)[number], { label: string; desc: string }> = {
+  lease: { label: 'tokens.scopeLease', desc: 'tokens.scopeLeaseDesc' },
+  mail: { label: 'tokens.scopeMail', desc: 'tokens.scopeMailDesc' },
+  send: { label: 'tokens.scopeSend', desc: 'tokens.scopeSendDesc' },
+};
+
 interface ApiTokenManagerProps {
   compact?: boolean;
 }
@@ -100,27 +106,47 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
               onChange={(e) => setNewTokenName(e.target.value)}
               className="w-full px-3 py-2 border rounded-md bg-background text-sm"
             />
-            <input
-              type="number"
-              min={1}
-              max={365}
-              value={newTokenDays}
-              onChange={(e) => setNewTokenDays(parseInt(e.target.value) || 30)}
-              className="w-full px-3 py-2 border rounded-md bg-background text-sm"
-              placeholder={t('auth.tokenDays')}
-            />
-            <div className="flex gap-3 text-sm">
+            <div>
+              <label htmlFor="token-expires-days" className="text-sm font-medium block mb-1">
+                {t('tokens.expiresDaysLabel')}
+              </label>
+              <div className="relative">
+                <input
+                  id="token-expires-days"
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={newTokenDays}
+                  onChange={(e) => setNewTokenDays(parseInt(e.target.value) || 30)}
+                  className="w-full px-3 py-2 pr-10 border rounded-md bg-background text-sm"
+                  placeholder={t('tokens.expiresDaysPlaceholder')}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                  {t('tokens.daysUnit')}
+                </span>
+              </div>
+            </div>
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">{t('tokens.scopesLabel')}</legend>
               {ALL_SCOPES.map((s) => (
-                <label key={s} className="flex items-center gap-1">
+                <label
+                  key={s}
+                  className="flex items-start gap-2 text-sm cursor-pointer"
+                  title={t(SCOPE_I18N[s].desc)}
+                >
                   <input
                     type="checkbox"
+                    className="mt-0.5"
                     checked={newTokenScopes.includes(s)}
                     onChange={() => toggleScope(s)}
                   />
-                  {s}
+                  <span>
+                    <span className="font-medium">{t(SCOPE_I18N[s].label)}</span>
+                    <span className="block text-xs text-muted-foreground">{t(SCOPE_I18N[s].desc)}</span>
+                  </span>
                 </label>
               ))}
-            </div>
+            </fieldset>
             <button type="submit" className="text-sm px-3 py-1.5 bg-primary text-primary-foreground rounded-md">
               {t('common.create')}
             </button>
@@ -137,7 +163,13 @@ const ApiTokenManager: React.FC<ApiTokenManagerProps> = ({ compact = false }) =>
               <div key={tok.id} className="flex items-center justify-between text-sm border-b py-2 last:border-b-0">
                 <div className="min-w-0">
                   <span className="font-medium">{tok.name || `#${tok.id}`}</span>
-                  <span className="text-muted-foreground ml-2">{tok.scopes.join(', ')}</span>
+                  <span className="text-muted-foreground ml-2">
+                    {tok.scopes
+                      .map((s) =>
+                        s in SCOPE_I18N ? t(SCOPE_I18N[s as (typeof ALL_SCOPES)[number]].label) : s
+                      )
+                      .join(', ')}
+                  </span>
                   <span className="text-muted-foreground ml-2 hidden sm:inline">{fmtTime(tok.expiresAt)}</span>
                 </div>
                 <button

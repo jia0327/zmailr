@@ -29,6 +29,18 @@
     "confirmDeleteToken": "确定删除此 Token？",
     "tokenCreateFailed": "创建 Token 失败"
   },
+  "tokens": {
+    "expiresDaysLabel": "有效期（天）",
+    "expiresDaysPlaceholder": "30",
+    "daysUnit": "天",
+    "scopesLabel": "权限范围",
+    "scopeLease": "租用邮箱",
+    "scopeLeaseDesc": "创建临时邮箱地址",
+    "scopeMail": "收信与验证码",
+    "scopeMailDesc": "轮询邮件、提取验证码",
+    "scopeSend": "发信",
+    "scopeSendDesc": "通过 API 发送邮件"
+  },
   "send": {
     "title": "发送邮件",
     "to": "收件人",
