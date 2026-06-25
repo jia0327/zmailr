@@ -63,6 +63,10 @@ const DashboardSidebar: React.FC = () => {
               <i className="fas fa-key w-4 text-center" />
               {t('dashboard.apiKeys')}
             </NavLink>
+            <NavLink to="/dashboard/api-debug" className={navLinkClass}>
+              <i className="fas fa-terminal w-4 text-center" />
+              {t('dashboard.apiDebug')}
+            </NavLink>
             <NavLink to="/dashboard/extract-rules" className={navLinkClass}>
               <i className="fas fa-filter w-4 text-center" />
               {t('dashboard.extractRules')}

@@ -8,6 +8,7 @@ import OutboxPage from './pages/OutboxPage';
 import ApiKeysPage from './pages/ApiKeysPage';
 import UsagePage from './pages/UsagePage';
 import ExtractRulesPage from './pages/ExtractRulesPage';
+import ApiDebugPage from './pages/ApiDebugPage';
 import { MailboxProvider } from './contexts/MailboxContext';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -40,6 +41,7 @@ const App: React.FC = () => {
               <Route path="dashboard/inbox" element={<InboxPage />} />
               <Route path="dashboard/outbox" element={<OutboxPage />} />
               <Route path="dashboard/api-keys" element={<ApiKeysPage />} />
+              <Route path="dashboard/api-debug" element={<ApiDebugPage />} />
               <Route path="dashboard/usage" element={<UsagePage />} />
               <Route path="dashboard/extract-rules" element={<ExtractRulesPage />} />
             </Route>
