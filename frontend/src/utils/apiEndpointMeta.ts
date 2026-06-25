@@ -29,7 +29,7 @@ export const ENDPOINT_META: Record<string, EndpointMeta> = {
     docsSection: 'mailboxOps',
     docsAnchor: 'delete-mailbox',
     titleKey: 'apiDocs.mailboxOps.deleteTitle',
-    descriptionKey: 'apiDocs.mailboxOps.deleteMailboxes',
+    descriptionKey: 'apiDocs.mailboxOps.description',
     usageHintKey: 'apiDocs.mailboxOps.usageHint',
   },
   'mailboxes-latest-code': {
@@ -120,6 +120,10 @@ export interface ParamDocRow {
 
 export function getEndpointMeta(endpointId: string): EndpointMeta | undefined {
   return ENDPOINT_META[endpointId];
+}
+
+export function getEndpointDescriptionKey(endpointId: string): string {
+  return ENDPOINT_META[endpointId]?.descriptionKey ?? 'apiEndpointMeta.unknownParam';
 }
 
 export function getDocsHref(endpointId: string): string {

@@ -21,7 +21,13 @@ import {
   defaultFieldValues,
   getEndpointById,
 } from '../utils/apiDebugEndpoints';
-import { fieldDescriptionKey, getDocsHref, getEndpointMeta, getParamRows } from '../utils/apiEndpointMeta';
+import {
+  fieldDescriptionKey,
+  getDocsHref,
+  getEndpointDescriptionKey,
+  getEndpointMeta,
+  getParamRows,
+} from '../utils/apiEndpointMeta';
 import { loadStoredTokens, migrateLegacySessionTokens } from '../utils/apiTokenSession';
 
 interface FetchResult {
@@ -485,15 +491,15 @@ const ApiDebugPage: React.FC = () => {
               <tr className="border-b">
                 <th className="text-left py-2 pr-3 font-medium">{t('apiUsage.colMethod')}</th>
                 <th className="text-left py-2 pr-3 font-medium">{t('apiUsage.colPath')}</th>
-                <th className="text-left py-2 font-medium">{t('apiUsage.colScope')}</th>
+                <th className="text-left py-2 font-medium">{t('apiUsage.colDescription')}</th>
               </tr>
             </thead>
-            <tbody className="text-muted-foreground font-mono">
+            <tbody className="text-muted-foreground">
               {API_DEBUG_ENDPOINTS.map((ep) => (
                 <tr key={ep.id} className="border-b border-border/50">
-                  <td className="py-2 pr-3 text-foreground">{ep.method}</td>
-                  <td className="py-2 pr-3">{ep.pathTemplate}</td>
-                  <td className="py-2">{ep.scope === 'none' ? t('apiUsage.scopes.none') : ep.scope}</td>
+                  <td className="py-2 pr-3 font-mono text-foreground">{ep.method}</td>
+                  <td className="py-2 pr-3 font-mono">{ep.pathTemplate}</td>
+                  <td className="py-2 font-sans">{t(getEndpointDescriptionKey(ep.id))}</td>
                 </tr>
               ))}
             </tbody>
