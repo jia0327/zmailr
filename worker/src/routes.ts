@@ -72,7 +72,7 @@ app.use('/*', cors({
 }));
 
 // 健康检查端点
-app.get('/', (c) => {
+app.get('/api/health', (c) => {
   return c.json({ status: 'ok', message: '临时邮箱系统API正常运行' });
 });
 
@@ -822,6 +822,14 @@ app.delete('/admin/api/users/:id', async (c) => {
   const ok = await deleteUser(c.env.DB, parseInt(c.req.param('id'), 10));
   if (!ok) return c.json({ success: false, error: '用户不存在' }, 404);
   return c.json({ success: true });
+});
+
+// SPA fallback: serve static assets or index.html for frontend routes (/login, /account, etc.)
+app.all('*', async (c) => {
+  if (c.env.ASSETS) {
+    return c.env.ASSETS.fetch(c.req.raw);
+  }
+  return c.notFound();
 });
 
 export default app;
