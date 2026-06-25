@@ -54,12 +54,12 @@ const Header: React.FC<HeaderProps> = ({
             <ThemeSwitcher />
             <LanguageSwitcher />
             <a
-              href="https://momobako.xx.kg/"
+              href="https://github.com/jia0327/zmailr"
               target="_blank"
               rel="noopener noreferrer"
               className="w-8 h-8 flex items-center justify-center rounded-md transition-colors hover:bg-muted"
               aria-label="GitHub"
-              title="aki nav"
+              title="GitHub"
             >
               <i className="fab fa-github text-base"></i>
             </a>
