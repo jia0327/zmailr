@@ -14,5 +14,9 @@
   "packageManager": "pnpm@10.12.1",
   "devDependencies": {
     "wrangler": "^4.20.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jia0327/zmailr.git"
   }
 }
