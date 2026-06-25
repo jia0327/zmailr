@@ -27,9 +27,9 @@ const OtpBox: React.FC<OtpBoxProps> = ({ code, onCopy, size = 'sm', className })
       type={onCopy ? 'button' : undefined}
       onClick={onCopy ? handleClick : undefined}
       className={cn(
-        'relative flex flex-col items-center justify-center rounded-lg border border-amber-500/40 bg-amber-50/90 shadow-sm',
+        'relative flex flex-col items-center justify-center rounded-lg border border-amber-500/40 bg-amber-50/90 dark:bg-amber-950/30 shadow-sm',
         size === 'sm' ? 'min-w-[7.5rem] px-3 py-2.5' : 'min-w-[11rem] px-5 py-4',
-        onCopy && 'cursor-pointer transition-colors hover:border-amber-500/60 hover:bg-amber-50',
+        onCopy && 'cursor-pointer transition-colors hover:border-amber-500/60 hover:bg-amber-50 dark:hover:bg-amber-950/40',
         className
       )}
       title={onCopy ? t('email.clickToCopy') : undefined}

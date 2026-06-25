@@ -22,82 +22,72 @@ interface Attachment {
 
 const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
   const { t } = useTranslation();
-  // fix: 从 context 中获取全局通知函数
   const { emailCache, addToEmailCache, handleMailboxNotFound, showErrorMessage, showSuccessMessage } = useContext(MailboxContext);
   const [email, setEmail] = useState<Email | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
-  
+
   useEffect(() => {
     const fetchEmail = async () => {
       try {
-        // 首先检查缓存中是否有该邮件
         if (emailCache[emailId]) {
           setEmail(emailCache[emailId].email);
           setAttachments(emailCache[emailId].attachments);
           setIsLoading(false);
           return;
         }
-        
+
         setIsLoading(true);
         const response = await fetch(`${API_BASE_URL}/api/emails/${emailId}`);
-        
+
         if (!response.ok) {
-          // 如果邮箱不存在（404），则清除本地缓存并创建新邮箱
           if (response.status === 404) {
             await handleMailboxNotFound();
-            onClose(); // 关闭邮件详情
+            onClose();
             return;
           }
           throw new Error('Failed to fetch email');
         }
-        
+
         const data = await response.json();
         if (data.success) {
           setEmail(data.email);
-          
-          // 如果邮件有附件，获取附件列表
           if (data.email.hasAttachments) {
             await fetchAttachments(emailId, data.email);
           } else {
-            // 没有附件，将邮件添加到缓存
             addToEmailCache(emailId, data.email, []);
           }
         } else {
           throw new Error(data.error || 'Unknown error');
         }
       } catch (error) {
-        // fix: 使用全局通知函数
         showErrorMessage(t('email.fetchFailed'));
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     fetchEmail();
   }, [emailId, t, emailCache, addToEmailCache, handleMailboxNotFound, onClose, showErrorMessage]);
-  
+
   const fetchAttachments = async (emailId: string, emailData?: Email) => {
     try {
       setIsLoadingAttachments(true);
       const response = await fetch(`${API_BASE_URL}/api/emails/${emailId}/attachments`);
-      
+
       if (!response.ok) {
-        // 如果邮箱不存在（404），则清除本地缓存并创建新邮箱
         if (response.status === 404) {
           await handleMailboxNotFound();
-          onClose(); // 关闭邮件详情
+          onClose();
           return;
         }
         throw new Error('Failed to fetch attachments');
       }
-      
+
       const data = await response.json();
       if (data.success) {
         setAttachments(data.attachments);
-        
-        // 将邮件和附件添加到缓存
         if (emailData) {
           addToEmailCache(emailId, emailData, data.attachments);
         }
@@ -110,35 +100,27 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
       setIsLoadingAttachments(false);
     }
   };
-  
+
   const handleDelete = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/emails/${emailId}`, {
         method: 'DELETE',
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete email');
-      }
-      
+
+      if (!response.ok) throw new Error('Failed to delete email');
+
       const data = await response.json();
       if (data.success) {
-        // fix: 使用全局通知函数
         showSuccessMessage(t('email.deleteSuccess'));
-        
-        // 2秒后关闭邮件详情
-        setTimeout(() => {
-          onClose();
-        }, 2000);
+        setTimeout(() => onClose(), 2000);
       } else {
         throw new Error(data.error || 'Unknown error');
       }
     } catch (error) {
-      // fix: 使用全局通知函数
       showErrorMessage(t('email.deleteFailed'));
     }
   };
-  
+
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
     return new Intl.DateTimeFormat(undefined, {
@@ -150,19 +132,15 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
       second: '2-digit',
     }).format(date);
   };
-  
-  // 格式化文件大小
+
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
-    
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
-  
-  // 判断文件类型
+
   const getFileType = (mimeType: string): string => {
     if (mimeType.startsWith('image/')) return 'image';
     if (mimeType.startsWith('video/')) return 'video';
@@ -171,8 +149,7 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
     if (mimeType.includes('text/')) return 'text';
     return 'file';
   };
-  
-  // 获取文件图标
+
   const getFileIcon = (mimeType: string): string => {
     const fileType = getFileType(mimeType);
     switch (fileType) {
@@ -184,36 +161,26 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
       default: return 'fa-file';
     }
   };
-  
-  // 获取附件下载链接
+
   const getAttachmentUrl = (attachmentId: string, download: boolean = false): string => {
     return `${API_BASE_URL}/api/attachments/${attachmentId}${download ? '?download=true' : ''}`;
   };
-  
-  // 渲染附件预览
+
   const renderAttachmentPreview = (attachment: Attachment) => {
     const fileType = getFileType(attachment.mimeType);
     const attachmentUrl = getAttachmentUrl(attachment.id, true);
-    
+
     switch (fileType) {
       case 'image':
         return (
           <div className="mt-2 max-w-full overflow-hidden">
-            <img 
-              src={attachmentUrl} 
-              alt={attachment.filename} 
-              className="max-w-full max-h-[300px] object-contain rounded border"
-            />
+            <img src={attachmentUrl} alt={attachment.filename} className="max-w-full max-h-[300px] object-contain rounded border" />
           </div>
         );
       case 'video':
         return (
           <div className="mt-2">
-            <video 
-              src={attachmentUrl} 
-              controls 
-              className="max-w-full max-h-[300px] rounded border"
-            >
+            <video src={attachmentUrl} controls className="max-w-full max-h-[300px] rounded border">
               {t('email.videoNotSupported')}
             </video>
           </div>
@@ -221,11 +188,7 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
       case 'audio':
         return (
           <div className="mt-2">
-            <audio 
-              src={attachmentUrl} 
-              controls 
-              className="w-full"
-            >
+            <audio src={attachmentUrl} controls className="w-full">
               {t('email.audioNotSupported')}
             </audio>
           </div>
@@ -233,61 +196,47 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
       case 'pdf':
         return (
           <div className="mt-2">
-            <iframe 
-              src={attachmentUrl} 
-              className="w-full h-[400px] border rounded"
-              title={attachment.filename}
-            />
+            <iframe src={attachmentUrl} className="w-full h-[400px] border rounded" title={attachment.filename} />
           </div>
         );
       default:
         return null;
     }
   };
-  
+
   return (
-    <div className="border rounded-lg p-6">
-      {/* fix: 移除局部的错误和成功提示，使用全局通知 */}
+    <div className="p-4 sm:p-6">
       {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-muted-foreground/20 border-t-foreground"></div>
         </div>
       ) : email ? (
-        <div className="space-y-6">
-          {/* 邮件头部信息 */}
-          <div className="flex justify-between items-start">
-            <div>
-              <h2 className="text-xl font-semibold mb-2">
+        <div className="space-y-5">
+          <div className="flex justify-between items-start gap-4">
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold mb-2 break-words">
                 {email.subject || t('email.noSubject')}
               </h2>
-              <div className="text-sm text-muted-foreground">
-                <p><strong>{t('email.from')}:</strong> {email.fromAddress}</p>
-                <p><strong>{t('email.to')}:</strong> {email.toAddress}</p>
-                <p><strong>{t('email.date')}:</strong> {formatDate(email.receivedAt)}</p>
+              <div className="text-sm text-muted-foreground space-y-0.5">
+                <p><span className="text-foreground/70">{t('email.from')}:</span> {email.fromAddress}</p>
+                <p><span className="text-foreground/70">{t('email.to')}:</span> {email.toAddress}</p>
+                <p><span className="text-foreground/70">{t('email.date')}:</span> {formatDate(email.receivedAt)}</p>
               </div>
             </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={onClose}
-                className="p-2 rounded-md hover:bg-muted"
-                title={t('common.close')}
-              >
+            <div className="flex gap-1 shrink-0">
+              <button onClick={onClose} className="p-2 rounded-md hover:bg-muted transition-colors" title={t('common.close')}>
                 <i className="fas fa-times"></i>
               </button>
-              <button
-                onClick={handleDelete}
-                className="p-2 rounded-md hover:bg-red-100 text-red-600"
-                title={t('common.delete')}
-              >
+              <button onClick={handleDelete} className="p-2 rounded-md hover:bg-destructive/10 text-destructive transition-colors" title={t('common.delete')}>
                 <i className="fas fa-trash-alt"></i>
               </button>
             </div>
           </div>
-          
+
           {email.extractedCode && (
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border bg-muted/20 p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-md border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-4">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-muted-foreground">{t('email.verificationCode')}</p>
+                <p className="text-sm font-medium">{t('email.verificationCode')}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{t('email.clickToCopy')}</p>
               </div>
               <OtpBox
@@ -299,83 +248,70 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
             </div>
           )}
 
-          {/* 分隔线 */}
-          <hr />
-          
-          {/* 邮件内容 */}
-          <div>
-            <h3 className="font-medium mb-2">{t('email.content')}</h3>
+          <div className="border-t pt-4">
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">{t('email.content')}</h3>
             {email.htmlContent ? (
-              <div 
-                className="prose max-w-none border rounded-md p-4 bg-white"
+              <div
+                className="prose prose-sm max-w-none dark:prose-invert border rounded-md p-4 bg-background"
                 dangerouslySetInnerHTML={{ __html: email.htmlContent }}
               />
             ) : email.textContent ? (
-              <pre className="whitespace-pre-wrap border rounded-md p-4 bg-white font-sans">
+              <pre className="whitespace-pre-wrap border rounded-md p-4 bg-background font-sans text-sm">
                 {email.textContent}
               </pre>
             ) : (
-              <p className="text-muted-foreground italic">
-                {t('email.noContent')}
-              </p>
+              <p className="text-muted-foreground italic text-sm">{t('email.noContent')}</p>
             )}
           </div>
-          
-          {/* 附件 */}
+
           {email.hasAttachments && (
-            <div>
-              <h3 className="font-medium mb-2">
-                {t('email.attachments')} 
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                {t('email.attachments')}
                 {isLoadingAttachments && (
-                  <span className="ml-2 inline-block animate-spin h-4 w-4 border-b-2 border-primary rounded-full"></span>
+                  <span className="ml-2 inline-block animate-spin h-4 w-4 border-2 border-muted-foreground/20 border-t-foreground rounded-full"></span>
                 )}
               </h3>
-              
+
               {attachments.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {attachments.map(attachment => (
-                    <div key={attachment.id} className="border rounded-md p-3 bg-white">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-3">
-                          <i className={`fas ${getFileIcon(attachment.mimeType)} text-primary text-lg`}></i>
-                          <div>
-                            <p className="font-medium">{attachment.filename}</p>
+                    <div key={attachment.id} className="border rounded-md p-3">
+                      <div className="flex justify-between items-center gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <i className={`fas ${getFileIcon(attachment.mimeType)} text-muted-foreground`}></i>
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{attachment.filename}</p>
                             <p className="text-xs text-muted-foreground">{formatFileSize(attachment.size)}</p>
                           </div>
                         </div>
-                        <a 
+                        <a
                           href={getAttachmentUrl(attachment.id, true)}
                           download={attachment.filename}
-                          className="px-3 py-1 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90"
+                          className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90 shrink-0"
                           target="_blank"
                           rel="noopener noreferrer"
                         >
                           {t('email.download')}
                         </a>
                       </div>
-                      
-                      {/* 附件预览 */}
                       {renderAttachmentPreview(attachment)}
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground italic">
-                  {t('email.noAttachments')}
-                </p>
+                <p className="text-muted-foreground italic text-sm">{t('email.noAttachments')}</p>
               )}
             </div>
           )}
         </div>
       ) : (
-        <div className="flex items-center justify-center h-64">
-          <p className="text-muted-foreground">
-            {t('email.notFound')}
-          </p>
+        <div className="flex items-center justify-center py-12">
+          <p className="text-muted-foreground text-sm">{t('email.notFound')}</p>
         </div>
       )}
     </div>
   );
 };
 
-export default EmailDetail; 
+export default EmailDetail;

@@ -59,7 +59,7 @@ const Layout: React.FC = () => {
         onMailboxChange={setMailbox} 
         isLoading={isLoading}
       />
-      <main className="flex-1 py-6">
+      <main className="flex-1 py-4 sm:py-6">
         <Outlet />
       </main>
       {/* 传递 onShowInfo 函数给 Footer 组件 */}

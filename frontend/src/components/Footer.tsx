@@ -2,7 +2,6 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import Container from "./Container";
 
-// 定义 props 类型，允许父组件传递控制弹窗显示的函数
 interface FooterProps {
   onShowInfo: (infoType: "privacy" | "terms" | "about") => void;
 }
@@ -12,43 +11,30 @@ const Footer: React.FC<FooterProps> = ({ onShowInfo }) => {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t py-6">
+    <footer className="border-t py-4 mt-auto">
       <Container>
-        <div className="text-center text-sm text-muted-foreground">
-          <p className="mb-2">
-            © {year} {t("app.title")}
-          </p>
-          <div className="flex flex-wrap justify-center items-center space-x-4 mb-2">
-            {/* 将 Link 组件修改为 button，点击时调用 onShowInfo 函数显示弹窗 */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-sm text-muted-foreground">
+          <span>© {year} {t("app.title")}</span>
+          <span className="hidden sm:inline text-border">·</span>
+          <div className="flex items-center gap-4">
             <button
               onClick={() => onShowInfo("privacy")}
-              className="hover:text-primary transition-colors"
+              className="hover:text-foreground transition-colors"
             >
               {t("common.privacyPolicy", "隐私政策")}
             </button>
             <button
               onClick={() => onShowInfo("terms")}
-              className="hover:text-primary transition-colors"
+              className="hover:text-foreground transition-colors"
             >
               {t("common.terms", "使用条款")}
             </button>
             <button
               onClick={() => onShowInfo("about")}
-              className="hover:text-primary transition-colors"
+              className="hover:text-foreground transition-colors"
             >
               {t("common.about", "关于我们")}
             </button>
-          </div>
-          <div className="flex justify-center items-center space-x-4">
-            <a
-              href="https://url.996399.xyz/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-primary transition-colors"
-            >
-              <i className="fas fa-chart-line mr-1"></i>
-              {t("common.xugouMonitor")}
-            </a>
           </div>
         </div>
       </Container>

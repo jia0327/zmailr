@@ -174,7 +174,7 @@ const MailboxSwitcher: React.FC<MailboxSwitcherProps> = ({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setShowDropdown(!showDropdown)}
-        className="w-8 h-8 flex items-center justify-center rounded-md transition-all duration-200 hover:bg-primary/20 hover:text-primary hover:scale-110 mr-1"
+        className="h-full px-3 py-2.5 hover:bg-muted transition-colors"
         aria-label={t('mailbox.switch') || "切换邮箱"}
         title={t('mailbox.switch') || "切换邮箱"}
       >
