@@ -743,6 +743,23 @@ export async function listSentEmails(db: D1Database, limit = 100): Promise<SentE
   }));
 }
 
+export async function listUserSentEmails(db: D1Database, userId: number, limit = 50): Promise<SentEmail[]> {
+  const results = await db.prepare(
+    `SELECT id, to_email, subject, status, created_at, user_id, token_id
+     FROM sent_emails WHERE user_id = ? ORDER BY created_at DESC LIMIT ?`
+  ).bind(userId, limit).all();
+  if (!results.results) return [];
+  return results.results.map(row => ({
+    id: row.id as number,
+    toEmail: row.to_email as string,
+    subject: row.subject as string,
+    status: row.status as string,
+    createdAt: row.created_at as number,
+    userId: (row.user_id as number | null) ?? null,
+    tokenId: (row.token_id as number | null) ?? null,
+  }));
+}
+
 // ─── Admin Stats & Polling ───────────────────────────────────
 
 export async function getAdminStats(db: D1Database): Promise<AdminStats> {

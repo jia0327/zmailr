@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   createRandomMailbox,
   getMailboxFromLocalStorage,
@@ -7,7 +8,7 @@ import {
   getEmails,
   deleteMailbox as apiDeleteMailbox
 } from '../utils/api';
-import { useTranslation } from 'react-i18next';
+import { useAuth } from './AuthContext';
 import { DEFAULT_AUTO_REFRESH, AUTO_REFRESH_INTERVAL } from '../config';
 
 // 邮件详情缓存接口
@@ -77,6 +78,7 @@ interface MailboxProviderProps {
 
 export const MailboxProvider: React.FC<MailboxProviderProps> = ({ children }) => {
   const { t } = useTranslation();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [mailbox, setMailbox] = useState<Mailbox | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [emails, setEmails] = useState<Email[]>([]);
@@ -124,23 +126,32 @@ export const MailboxProvider: React.FC<MailboxProviderProps> = ({ children }) =>
     };
   }, []);
 
-  // 初始化：检查本地存储或创建新邮箱
+  // 初始化：登录后检查本地存储或创建新邮箱
   useEffect(() => {
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      setMailbox(null);
+      setEmails([]);
+      setSelectedEmail(null);
+      setIsLoading(false);
+      return;
+    }
+
     const initMailbox = async () => {
-      // 检查本地存储中是否有未过期的邮箱
       const savedMailbox = getMailboxFromLocalStorage();
 
       if (savedMailbox) {
         setMailbox(savedMailbox);
         setIsLoading(false);
       } else {
-        // 创建新邮箱
         await createNewMailbox();
       }
     };
 
+    setIsLoading(true);
     initMailbox();
-  }, []);
+  }, [isAuthenticated, authLoading]);
 
   // 创建新邮箱
   const createNewMailbox = async () => {

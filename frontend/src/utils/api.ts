@@ -198,12 +198,15 @@ export interface AuthUser {
   username: string;
   role: string;
   dailySendQuota: number;
+  sendCountToday?: number;
+  sendRemaining?: number;
 }
 
 export interface AuthUsage {
   sendCount: number;
   leaseCount: number;
   usageDate: string;
+  sendRemaining?: number;
 }
 
 export const authLogin = async (username: string, password: string) => {
@@ -295,6 +298,26 @@ export const sendUserEmail = async (params: {
     });
     const data = await response.json();
     if (data.success) return { success: true as const };
+    return { success: false as const, error: data.error };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export interface SentEmailItem {
+  id: number;
+  toEmail: string;
+  subject: string;
+  status: string;
+  createdAt: number;
+}
+
+export const getUserSentEmails = async (limit = 50) => {
+  try {
+    const response = await fetch(apiUrl(`/api/user/sent?limit=${limit}`), fetchOpts);
+    if (response.status === 401) return { success: false as const, error: 'Unauthorized' };
+    const data = await response.json();
+    if (data.success) return { success: true as const, emails: data.emails as SentEmailItem[] };
     return { success: false as const, error: data.error };
   } catch {
     return { success: false as const, error: 'Network error' };

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
-import Container from '../components/Container';
 import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
@@ -14,7 +13,7 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   if (isAuthenticated) {
-    return <Navigate to="/account" replace />;
+    return <Navigate to="/dashboard/inbox" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,17 +23,20 @@ const LoginPage: React.FC = () => {
     const result = await login(username, password);
     setLoading(false);
     if (result.success) {
-      navigate('/account');
+      navigate('/dashboard/inbox');
     } else {
       setError(result.error || t('auth.loginFailed'));
     }
   };
 
   return (
-    <Container>
-      <div className="max-w-md mx-auto mt-12">
-        <h1 className="text-2xl font-bold mb-6 text-center">{t('auth.loginTitle')}</h1>
-        <form onSubmit={handleSubmit} className="space-y-4 border rounded-lg p-6 bg-card">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold">{t('auth.loginTitle')}</h1>
+          <p className="text-sm text-muted-foreground mt-2">{t('app.title')}</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4 border rounded-lg p-6 bg-card shadow-sm">
           {error && <p className="text-destructive text-sm">{error}</p>}
           <div>
             <label className="block text-sm font-medium mb-1">{t('auth.username')}</label>
@@ -67,10 +69,10 @@ const LoginPage: React.FC = () => {
           </button>
         </form>
         <p className="text-center text-sm text-muted-foreground mt-4">
-          <Link to="/" className="text-primary hover:underline">{t('auth.backHome')}</Link>
+          <Link to="/api-docs" className="text-primary hover:underline">{t('dashboard.docs')}</Link>
         </p>
       </div>
-    </Container>
+    </div>
   );
 };
 

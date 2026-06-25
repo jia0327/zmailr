@@ -23,6 +23,7 @@ import {
   updateExtractRule,
   deleteExtractRule,
   listSentEmails,
+  listUserSentEmails,
   getAdminStats,
   listUserTokens,
   createUserToken,
@@ -355,6 +356,9 @@ app.get('/api/auth/me', async (c) => {
   if (authErr) return authErr;
   const user = c.get('user')!;
   const usage = await getDailyUsage(c.env.DB, user.id);
+  const sendRemaining = user.dailySendQuota < 0
+    ? -1
+    : Math.max(0, user.dailySendQuota - usage.sendCount);
   return c.json({
     success: true,
     user: {
@@ -362,11 +366,14 @@ app.get('/api/auth/me', async (c) => {
       username: user.username,
       role: user.role,
       dailySendQuota: user.dailySendQuota,
+      sendCountToday: usage.sendCount,
+      sendRemaining,
     },
     usage: {
       sendCount: usage.sendCount,
       leaseCount: usage.leaseCount,
       usageDate: usage.usageDate,
+      sendRemaining,
     },
   });
 });
@@ -409,6 +416,15 @@ app.delete('/api/user/tokens/:id', async (c) => {
   const ok = await deleteUserToken(c.env.DB, user.id, parseInt(c.req.param('id'), 10));
   if (!ok) return c.json({ success: false, error: 'Token 不存在' }, 404);
   return c.json({ success: true });
+});
+
+app.get('/api/user/sent', async (c) => {
+  const authErr = await requireUserSession(c);
+  if (authErr) return authErr;
+  const user = c.get('user')!;
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '50', 10), 1), 100);
+  const emails = await listUserSentEmails(c.env.DB, user.id, limit);
+  return c.json({ success: true, emails });
 });
 
 // ─── Web 发信（会话鉴权 + 配额） ─────────────────────────────
