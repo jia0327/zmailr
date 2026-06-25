@@ -12,7 +12,7 @@
 | 2 | 用户端 · guest 登录后公告弹窗 | Pass | [announcement-modal.png](./screenshots/announcement-modal.png) |
 | 3 | 用户端 · API Token 创建 | Pass | [api-keys-create.png](./screenshots/api-keys-create.png) |
 | 4 | 用户端 · 新建收件箱 | Pass | [inbox-new-mailbox.png](./screenshots/inbox-new-mailbox.png) |
-| 5 | 用户端 · 收信 + OTP 高亮 | Pass | [inbox-with-otp.png](./screenshots/inbox-with-otp.png) |
+| 5 | 用户端 · 收信 + OTP 高亮（收件箱向下滚动至邮件列表） | Pass | [inbox-with-otp.png](./screenshots/inbox-with-otp.png) |
 | 6 | 用户端 · 发件箱 UI 发信 | Pass | [outbox-send.png](./screenshots/outbox-send.png), [outbox-sent.png](./screenshots/outbox-sent.png) |
 | 7 | 用户端 · 自定义提取规则 | Pass | [extract-rules-custom.png](./screenshots/extract-rules-custom.png) |
 | 8 | 用户端 · API 调试 GET /api/user/quota | Pass | [api-debug-response.png](./screenshots/api-debug-response.png) |

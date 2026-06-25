@@ -1,12 +1,23 @@
-# <div align="center">zMailR · 24 小时临时邮箱服务</div>
+# <div align="center">zMailR</div>
 
 <div align="center">
+  <p><strong>24 小时临时邮箱服务</strong></p>
+
+  <p>
+    <a href="https://github.com/jia0327/zmailr/stargazers"><img src="https://img.shields.io/github/stars/jia0327/zmailr?style=social" alt="GitHub stars"></a>
+    <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
+    <a href="https://workers.cloudflare.com/"><img src="https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white" alt="Cloudflare Workers"></a>
+    <a href="https://zmailr.itool.eu.cc/"><img src="https://img.shields.io/badge/demo-zmailr.itool.eu.cc-blue" alt="Live Demo"></a>
+  </p>
+
   <p><strong>Enhanced fork of <a href="https://github.com/zaunist/zmail">zaunist/zmail</a></strong>（MIT License）</p>
 
   <p>
     <a href="https://zmailr.itool.eu.cc/" target="_blank"><strong>在线体验</strong></a>
     ·
     <a href="./README.en.md">English</a>
+    ·
+    <a href="docs/deploy.md"><strong>部署指南</strong></a>
   </p>
 </div>
 
@@ -60,7 +71,7 @@
 
 ![新建收件箱 — 点击「新建收件箱」生成地址](docs/screenshots/inbox-new-mailbox.png)
 
-![收信与 OTP — POST /api/send 测试邮件到达，验证码 847291 高亮](docs/screenshots/inbox-with-otp.png)
+![收信与 OTP — 向下滚动至邮件列表，POST /api/send 测试邮件到达，验证码 847291 高亮](docs/screenshots/inbox-with-otp.png)
 
 #### 发件箱
 
@@ -104,7 +115,7 @@
 
 ![创建公告 — 新增 E2E 测试公告表单（标题/内容/启用）](docs/screenshots/admin-announcement-create.png)
 
-![公告列表 — 启用状态与已读人数](docs/screenshots/admin-announcements-list.png)
+![公告列表 — 「测试」公告启用，已读 1 人](docs/screenshots/admin-announcements-list.png)
 
 #### 用户管理
 
@@ -176,22 +187,6 @@
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=jia0327/zmailr&type=Date)](https://star-history.com/#jia0327/zmailr&Date)
-
----
-
-## 贡献与 Git 配置
-
-为避免 Cursor Agent 自动写入 co-author 信息，建议每位贡献者做一次本地配置：
-
-1. **启用仓库 Git hooks**（一次性）：
-
-   ```bash
-   git config core.hooksPath .githooks
-   ```
-
-   仓库已提供 `.githooks/commit-msg`，会在提交前移除 `cursoragent@cursor.com`、`Co-authored-by: … Cursor`、`Made-with: … Cursor` 等行。
-
-2. **关闭 Cursor 提交署名**：Cursor Settings → **Agents** → **Attribution** → 关闭 **Commit Attribution**。
 
 ---
 
