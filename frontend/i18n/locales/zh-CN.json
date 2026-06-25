@@ -67,7 +67,7 @@
     "inbox": "收件箱",
     "outbox": "发件箱",
     "apiKeys": "API 密钥",
-    "usage": "用法",
+    "usage": "仪表板",
     "docs": "文档",
     "inboxTitle": "收件箱",
     "inboxSubtitle": "接收临时邮件，查看验证码与附件",
@@ -75,12 +75,12 @@
     "outboxSubtitle": "发送邮件并查看发信记录",
     "apiKeysTitle": "API 密钥",
     "apiKeysSubtitle": "管理 Bearer Token，用于程序化调用 API",
-    "usageTitle": "用法统计",
-    "usageSubtitle": "查看今日配额与使用情况",
+    "usageTitle": "仪表板",
+    "usageSubtitle": "查看配额、使用情况与账户信息",
     "breadcrumbInbox": "工作区 / 收件箱",
     "breadcrumbOutbox": "工作区 / 发件箱",
     "breadcrumbApiKeys": "工作区 / API 密钥",
-    "breadcrumbUsage": "工作区 / 用法",
+    "breadcrumbUsage": "工作区 / 仪表板",
     "statActiveMailbox": "活跃邮箱",
     "statMessages": "当前邮件",
     "statMessagesHint": "当前邮箱中的邮件数",
@@ -567,7 +567,7 @@
       "deleteMailboxes": "DELETE /api/mailboxes/:address — 按 local-part 删除，无需 Bearer Token。",
       "deleteUserNote": "尚无 DELETE /api/user/mailboxes 接口；Web 端删除请使用 DELETE /api/mailboxes/:address。"
     },
-    "backHome": "← 返回收件箱"
+    "backHome": "← 返回仪表板"
   },
   "apiUsage": {
     "title": "API 使用说明",

@@ -17,13 +17,13 @@ const PublicLayout: React.FC = () => {
       <header className="border-b">
         <Container className="py-3">
           <div className="flex items-center justify-between gap-4">
-            <Link to={isAuthenticated ? '/dashboard/inbox' : '/login'} className="text-lg font-bold tracking-tight">
+            <Link to={isAuthenticated ? '/dashboard/usage' : '/login'} className="text-lg font-bold tracking-tight">
               {t('app.title')}
             </Link>
             <div className="flex items-center gap-2">
               {isAuthenticated ? (
-                <Link to="/dashboard/inbox" className="text-sm text-muted-foreground hover:text-foreground">
-                  {t('dashboard.inbox')}
+                <Link to="/dashboard/usage" className="text-sm text-muted-foreground hover:text-foreground">
+                  {t('dashboard.usage')}
                 </Link>
               ) : (
                 <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground">

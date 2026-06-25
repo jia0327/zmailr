@@ -13,7 +13,7 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard/inbox" replace />;
+    return <Navigate to="/dashboard/usage" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,7 +23,7 @@ const LoginPage: React.FC = () => {
     const result = await login(username, password);
     setLoading(false);
     if (result.success) {
-      navigate('/dashboard/inbox');
+      navigate('/dashboard/usage');
     } else {
       setError(result.error || t('auth.loginFailed'));
     }

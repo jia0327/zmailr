@@ -67,7 +67,7 @@
     "inbox": "Inbox",
     "outbox": "Outbox",
     "apiKeys": "API Keys",
-    "usage": "Usage",
+    "usage": "Dashboard",
     "docs": "Docs",
     "inboxTitle": "Inbox",
     "inboxSubtitle": "Receive temp mail, view OTP codes and attachments",
@@ -75,12 +75,12 @@
     "outboxSubtitle": "Send email and view sent history",
     "apiKeysTitle": "API Keys",
     "apiKeysSubtitle": "Manage Bearer tokens for programmatic API access",
-    "usageTitle": "Usage",
-    "usageSubtitle": "View daily quotas and usage stats",
+    "usageTitle": "Dashboard",
+    "usageSubtitle": "View quotas, usage stats, and account info",
     "breadcrumbInbox": "Workspace / Inbox",
     "breadcrumbOutbox": "Workspace / Outbox",
     "breadcrumbApiKeys": "Workspace / API Keys",
-    "breadcrumbUsage": "Workspace / Usage",
+    "breadcrumbUsage": "Workspace / Dashboard",
     "statActiveMailbox": "Active mailbox",
     "statMessages": "Messages",
     "statMessagesHint": "In current mailbox",
@@ -567,7 +567,7 @@
       "deleteMailboxes": "DELETE /api/mailboxes/:address — delete by local-part, no Bearer Token required.",
       "deleteUserNote": "No DELETE /api/user/mailboxes endpoint yet; use DELETE /api/mailboxes/:address from the web UI."
     },
-    "backHome": "← Back to inbox"
+    "backHome": "← Back to dashboard"
   },
   "apiUsage": {
     "title": "API Usage",

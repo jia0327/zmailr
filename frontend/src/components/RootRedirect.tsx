@@ -13,7 +13,7 @@ const RootRedirect: React.FC = () => {
     );
   }
 
-  return <Navigate to={isAuthenticated ? '/dashboard/inbox' : '/login'} replace />;
+  return <Navigate to={isAuthenticated ? '/dashboard/usage' : '/login'} replace />;
 };
 
 export default RootRedirect;

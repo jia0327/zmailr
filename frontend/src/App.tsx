@@ -36,6 +36,7 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             >
+              <Route path="dashboard" element={<Navigate to="/dashboard/usage" replace />} />
               <Route path="dashboard/inbox" element={<InboxPage />} />
               <Route path="dashboard/outbox" element={<OutboxPage />} />
               <Route path="dashboard/api-keys" element={<ApiKeysPage />} />

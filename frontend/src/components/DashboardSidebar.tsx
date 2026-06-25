@@ -47,6 +47,10 @@ const DashboardSidebar: React.FC = () => {
             {t('dashboard.sectionActions')}
           </p>
           <div className="space-y-1">
+            <NavLink to="/dashboard/usage" className={navLinkClass}>
+              <i className="fas fa-chart-bar w-4 text-center" />
+              {t('dashboard.usage')}
+            </NavLink>
             <NavLink to="/dashboard/inbox" className={navLinkClass}>
               <i className="fas fa-inbox w-4 text-center" />
               {t('dashboard.inbox')}
@@ -58,10 +62,6 @@ const DashboardSidebar: React.FC = () => {
             <NavLink to="/dashboard/api-keys" className={navLinkClass}>
               <i className="fas fa-key w-4 text-center" />
               {t('dashboard.apiKeys')}
-            </NavLink>
-            <NavLink to="/dashboard/usage" className={navLinkClass}>
-              <i className="fas fa-chart-bar w-4 text-center" />
-              {t('dashboard.usage')}
             </NavLink>
             <NavLink to="/dashboard/extract-rules" className={navLinkClass}>
               <i className="fas fa-filter w-4 text-center" />
