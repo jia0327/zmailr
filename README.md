@@ -90,7 +90,7 @@
 | `D1_DATABASE_NAME` | D1 数据库名称 |
 | `VITE_EMAIL_DOMAIN` | 邮箱域名，多个用逗号分隔（如 `example.com,test.com`） |
 | `ADMIN_PASSWORD` | 管理后台 `/admin` 登录密码 |
-| `BREVO_API_KEY` | Brevo Transactional Email API Key，用于 `/api/send`（配置步骤见 [docs/brevo-setup.md](docs/brevo-setup.md)） |
+| `BREVO_API_KEY` | Brevo Transactional Email API Key（明文 `xkeysib-...`），用于 `/api/send`；若拿到的是 Base64 JSON 需先解码，见 [docs/brevo-setup.md](docs/brevo-setup.md) |
 
 4. 推送至 `main` 分支即触发部署；也可在 Actions 页手动运行 **Deploy to Cloudflare**
 5. 部署完成后为 Worker **绑定自定义域名**
