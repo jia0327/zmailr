@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
@@ -44,6 +44,7 @@ const LoginPage: React.FC = () => {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              placeholder="guest"
               className="w-full px-3 py-2 border rounded-md bg-background"
               autoComplete="username"
               required
@@ -55,6 +56,7 @@ const LoginPage: React.FC = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="guest"
               className="w-full px-3 py-2 border rounded-md bg-background"
               autoComplete="current-password"
               required
@@ -68,9 +70,6 @@ const LoginPage: React.FC = () => {
             {loading ? t('common.loading') : t('auth.login')}
           </button>
         </form>
-        <p className="text-center text-sm text-muted-foreground mt-4">
-          <Link to="/api-docs" className="text-primary hover:underline">{t('dashboard.docs')}</Link>
-        </p>
       </div>
     </div>
   );

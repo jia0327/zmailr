@@ -81,7 +81,8 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_user_tokens_hash ON user_tokens(token_hash);`);
 
     await seedAdminUser(db, adminPassword);
-    
+    await seedGuestUser(db);
+
     console.log('数据库初始化成功');
   } catch (error) {
     console.error('数据库初始化失败:', error);
@@ -110,6 +111,16 @@ async function seedAdminUser(db: D1Database, adminPassword?: string): Promise<vo
     `INSERT INTO users (username, password_hash, role, daily_send_quota, enabled) VALUES (?, ?, 'admin', -1, 1)`
   ).bind('admin', passwordHash).run();
   console.log('已创建初始 admin 用户');
+}
+
+async function seedGuestUser(db: D1Database): Promise<void> {
+  const existing = await db.prepare(`SELECT id FROM users WHERE username = ?`).bind('guest').first();
+  if (existing) return;
+  const passwordHash = await hashPassword('guest');
+  await db.prepare(
+    `INSERT INTO users (username, password_hash, role, daily_send_quota, enabled) VALUES (?, ?, 'user', 10, 1)`
+  ).bind('guest', passwordHash).run();
+  console.log('已创建 demo guest 用户');
 }
 
 export function getTodayUsageDate(): string {
