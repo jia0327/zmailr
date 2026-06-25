@@ -1,9 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import DashboardPageHeader from '../components/DashboardPageHeader';
 import { useAuth } from '../contexts/AuthContext';
+import { MailboxContext } from '../contexts/MailboxContext';
 import { getApiBaseUrl } from '../utils/apiDocExamples';
+import {
+  applyMailboxDefaults,
+  resolveMailboxDefaults,
+  type MailboxDefaults,
+} from '../utils/apiDebugMailboxDefaults';
+import { saveLastLease } from '../utils/apiLeaseSession';
 import ApiEndpointParamTable from '../components/ApiEndpointParamTable';
 import {
   API_DEBUG_CATEGORIES,
@@ -31,6 +38,7 @@ const RATE_LIMIT_HEADERS = ['x-ratelimit-limit', 'x-ratelimit-remaining', 'x-rat
 const ApiDebugPage: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { mailbox: contextMailbox } = useContext(MailboxContext);
   const baseUrl = useMemo(getApiBaseUrl, []);
 
   const [autoToken, setAutoToken] = useState<string | null>(null);
@@ -42,6 +50,7 @@ const ApiDebugPage: React.FC = () => {
     defaultFieldValues(API_DEBUG_ENDPOINTS[0])
   );
 
+  const [mailboxDefaults, setMailboxDefaults] = useState<MailboxDefaults | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<FetchResult | null>(null);
 
@@ -77,9 +86,31 @@ const ApiDebugPage: React.FC = () => {
   }, [loadAutoToken]);
 
   useEffect(() => {
-    setFieldValues(defaultFieldValues(endpoint));
+    if (!user?.id) {
+      setMailboxDefaults(null);
+      return;
+    }
+    let cancelled = false;
+    resolveMailboxDefaults(user.id, contextMailbox?.address).then((defaults) => {
+      if (!cancelled) setMailboxDefaults(defaults);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, contextMailbox?.address]);
+
+  useEffect(() => {
+    const base = defaultFieldValues(endpoint);
+    setFieldValues(
+      mailboxDefaults ? applyMailboxDefaults(endpoint, base, mailboxDefaults, false) : base
+    );
     setResult(null);
   }, [selectedId]);
+
+  useEffect(() => {
+    if (!mailboxDefaults) return;
+    setFieldValues((prev) => applyMailboxDefaults(endpoint, prev, mailboxDefaults, true));
+  }, [mailboxDefaults, endpoint.id]);
 
   const endpointsByCategory = useMemo(() => {
     const map = new Map<string, ApiEndpointDef[]>();
@@ -160,6 +191,17 @@ const ApiDebugPage: React.FC = () => {
       if (isJson) {
         try {
           const json = await res.json();
+          if (
+            endpoint.id === 'lease' &&
+            res.ok &&
+            json.success &&
+            json.address &&
+            typeof json.email === 'string' &&
+            user?.id
+          ) {
+            saveLastLease(user.id, { address: json.address, email: json.email });
+            setMailboxDefaults({ localPart: json.address, fullEmail: json.email });
+          }
           responseBody = JSON.stringify(json, null, 2);
         } catch {
           responseBody = await res.text();

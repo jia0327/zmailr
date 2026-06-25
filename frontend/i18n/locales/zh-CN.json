@@ -511,7 +511,7 @@
     "listMailboxes": {
       "title": "GET /api/mailboxes — 列出活跃邮箱",
       "description": "列出未过期的邮箱。用户 Token 仅返回该用户创建的邮箱；Legacy Token 返回最近活跃的邮箱。",
-      "usageHint": "需要 mail 权限。租用邮箱后可用此接口确认当前活跃地址。",
+      "usageHint": "需要 mail 权限及邮箱所有权（或登录会话作为所有者）。租用邮箱后可用此接口确认当前活跃地址。",
       "params": {
         "limit": "可选。返回条数上限，默认 50。"
       }
@@ -519,7 +519,7 @@
     "latestCode": {
       "title": "GET /api/mailboxes/:address/latest-code — 最新验证码",
       "description": "非阻塞即时查询最近一封邮件的提取验证码。",
-      "usageHint": "需要 mail 权限。:address 填 local-part（如 abc123），立即返回，不等待新邮件。",
+      "usageHint": "需会话（邮箱所有者）或 Bearer mail 权限 + 所有权。:address 填 local-part（如 abc123），立即返回，不等待新邮件。",
       "params": {
         "address": "必填。邮箱 local-part（如 abc123），非完整地址。"
       }
@@ -527,7 +527,7 @@
     "latestLink": {
       "title": "GET /api/mailboxes/:address/latest-link — 最新验证链接",
       "description": "从最新邮件中提取常见格式的验证链接。",
-      "usageHint": "需要 mail 权限。非阻塞查询，适用于需要点击验证链接而非数字验证码的场景。",
+      "usageHint": "需会话（邮箱所有者）或 Bearer mail 权限 + 所有权。非阻塞查询，适用于需要点击验证链接而非数字验证码的场景。",
       "params": {
         "address": "必填。邮箱 local-part（如 abc123），非完整地址。"
       }

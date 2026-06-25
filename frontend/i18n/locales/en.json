@@ -511,7 +511,7 @@
     "listMailboxes": {
       "title": "GET /api/mailboxes — List active mailboxes",
       "description": "List non-expired mailboxes for the authenticated token. User tokens see only mailboxes they created; legacy tokens see recently active mailboxes.",
-      "usageHint": "Requires mail scope. Use after leasing to confirm your active addresses.",
+      "usageHint": "Requires mail scope and mailbox ownership (or login session as owner). Use after leasing to confirm your active addresses.",
       "params": {
         "limit": "Optional. Max results to return, default 50."
       }
@@ -519,7 +519,7 @@
     "latestCode": {
       "title": "GET /api/mailboxes/:address/latest-code — Latest OTP",
       "description": "Non-blocking instant query for the most recent extracted verification code.",
-      "usageHint": "Requires mail scope. Use local-part only in :address (e.g. abc123). Returns immediately without waiting.",
+      "usageHint": "Requires session (mailbox owner) or Bearer mail scope + ownership. Use local-part only in :address (e.g. abc123). Returns immediately without waiting.",
       "params": {
         "address": "Required. Mailbox local-part (e.g. abc123), not the full email."
       }
@@ -527,7 +527,7 @@
     "latestLink": {
       "title": "GET /api/mailboxes/:address/latest-link — Latest verification link",
       "description": "Extract a verification URL from the latest email using common link patterns.",
-      "usageHint": "Requires mail scope. Non-blocking — use when you need a clickable verify URL instead of a numeric code.",
+      "usageHint": "Requires session (mailbox owner) or Bearer mail scope + ownership. Non-blocking — use when you need a clickable verify URL instead of a numeric code.",
       "params": {
         "address": "Required. Mailbox local-part (e.g. abc123), not the full email."
       }
