@@ -41,7 +41,7 @@
 
 ### 出站发信
 
-- `POST /api/send` 通过 **Brevo** 发送事务邮件（发件人 `no-reply@你的域名`）
+- `POST /api/send` 通过 **Brevo** 发送事务邮件（默认发件人 `no-reply@你的域名`；可选 `from` 使用已租用的临时邮箱地址）
 - 完整配置见 [docs/brevo-setup.md](docs/brevo-setup.md)
 
 ### 程序化 API
@@ -52,7 +52,7 @@
 |------|------|
 | `POST /api/lease` | 租用新的临时邮箱，返回完整地址与过期时间 |
 | `GET /api/mail?to=...` | 长轮询等待新邮件（默认最长 60s），返回 `code` 与邮件摘要 |
-| `POST /api/send` | 发送邮件（`to`、`subject`，以及 `text` 或 `html`） |
+| `POST /api/send` | 发送邮件（`to`、`subject`，以及 `text` 或 `html`；可选 `from` 指定已租用邮箱为发件人） |
 
 `/api/mail` 要点：
 

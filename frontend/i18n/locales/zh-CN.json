@@ -371,7 +371,13 @@
     },
     "send": {
       "title": "POST /api/send — 发送邮件",
-      "description": "通过 Brevo 从 no-reply@你的域名 发送邮件（需完成 DNS 与发信配置，见 docs/brevo-setup.md）。"
+      "description": "通过 Brevo 发送邮件（需完成 DNS 与发信配置，见 docs/brevo-setup.md）。默认发件人为 no-reply@你的域名；传入 from 可使用已租用的临时邮箱地址作为发件人。",
+      "params": {
+        "to": "必填。收件人邮箱地址。",
+        "subject": "必填。邮件主题。",
+        "body": "必填。提供 text 和/或 html 正文。",
+        "from": "可选。已租用且未过期的临时邮箱完整地址（如 abc123@你的域名）。省略则使用 no-reply@你的域名。"
+      }
     },
     "python": {
       "title": "Python 示例（requests）",

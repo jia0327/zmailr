@@ -25,7 +25,7 @@ const ApiDocsPage: React.FC = () => {
   const curlSend = `curl -X POST "${baseUrl}/api/send" \\
   -H "Authorization: Bearer YOUR_TOKEN" \\
   -H "Content-Type: application/json" \\
-  -d '{"to":"user@example.com","subject":"Hello","text":"Plain text body"}'`;
+  -d '{"to":"user@qq.com","subject":"Hello","text":"Plain text body","from":"abc123@example.com"}'`;
 
   const leaseResponse = `{
   "success": true,
@@ -71,13 +71,15 @@ mail = requests.get(
 print(f"Code: {mail.get('code')}")
 
 # 3. Optional: send email via Brevo (/api/send)
+# Omit "from" to use no-reply@your-domain; set "from" to the leased mailbox to send as that address.
 send = requests.post(
     f"{BASE}/api/send",
     headers=headers,
     json={
-        "to": "user@example.com",
+        "to": "user@qq.com",
         "subject": "Hello from zMailR",
         "text": "Plain text body",
+        "from": email,
     },
 ).json()
 print(send)`;
@@ -157,6 +159,34 @@ print(send)`;
           <h2 className="text-lg font-semibold">{t('apiDocs.send.title')}</h2>
           <p className="text-sm text-muted-foreground">{t('apiDocs.send.description')}</p>
           <p className="text-sm font-medium">POST /api/send</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 pr-4 font-medium">{t('apiDocs.param')}</th>
+                  <th className="text-left py-2 font-medium">{t('apiDocs.description')}</th>
+                </tr>
+              </thead>
+              <tbody className="text-muted-foreground">
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-foreground">to</td>
+                  <td className="py-2">{t('apiDocs.send.params.to')}</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-foreground">subject</td>
+                  <td className="py-2">{t('apiDocs.send.params.subject')}</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-foreground">text / html</td>
+                  <td className="py-2">{t('apiDocs.send.params.body')}</td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-4 font-mono text-foreground">from</td>
+                  <td className="py-2">{t('apiDocs.send.params.from')}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           <CodeBlock>{curlSend}</CodeBlock>
           <p className="text-sm text-muted-foreground">{t('apiDocs.responseExample')}</p>
           <CodeBlock>{sendResponse}</CodeBlock>

@@ -1,6 +1,6 @@
 # Brevo 发信配置指南
 
-`/api/send` 默认通过 [Brevo](https://www.brevo.com/)（原 Sendinblue）Transactional Email API 发信。发件地址固定为 `no-reply@你的域名`，发件人显示名 `zMailR`。
+`/api/send` 默认通过 [Brevo](https://www.brevo.com/)（原 Sendinblue）Transactional Email API 发信。默认发件地址为 `no-reply@你的域名`，发件人显示名 `zMailR`。传入 JSON 字段 `from`（须为 D1 中已租用且未过期的临时邮箱完整地址，如 `abc123@你的域名`）时，将以该地址发信，显示名为 local-part。
 
 > 免费计划约 **300 封/天**。`/api/send` 发信需配置 `BREVO_API_KEY`。
 
@@ -178,7 +178,7 @@ Invoke-RestMethod -Uri "https://api.brevo.com/v3/smtp/email" -Method Post -Heade
 curl -X POST "https://你的域名/api/send" \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"to":"your-test@example.com","subject":"Hello","text":"Plain text body"}'
+  -d '{"to":"your-test@example.com","subject":"Hello","text":"Plain text body","from":"abc123@你的域名"}'
 ```
 
 成功后在 `/admin` 的 **发信记录** 中可看到 `sent` 状态。

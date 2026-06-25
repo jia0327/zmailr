@@ -371,7 +371,13 @@
     },
     "send": {
       "title": "POST /api/send — Send email",
-      "description": "Send email via Brevo from no-reply@your-domain (DNS and sender setup required; see docs/brevo-setup.md)."
+      "description": "Send email via Brevo (DNS and sender setup required; see docs/brevo-setup.md). Defaults to no-reply@your-domain; pass from with an active leased mailbox to send as that address.",
+      "params": {
+        "to": "Required. Recipient email address.",
+        "subject": "Required. Email subject.",
+        "body": "Required. Provide text and/or html body.",
+        "from": "Optional. Full address of an active leased mailbox on your domain (e.g. abc123@your-domain). Omit to use no-reply@your-domain."
+      }
     },
     "python": {
       "title": "Python example (requests)",

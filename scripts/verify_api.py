@@ -78,14 +78,18 @@ def send_test_mail(
     token: str,
     to_email: str,
     code: str,
+    *,
+    from_email: str | None = None,
 ) -> None:
     """Optional self-test: send a message with a known code via POST /api/send."""
     url = f"{base_url.rstrip('/')}/api/send"
-    payload = {
+    payload: dict[str, str] = {
         "to": to_email,
         "subject": "您的验证码",
         "text": f"验证码是：{code}",
     }
+    if from_email:
+        payload["from"] = from_email
     resp = session.post(
         url,
         headers={**auth_headers(token), "Content-Type": "application/json"},
@@ -151,6 +155,12 @@ def parse_args() -> argparse.Namespace:
         default="847291",
         help="Code embedded in --send-test message (default: 847291)",
     )
+    parser.add_argument(
+        "--from",
+        dest="from_email",
+        metavar="ADDRESS",
+        help="Optional POST /api/send from address (must be an active leased mailbox)",
+    )
     return parser.parse_args()
 
 
@@ -175,8 +185,18 @@ def main() -> int:
             print(f"Leased: {email} ({elapsed:.2f}s)")
 
             if args.send_test:
+                from_addr = args.from_email
                 print(f"Sending test mail (code={args.test_code})...")
-                send_test_mail(session, args.base_url, args.token, email, args.test_code)
+                send_test_mail(
+                    session,
+                    args.base_url,
+                    args.token,
+                    email,
+                    args.test_code,
+                    from_email=from_addr,
+                )
+                if from_addr:
+                    print(f"Sent with from={from_addr}")
                 print("Test mail sent.")
 
         since = args.since

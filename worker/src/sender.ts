@@ -8,6 +8,8 @@ export interface SendMailPayload {
   subject: string;
   text?: string;
   html?: string;
+  /** Pre-validated full sender address; defaults to no-reply@domain */
+  from?: string;
 }
 
 export interface SendMailResult {
@@ -21,10 +23,11 @@ const SENDER_NAME = 'zMailR';
 async function sendViaBrevo(
   apiKey: string,
   fromEmail: string,
+  senderName: string,
   data: SendMailPayload
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const body: Record<string, unknown> = {
-    sender: { name: SENDER_NAME, email: fromEmail },
+    sender: { name: senderName, email: fromEmail },
     to: [{ email: data.to }],
     subject: data.subject,
   };
@@ -51,6 +54,7 @@ async function sendViaMailChannels(
   apiKey: string,
   domain: string,
   fromEmail: string,
+  senderName: string,
   data: SendMailPayload
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const content: Array<{ type: string; value: string }> = [];
@@ -73,7 +77,7 @@ async function sendViaMailChannels(
     },
     body: JSON.stringify({
       personalizations: [{ to: [{ email: data.to }] }],
-      from: { email: fromEmail, name: SENDER_NAME },
+      from: { email: fromEmail, name: senderName },
       subject: data.subject,
       content,
     }),
@@ -95,7 +99,8 @@ export async function sendMail(
   data: SendMailPayload
 ): Promise<SendMailResult> {
   const domain = getMailDomain(env);
-  const fromEmail = `no-reply@${domain}`;
+  const fromEmail = data.from ?? `no-reply@${domain}`;
+  const senderName = data.from ? fromEmail.split('@')[0] : SENDER_NAME;
 
   const brevoKey = env.BREVO_API_KEY;
   const mailchannelsKey = env.MAILCHANNELS_API_KEY;
@@ -109,8 +114,8 @@ export async function sendMail(
 
   try {
     const result = brevoKey
-      ? await sendViaBrevo(brevoKey, fromEmail, data)
-      : await sendViaMailChannels(mailchannelsKey!, domain, fromEmail, data);
+      ? await sendViaBrevo(brevoKey, fromEmail, senderName, data)
+      : await sendViaMailChannels(mailchannelsKey!, domain, fromEmail, senderName, data);
 
     if (!result.ok) {
       console.error('发信失败:', result.error);

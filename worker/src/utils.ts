@@ -103,3 +103,27 @@ export function generateRandomString(length: number): string {
   export function parseMailboxAddress(emailOrLocal: string): string {
     return emailOrLocal.includes('@') ? emailOrLocal.split('@')[0] : emailOrLocal;
   }
+
+  /**
+   * 校验 /api/send 的 from 地址：格式合法且域名与系统邮件域一致
+   */
+  export function validateSendFromAddress(
+    from: string,
+    mailDomain: string
+  ): { ok: true; localPart: string; fromEmail: string } | { ok: false; error: string } {
+    const trimmed = from.trim();
+    if (!trimmed.includes('@')) {
+      return { ok: false, error: 'from 必须是完整邮箱地址' };
+    }
+    if (!isValidEmailAddress(trimmed)) {
+      return { ok: false, error: '无效的 from 地址' };
+    }
+    const at = trimmed.lastIndexOf('@');
+    const localPart = trimmed.slice(0, at);
+    const fromDomain = trimmed.slice(at + 1).toLowerCase();
+    const expectedDomain = mailDomain.toLowerCase();
+    if (fromDomain !== expectedDomain) {
+      return { ok: false, error: 'from 域名与系统域名不匹配' };
+    }
+    return { ok: true, localPart, fromEmail: `${localPart}@${expectedDomain}` };
+  }

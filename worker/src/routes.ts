@@ -24,7 +24,7 @@ import {
   listSentEmails,
   getAdminStats,
 } from './database';
-import { generateRandomAddress, getMailDomain, parseMailboxAddress, getCurrentTimestamp } from './utils';
+import { generateRandomAddress, getMailDomain, parseMailboxAddress, getCurrentTimestamp, validateSendFromAddress } from './utils';
 import { authenticateApiToken, isAdminAuthenticated, verifyAdminPassword, createAdminSessionCookie, clearAdminSessionCookie } from './auth';
 import { sendMail } from './sender';
 import { getAdminHtml } from './admin';
@@ -403,11 +403,26 @@ app.post('/api/send', async (c) => {
       return c.json({ success: false, error: '缺少 text 或 html 内容' }, 400);
     }
 
+    const domain = getMailDomain(c.env);
+    let fromEmail: string | undefined;
+    if (body.from != null && body.from !== '') {
+      const validated = validateSendFromAddress(String(body.from), domain);
+      if (!validated.ok) {
+        return c.json({ success: false, error: validated.error }, 400);
+      }
+      const mailbox = await getMailbox(c.env.DB, validated.localPart);
+      if (!mailbox) {
+        return c.json({ success: false, error: 'from 邮箱不存在或已过期' }, 404);
+      }
+      fromEmail = validated.fromEmail;
+    }
+
     const result = await sendMail(c.env.DB, c.env, {
       to: body.to,
       subject: body.subject,
       text: body.text,
       html: body.html,
+      from: fromEmail,
     });
 
     if (!result.success) {
