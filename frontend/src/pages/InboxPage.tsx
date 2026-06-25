@@ -4,11 +4,8 @@ import EmailList from '../components/EmailList';
 import HeaderMailbox from '../components/HeaderMailbox';
 import DashboardPageHeader from '../components/DashboardPageHeader';
 import StatCard from '../components/StatCard';
-import ActiveInboxesList from '../components/ActiveInboxesList';
-import ApiTokenManager from '../components/ApiTokenManager';
 import { MailboxContext } from '../contexts/MailboxContext';
 import { getEmailDomains, getDefaultEmailDomain, EMAIL_DOMAINS, DEFAULT_EMAIL_DOMAIN } from '../config';
-import { UserMailboxItem } from '../utils/api';
 
 const InboxPage: React.FC = () => {
   const { t } = useTranslation();
@@ -21,7 +18,6 @@ const InboxPage: React.FC = () => {
     setSelectedEmail,
     isEmailsLoading,
     createNewMailbox,
-    refreshEmails,
   } = useContext(MailboxContext);
 
   const [emailDomains, setEmailDomains] = React.useState<string[]>(EMAIL_DOMAINS);
@@ -60,19 +56,6 @@ const InboxPage: React.FC = () => {
     } finally {
       setCreating(false);
     }
-  };
-
-  const handleSelectInbox = (mb: UserMailboxItem) => {
-    setMailbox({
-      id: mb.id,
-      address: mb.address,
-      createdAt: mb.createdAt,
-      expiresAt: mb.expiresAt,
-      ipAddress: mb.ipAddress,
-      lastAccessed: mb.lastAccessed,
-    });
-    setSelectedEmail(null);
-    refreshEmails();
   };
 
   if (isLoading) {
@@ -119,19 +102,6 @@ const InboxPage: React.FC = () => {
           icon="fas fa-clock"
           hint={t('dashboard.statTtlHint')}
         />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ActiveInboxesList
-          activeAddress={mailbox?.address}
-          onSelect={handleSelectInbox}
-        />
-        <div className="border rounded-lg p-4 bg-card">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-            {t('dashboard.apiKeysQuick')}
-          </h2>
-          <ApiTokenManager compact />
-        </div>
       </div>
 
       {mailbox && (
