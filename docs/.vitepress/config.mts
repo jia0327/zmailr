@@ -19,7 +19,7 @@ export default defineConfig({
     nav: [
       // Paths outside /docs/ base — use relative escape so VitePress does not prefix base + .html
       { text: '控制台', link: '../../dashboard/usage', target: '_self', rel: undefined },
-      { text: 'API 交互文档', link: '../../api-docs', target: '_self', rel: undefined },
+      { text: 'API 交互文档', link: '/api-interactive' },
       { text: 'GitHub', link: 'https://github.com/jia0327/zmailr' },
     ],
 
@@ -40,7 +40,7 @@ export default defineConfig({
         items: [
           { text: '端点一览', link: '/api' },
           { text: '用户认证与 Token', link: '/user-auth' },
-          { text: 'API 交互文档', link: '../../api-docs', target: '_self', rel: undefined },
+          { text: 'API 交互文档', link: '/api-interactive' },
           { text: 'OpenAPI', link: '/openapi.json', target: '_blank', rel: 'noopener noreferrer' },
         ],
       },

@@ -37,3 +37,18 @@
 .zmailr-callout p {
   margin: 0;
 }
+
+/* Embedded React API docs — scroll inside iframe, VitePress chrome stays fixed */
+.zmailr-api-embed {
+  margin: 1.25rem 0 0;
+}
+
+.zmailr-api-embed iframe {
+  display: block;
+  width: 100%;
+  height: calc(100vh - var(--vp-nav-height, 64px) - 10rem);
+  min-height: 32rem;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background: var(--vp-c-bg);
+}

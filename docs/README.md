@@ -106,7 +106,7 @@ Authorization: Bearer YOUR_TOKEN
 | 资源 | URL |
 |------|-----|
 | OpenAPI JSON | [`GET /openapi.json`](https://zmailr.itool.eu.cc/openapi.json) |
-| 人类可读文档 | [`/api-docs`](https://zmailr.itool.eu.cc/api-docs) |
+| 人类可读文档 | [API 交互文档](./api-interactive.md)（[`/docs/api-interactive.html`](https://zmailr.itool.eu.cc/docs/api-interactive.html)） |
 
 ---
 

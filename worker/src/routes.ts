@@ -1287,6 +1287,12 @@ app.all('*', async (c) => {
     }
   }
 
+  if (pathname === '/api-docs' && !url.searchParams.has('embed')) {
+    url.pathname = '/docs/api-interactive.html';
+    url.search = '';
+    return c.redirect(url.toString(), 301);
+  }
+
   if (
     pathname.endsWith('.html') &&
     !pathname.startsWith('/docs/') &&

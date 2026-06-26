@@ -506,9 +506,9 @@ const ApiDebugPage: React.FC = () => {
           </table>
         </div>
         <p className="text-xs text-muted-foreground mt-3">
-          <Link to="/api-docs" className="text-primary hover:underline">
+          <a href="/docs/api-interactive.html" className="text-primary hover:underline">
             {t('apiUsage.viewFullDocs')}
-          </Link>
+          </a>
         </p>
       </section>
     </div>

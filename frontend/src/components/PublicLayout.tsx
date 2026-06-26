@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Container from './Container';
 import SEO from './SEO';
@@ -9,6 +9,16 @@ import { useAuth } from '../contexts/AuthContext';
 const PublicLayout: React.FC = () => {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
+  const [searchParams] = useSearchParams();
+  const embed = searchParams.get('embed') === '1';
+
+  if (embed) {
+    return (
+      <div className="min-h-0 bg-background text-foreground">
+        <Outlet />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col">

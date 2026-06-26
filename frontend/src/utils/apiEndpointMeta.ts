@@ -135,7 +135,7 @@ export function getEndpointDescriptionKey(endpointId: string): string {
 
 export function getDocsHref(endpointId: string): string {
   const anchor = ENDPOINT_META[endpointId]?.docsAnchor;
-  return anchor ? `/api-docs#${anchor}` : '/api-docs';
+  return anchor ? `/docs/api-interactive.html#${anchor}` : '/docs/api-interactive.html';
 }
 
 export function getParamRows(endpoint: ApiEndpointDef): ParamDocRow[] {

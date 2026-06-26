@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import NotFoundPage from './pages/NotFoundPage';
 import { MailboxProvider } from './contexts/MailboxContext';
@@ -23,6 +23,15 @@ const RouteFallback: React.FC = () => (
   </div>
 );
 
+/** Standalone /api-docs moved into VitePress; keep ?embed=1 for docs iframe. */
+const ApiDocsRoute: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  if (searchParams.get('embed') !== '1') {
+    return <Navigate to="/docs/api-interactive.html" replace />;
+  }
+  return <ApiDocsPage />;
+};
+
 const App: React.FC = () => {
   return (
     <AuthProvider>
@@ -35,7 +44,7 @@ const App: React.FC = () => {
               <Route path="/account" element={<Navigate to="/dashboard/api-keys" replace />} />
 
               <Route element={<PublicLayout />}>
-                <Route path="api-docs" element={<ApiDocsPage />} />
+                <Route path="api-docs" element={<ApiDocsRoute />} />
               </Route>
 
               <Route

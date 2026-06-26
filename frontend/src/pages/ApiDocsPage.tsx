@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Container from '../components/Container';
 import ApiDocCodeBlock from '../components/ApiDocCodeBlock';
 import ApiEndpointParamTable from '../components/ApiEndpointParamTable';
@@ -26,14 +26,16 @@ import { getParamRowsByEndpointId } from '../utils/apiEndpointMeta';
 
 const ApiDocsPage: React.FC = () => {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const embed = searchParams.get('embed') === '1';
   const baseUrl = useMemo(getApiBaseUrl, []);
 
   return (
-    <Container>
-      <div className="max-w-none space-y-10">
-        <div className="text-center">
-          <h1 className="text-2xl sm:text-3xl font-bold">{t('apiDocs.title')}</h1>
-          <p className="mt-2 text-muted-foreground">{t('apiDocs.subtitle')}</p>
+    <Container className={embed ? 'py-4' : undefined}>
+      <div className={`max-w-none space-y-10${embed ? ' space-y-8' : ''}`}>
+        <div className={embed ? 'space-y-2' : 'text-center'}>
+          <h1 className={`font-bold${embed ? ' text-xl' : ' text-2xl sm:text-3xl'}`}>{t('apiDocs.title')}</h1>
+          <p className={`text-muted-foreground${embed ? ' text-sm' : ' mt-2'}`}>{t('apiDocs.subtitle')}</p>
           <p className="mt-3 text-sm text-muted-foreground">
             {t('apiDocs.openApiDescription')}{' '}
             <a href="/openapi.json" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
@@ -243,6 +245,7 @@ const ApiDocsPage: React.FC = () => {
           </div>
         </section>
 
+        {!embed && (
         <section className="space-y-2 text-sm text-muted-foreground border-t pt-6">
           <p>{t('apiDocs.webApiNote')}</p>
           <p>
@@ -251,6 +254,7 @@ const ApiDocsPage: React.FC = () => {
             </Link>
           </p>
         </section>
+        )}
       </div>
     </Container>
   );

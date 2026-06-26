@@ -52,16 +52,12 @@ const Header: React.FC<HeaderProps> = ({
             >
               {t('nav.docs')}
             </a>
-            <Link
-              to="/api-docs"
-              className={`text-sm transition-colors hover:text-foreground ${
-                location.pathname === '/api-docs'
-                  ? 'text-foreground font-medium'
-                  : 'text-muted-foreground'
-              }`}
+            <a
+              href="/docs/api-interactive.html"
+              className="text-sm transition-colors hover:text-foreground text-muted-foreground"
             >
               {t('nav.api')}
-            </Link>
+            </a>
           </div>
 
           <Link
