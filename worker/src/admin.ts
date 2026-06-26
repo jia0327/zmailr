@@ -184,9 +184,9 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
     <div class="form-group"><label><input type="checkbox" id="maintBlockLease" checked> 阻断 POST /api/lease</label></div>
     <div class="form-group"><label><input type="checkbox" id="maintBlockSend" checked> 阻断 POST /api/send 与 /api/user/send</label></div>
     <div class="form-group"><label><input type="checkbox" id="maintBlockMailbox" checked> 阻断创建邮箱（含 lease）</label></div>
-    <h3 class="section-title" style="margin-top:24px">Legacy API Token</h3>
-    <p class="section-desc">管理后台创建的全局 api_tokens（非用户 Token）发信时，按 IP 的日上限；与用户「日发信配额」独立</p>
-    <div class="form-group"><label>Legacy Token 日发信上限（每 IP，-1 表示不限）</label><input id="legacySendDailyQuota" type="number" min="-1" value="50"></div>
+    <h3 class="section-title" style="margin-top:24px">Legacy API Token（向后兼容）</h3>
+    <p class="section-desc">管理 API 创建的全局 <code>api_tokens</code>（非 Dashboard 用户 Token）。其发信配额与用户标签页的「日发信配额」是两套独立机制：用户配额按 <strong>用户 ID</strong> 计数；此处仅约束 Legacy Token 调用 <code>POST /api/send</code> 时按 <strong>来源 IP</strong> 的日上限。</p>
+    <div class="form-group"><label>Legacy Token 日发信上限（每 IP，与用户日配额无关；-1 表示不限）</label><input id="legacySendDailyQuota" type="number" min="-1" value="50"></div>
     <button class="btn" onclick="saveMaintenance()">保存系统设置</button>
   </div>
   <div id="panel-audit" class="panel">

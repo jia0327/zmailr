@@ -38,6 +38,15 @@ Legacy **API Token**（`api_tokens`）仍可通过管理 API（`GET/POST/DELETE 
 
 ## 用户与速率限制
 
+### 两种发信配额（勿混淆）
+
+| 配置位置 | 适用对象 | 计数维度 | 存储 |
+|----------|----------|----------|------|
+| **用户** 标签 → 日发信配额 | Dashboard 用户 Token、`POST /api/user/send`、Web 发件箱 | 按 **用户 ID** / UTC 日 | `users.daily_send_quota` + `daily_usage` |
+| **系统设置** → Legacy Token 日发信上限 | 管理 API 创建的 **全局 `api_tokens`**（Legacy Token） | 按 **来源 IP** / UTC 日 | `system_settings.legacy_send_daily_quota` |
+
+新部署应使用 Dashboard → **API 密钥**（用户 Token）；Legacy Token 仅向后兼容。两套配额互不影响：给用户设 100 封/日，不会放宽 Legacy Token 的 IP 上限；反之亦然。
+
 每位用户除 **日发信配额**（`daily_send_quota`，`-1` 为无限）外，还有 **API 速率限制**（按用户 ID 计数，固定 1 分钟窗口）：
 
 | 方案 |  sustained (req/min) | 突发 (burst) | 说明 |

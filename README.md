@@ -123,11 +123,17 @@
 
 ![收信与 OTP — 向下滚动至邮件列表，POST /api/send 测试邮件到达，验证码 847291 高亮](docs/screenshots/inbox-with-otp.png)
 
+![收件箱历史 — 邮箱历史列表与分页](docs/screenshots/inbox.png)
+
 #### 发件箱
 
 ![发件箱撰写 — 填写收件人/主题/正文（Brevo 出站）](docs/screenshots/outbox-send.png)
 
+![富文本撰写 — 纯文本 / 富文本 Tab 切换](docs/screenshots/outbox-rich-text.png)
+
 ![发信记录 — 已发送列表与今日配额计数](docs/screenshots/outbox-sent.png)
+
+![发信详情 — 详情弹窗与发信元数据](docs/screenshots/outbox-sent-detail.png)
 
 #### API 密钥
 
@@ -146,6 +152,12 @@
 ![自定义提取规则 — 按域名 zmailr.itool.eu.cc 配置 OTP 正则](docs/screenshots/extract-rules-custom.png)
 
 系统内置规则（只读）与用户自定义规则（按域名优先级匹配）。
+
+#### 文档站
+
+![文档首页 — VitePress 文档站 `/docs/`](docs/screenshots/docs-home.png)
+
+![交互式 API 文档 — `/docs/api-interactive`](docs/screenshots/api-interactive.png)
 
 ---
 
