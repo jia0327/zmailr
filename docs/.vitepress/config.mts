@@ -31,6 +31,8 @@ export default defineConfig({
         text: '入门',
         items: [
           { text: '快速开始', link: '/' },
+          { text: 'API 速通', link: '/#api-速通' },
+          { text: '自托管部署', link: '/#自托管部署' },
           { text: '部署指南', link: '/deploy' },
           { text: '认证', link: '/user-auth' },
           { text: '速率限制', link: '/api#速率限制' },
