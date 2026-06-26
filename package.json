@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "zMailR - Enhanced fork of zaunist/zmail, 24-hour temporary email service",
   "scripts": {
+    "prepare": "node scripts/setup-git-hooks.js",
     "dev:frontend": "pnpm --filter frontend run dev",
     "dev:backend": "wrangler dev",
     "build": "pnpm --filter frontend run build",
