@@ -36,8 +36,11 @@ import {
 import {
   aggregateByStatusCode,
   aggregateTopPaths,
+  buildRequestStatsTrend,
   categorizeStatusTotals,
+  lastStatDates,
   normalizeApiPath,
+  REQUEST_STATS_TREND_DAYS,
   statDateFromTimestamp,
 } from './api-request-stats';
 import { 
@@ -1870,6 +1873,8 @@ export async function cleanupOldApiRequestStats(db: D1Database, now = getCurrent
 export async function getApiRequestStats(db: D1Database): Promise<ApiRequestStats> {
   const now = getCurrentTimestamp();
   const statDate = statDateFromTimestamp(now);
+  const trendDates = lastStatDates(REQUEST_STATS_TREND_DAYS, now);
+  const trendStartDate = trendDates[0];
 
   const statusRows = await db
     .prepare(
@@ -1891,6 +1896,16 @@ export async function getApiRequestStats(db: D1Database): Promise<ApiRequestStat
     .bind(statDate)
     .all<{ path_group: string; count: number }>();
 
+  const trendRows = await db
+    .prepare(
+      `SELECT stat_date, status_code, SUM(count) as count
+       FROM api_request_stats
+       WHERE stat_date >= ?
+       GROUP BY stat_date, status_code`
+    )
+    .bind(trendStartDate)
+    .all<{ stat_date: string; status_code: number; count: number }>();
+
   const byStatusCode = aggregateByStatusCode(
     (statusRows.results ?? []).map((row) => ({
       statusCode: row.status_code,
@@ -1905,6 +1920,14 @@ export async function getApiRequestStats(db: D1Database): Promise<ApiRequestStat
   );
   const byCategory = categorizeStatusTotals(byStatusCode);
   const totalRequests = byStatusCode.reduce((sum, row) => sum + row.count, 0);
+  const trend = buildRequestStatsTrend(
+    trendDates,
+    (trendRows.results ?? []).map((row) => ({
+      statDate: row.stat_date,
+      statusCode: row.status_code,
+      count: row.count,
+    }))
+  );
 
   return {
     statDate,
@@ -1912,6 +1935,7 @@ export async function getApiRequestStats(db: D1Database): Promise<ApiRequestStat
     byStatusCode,
     byCategory,
     topPaths,
+    trend,
   };
 }
 

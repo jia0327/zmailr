@@ -67,6 +67,14 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
 .card{background:#0f172a;padding:16px;border-radius:8px;border:1px solid #334155}
 .card h4{font-size:.875rem;color:#f8fafc;margin-bottom:12px}
 .hint{font-size:.75rem;color:#64748b;margin-top:8px}
+.chart-wrap{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:16px;margin-bottom:24px}
+.chart-title{font-size:.875rem;color:#f8fafc;margin-bottom:12px}
+.chart-canvas{width:100%;height:280px;display:block}
+.chart-legend{display:flex;flex-wrap:wrap;gap:12px 20px;margin-top:12px;font-size:.75rem;color:#94a3b8}
+.chart-legend-item{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.chart-legend-item.off{opacity:.35}
+.chart-legend-swatch{width:12px;height:3px;border-radius:2px}
+.chart-empty{text-align:center;color:#64748b;padding:48px 16px;font-size:.875rem}
 </style>
 </head>
 <body>
@@ -132,6 +140,15 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
     <table><thead><tr><th>ID</th><th>用户名</th><th>域名</th><th>正则</th><th>优先级</th><th>状态</th><th>备注</th><th>操作</th></tr></thead><tbody id="userRulesBody"></tbody></table>
   </div>
   <div id="panel-ratelimit" class="panel">
+    <div class="toolbar">
+      <button class="btn btn-sm" onclick="loadRateLimitStats()">刷新</button>
+    </div>
+    <h3 class="section-title">近 7 日请求趋势</h3>
+    <p class="section-desc">按 UTC 日聚合；折线含 2xx/4xx/5xx 汇总及 401、403、404、429、500 关键状态码</p>
+    <div class="chart-wrap">
+      <div id="requestTrendChart"></div>
+      <div class="chart-legend" id="requestTrendLegend"></div>
+    </div>
     <h3 class="section-title">今日 API 请求概览</h3>
     <p class="section-desc">统计 /api/* 与管理后台 API 响应状态码（UTC 日）</p>
     <div class="stats" id="requestStatsGrid"></div>
@@ -251,7 +268,10 @@ async function loadBrevoStats(){const d=await api('/brevo-stats');const s=d.stat
 const hint=document.getElementById('brevoHint');
 if(s.brevoAvailable&&s.brevo){hint.textContent='Brevo 账户: '+s.brevo.email+' · 套餐: '+s.brevo.planType+' · Credits: '+JSON.stringify(s.brevo.credits);hint.style.color='#86efac'}else{hint.textContent='Brevo API: '+(s.brevoError||'不可用')+'（仅显示本地统计）';hint.style.color='#94a3b8'}}
 function statusCodeBadge(code){if(code>=200&&code<300)return'badge-ok';if(code>=400&&code<500)return'badge-warn';if(code>=500)return'badge-off';return'badge-builtin'}
-async function loadRateLimitStats(){const [reqData,rlData]=await Promise.all([api('/request-stats'),api('/rate-limit-stats')]);const rs=reqData.stats;const cat=rs.byCategory;document.getElementById('requestStatsGrid').innerHTML=[
+function fmtChartDate(d){const p=d.split('-');return parseInt(p[1],10)+'/'+parseInt(p[2],10)}
+function drawRequestTrendChart(trend){const host=document.getElementById('requestTrendChart');const legend=document.getElementById('requestTrendLegend');if(!trend||!trend.dates||!trend.dates.length){host.innerHTML='<div class="chart-empty">暂无趋势数据</div>';legend.innerHTML='';return}const dates=trend.dates;const series=trend.series||[];const W=800;const H=280;const pad={t:16,r:16,b:36,l:48};const plotW=W-pad.l-pad.r;const plotH=H-pad.t-pad.b;const maxY=Math.max(1,...series.flatMap(s=>s.values));const yTicks=4;const yStep=Math.ceil(maxY/yTicks)||1;const yMax=yStep*yTicks;const xStep=dates.length>1?plotW/(dates.length-1):0;const hidden=window._chartHidden||{};const visible=series.filter(s=>!hidden[s.key]);let svg='<svg class="chart-canvas" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet">';svg+='<line x1="'+pad.l+'" y1="'+(pad.t+plotH)+'" x2="'+(pad.l+plotW)+'" y2="'+(pad.t+plotH)+'" stroke="#334155"/>';for(let i=0;i<=yTicks;i++){const y=pad.t+plotH-(plotH*i/yTicks);const val=yStep*i;svg+='<line x1="'+pad.l+'" y1="'+y+'" x2="'+(pad.l+plotW)+'" y2="'+y+'" stroke="#1e293b"/>';svg+='<text x="'+(pad.l-8)+'" y="'+(y+4)+'" fill="#64748b" font-size="11" text-anchor="end">'+val+'</text>'}dates.forEach((d,i)=>{const x=pad.l+(dates.length>1?i*xStep:plotW/2);if(i===0||i===dates.length-1||dates.length<=7){svg+='<text x="'+x+'" y="'+(H-8)+'" fill="#64748b" font-size="11" text-anchor="middle">'+fmtChartDate(d)+'</text>'}});visible.forEach(s=>{const pts=s.values.map((v,i)=>{const x=pad.l+(dates.length>1?i*xStep:plotW/2);const y=pad.t+plotH-(v/yMax)*plotH;return x+','+y}).join(' ');svg+='<polyline fill="none" stroke="'+s.color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="'+pts+'"/>';s.values.forEach((v,i)=>{if(!v)return;const x=pad.l+(dates.length>1?i*xStep:plotW/2);const y=pad.t+plotH-(v/yMax)*plotH;svg+='<circle cx="'+x+'" cy="'+y+'" r="3" fill="'+s.color+'"/>'})});svg+='</svg>';host.innerHTML=svg;legend.innerHTML=series.map(s=>'<span class="chart-legend-item'+(hidden[s.key]?' off':'')+'" data-key="'+s.key+'" onclick="toggleChartSeries(\\''+s.key+'\\')"><span class="chart-legend-swatch" style="background:'+s.color+'"></span>'+s.label+'</span>').join('')}
+function toggleChartSeries(key){window._chartHidden=window._chartHidden||{};window._chartHidden[key]=!window._chartHidden[key];if(window._lastTrend)drawRequestTrendChart(window._lastTrend)}
+async function loadRateLimitStats(){const [reqData,rlData]=await Promise.all([api('/request-stats'),api('/rate-limit-stats')]);const rs=reqData.stats;window._lastTrend=rs.trend;drawRequestTrendChart(rs.trend);const cat=rs.byCategory;document.getElementById('requestStatsGrid').innerHTML=[
   ['总请求',rs.totalRequests],['2xx 成功',cat.success2xx],['4xx 客户端',cat.client4xx],['5xx 服务端',cat.server5xx],['其他',cat.other]
 ].map(([l,v])=>'<div class="stat"><div class="label">'+l+'</div><div class="value">'+v+'</div></div>').join('');
 const scB=document.getElementById('statusCodeBody');if(!rs.byStatusCode.length){scB.innerHTML='<tr><td colspan="3" class="empty">暂无</td></tr>'}else{const total=rs.totalRequests||1;scB.innerHTML=rs.byStatusCode.map(r=>'<tr><td><span class="badge '+statusCodeBadge(r.statusCode)+'">'+r.statusCode+'</span></td><td>'+r.count+'</td><td>'+(100*r.count/total).toFixed(1)+'%</td></tr>').join('')}

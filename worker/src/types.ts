@@ -269,6 +269,18 @@ export interface RateLimitStats {
   topUsers: Array<{ userId: number; username: string; count: number }>;
 }
 
+export interface RequestStatsTrendSeries {
+  key: string;
+  label: string;
+  color: string;
+  values: number[];
+}
+
+export interface RequestStatsTrend {
+  dates: string[];
+  series: RequestStatsTrendSeries[];
+}
+
 export interface ApiRequestStats {
   statDate: string;
   totalRequests: number;
@@ -280,6 +292,7 @@ export interface ApiRequestStats {
     other: number;
   };
   topPaths: Array<{ pathGroup: string; count: number }>;
+  trend: RequestStatsTrend;
 }
 
 export interface LocalEmailStats {

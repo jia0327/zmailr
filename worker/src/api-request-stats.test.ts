@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {
   aggregateByStatusCode,
   aggregateTopPaths,
+  buildRequestStatsTrend,
   categorizeStatusTotals,
+  lastStatDates,
   normalizeApiPath,
   statDateFromTimestamp,
 } from './api-request-stats';
@@ -81,5 +83,30 @@ describe('categorizeStatusTotals', () => {
       ]),
       { success2xx: 10, client4xx: 3, server5xx: 3, other: 4 }
     );
+  });
+});
+
+describe('lastStatDates', () => {
+  it('returns N consecutive UTC dates ending today', () => {
+    assert.deepEqual(lastStatDates(3, 1717200000), ['2024-05-30', '2024-05-31', '2024-06-01']);
+  });
+});
+
+describe('buildRequestStatsTrend', () => {
+  it('builds grouped and key-code series aligned to dates', () => {
+    const dates = ['2024-06-01', '2024-06-02'];
+    const trend = buildRequestStatsTrend(dates, [
+      { statDate: '2024-06-01', statusCode: 200, count: 10 },
+      { statDate: '2024-06-01', statusCode: 429, count: 2 },
+      { statDate: '2024-06-02', statusCode: 404, count: 1 },
+      { statDate: '2024-06-02', statusCode: 500, count: 3 },
+    ]);
+    assert.deepEqual(trend.dates, dates);
+    const byKey = Object.fromEntries(trend.series.map((s) => [s.key, s.values]));
+    assert.deepEqual(byKey['2xx'], [10, 0]);
+    assert.deepEqual(byKey['4xx'], [2, 1]);
+    assert.deepEqual(byKey['5xx'], [0, 3]);
+    assert.deepEqual(byKey['429'], [2, 0]);
+    assert.deepEqual(byKey['404'], [0, 1]);
   });
 });

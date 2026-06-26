@@ -129,3 +129,69 @@ export function categorizeStatusTotals(buckets: StatusCodeBucket[]): StatusCateg
   }
   return totals;
 }
+
+export const REQUEST_STATS_TREND_DAYS = 7;
+
+/** Last N UTC calendar days ending at `nowSec` (inclusive of today). */
+export function lastStatDates(days: number, nowSec: number): string[] {
+  const dates: string[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    dates.push(statDateFromTimestamp(nowSec - i * 86400));
+  }
+  return dates;
+}
+
+export interface RequestStatsTrendSeries {
+  key: string;
+  label: string;
+  color: string;
+  values: number[];
+}
+
+export interface RequestStatsTrend {
+  dates: string[];
+  series: RequestStatsTrendSeries[];
+}
+
+export const REQUEST_STATS_CHART_SERIES = [
+  { key: '2xx', label: '2xx 成功', color: '#22c55e', match: (c: number) => c >= 200 && c < 300 },
+  { key: '4xx', label: '4xx 客户端', color: '#f59e0b', match: (c: number) => c >= 400 && c < 500 },
+  { key: '5xx', label: '5xx 服务端', color: '#ef4444', match: (c: number) => c >= 500 && c < 600 },
+  { key: '401', label: '401 未授权', color: '#60a5fa', match: (c: number) => c === 401 },
+  { key: '403', label: '403 禁止', color: '#a78bfa', match: (c: number) => c === 403 },
+  { key: '404', label: '404 未找到', color: '#f472b6', match: (c: number) => c === 404 },
+  { key: '429', label: '429 限流', color: '#fcd34d', match: (c: number) => c === 429 },
+  { key: '500', label: '500 错误', color: '#f87171', match: (c: number) => c === 500 },
+] as const;
+
+/** Build 7-day line-chart series from daily status-code rows. */
+export function buildRequestStatsTrend(
+  dates: string[],
+  rows: Array<{ statDate: string; statusCode: number; count: number }>
+): RequestStatsTrend {
+  const byDate = new Map<string, Map<number, number>>();
+  for (const date of dates) {
+    byDate.set(date, new Map());
+  }
+  for (const row of rows) {
+    const dayMap = byDate.get(row.statDate);
+    if (!dayMap) continue;
+    dayMap.set(row.statusCode, (dayMap.get(row.statusCode) ?? 0) + row.count);
+  }
+
+  const series = REQUEST_STATS_CHART_SERIES.map((def) => ({
+    key: def.key,
+    label: def.label,
+    color: def.color,
+    values: dates.map((date) => {
+      const dayMap = byDate.get(date)!;
+      let sum = 0;
+      for (const [code, count] of dayMap) {
+        if (def.match(code)) sum += count;
+      }
+      return sum;
+    }),
+  }));
+
+  return { dates, series };
+}
