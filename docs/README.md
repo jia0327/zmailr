@@ -124,7 +124,6 @@ Authorization: Bearer YOUR_TOKEN
 | [用户认证与 Token](./user-auth.md) | Session / Bearer、scope、提取规则 |
 | [MCP 集成](./mcp.md) | `@zmailr/mcp` 工具与 Cursor 配置 |
 | [部署指南](./deploy.md) | D1、Email Routing、R2 附件、本地开发 |
-| [D1 备份](./backup.md) | D1 导出至 R2、恢复与定时备份 |
 | [管理后台指南](./admin-guide.md) | 用户、速率方案、维护模式、审计 |
 | [Brevo 发信配置](./brevo-setup.md) | 出站发信、SPF/DKIM/DMARC |
 | [E2E 测试报告](./testing.md) | 演示站 Pass/Fail 与截图 |

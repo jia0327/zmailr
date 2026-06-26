@@ -52,7 +52,6 @@ export default defineConfig({
         text: '部署与运维',
         items: [
           { text: '部署指南', link: '/deploy' },
-          { text: 'D1 备份', link: '/backup' },
           { text: '管理后台', link: '/admin-guide' },
         ],
       },

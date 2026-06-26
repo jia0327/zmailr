@@ -23,7 +23,6 @@
 | 11 | OpenAPI · `GET /openapi.json` 可访问 | Pass | 构建产物同步至 `frontend/public/openapi.json`；`/api-docs` 含链接 |
 | 12 | 公开 API · `GET /api/public/status` 依赖探测 | 待测 | 期望 `status: "ok"`，`checks.d1`/`checks.r2.ok: true`；未配 Brevo 时 `checks.brevo.configured: false` |
 | 13 | 用户端 · 收件箱附件列表与下载 | 待测 | 含附件邮件在详情页展示列表、预览与下载；Session Cookie 鉴权 |
-| 14 | 运维 · D1 备份脚本 dry-run | 待测 | `node scripts/backup-d1-to-r2.mjs` 上传至 `backups/d1/`；见 [backup.md](./backup.md) |
 
 ## API 脚本验证
 
@@ -72,7 +71,6 @@ docs/screenshots/outbox.png
 - [文档首页](./)
 - [API 快速参考](./api.md)
 - [部署指南](./deploy.md)
-- [D1 备份](./backup.md)
 - [用户认证与 API Token](./user-auth.md)
 - [MCP 集成](./mcp.md)
 - [项目 README](https://github.com/jia0327/zmailr/blob/main/README.md)

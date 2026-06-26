@@ -64,7 +64,6 @@ Secret URL `https://your-domain/{ADMIN_PATH}` with `ADMIN_PASSWORD`. See [docs/a
 - GitHub Actions deploy on `main`
 - D1 persistence; **R2** `zmailr-attachments` for inbound attachment bytes (D1 metadata + legacy fallback)
 - **Health probes**: public `GET /api/public/status` checks D1/R2/Brevo (`ok` / `degraded` / `error`)
-- **D1 backup**: `scripts/backup-d1-to-r2.mjs` → R2 `backups/d1/` — [docs/backup.md](docs/backup.md)
 - Brevo outbound — [docs/brevo-setup.md](docs/brevo-setup.md)
 
 ---
@@ -90,7 +89,6 @@ Full categorized index: **[docs/README.md](docs/README.md)** (Chinese hub).
 | | [docs/user-auth.md](docs/user-auth.md) | Session / Bearer, scopes, extract rules, OpenAPI |
 | MCP | [docs/mcp.md](docs/mcp.md) | `@zmailr/mcp`, Cursor config |
 | Deploy | [docs/deploy.md](docs/deploy.md) | D1, Secrets, R2, Email Routing |
-| | [docs/backup.md](docs/backup.md) | D1 export to R2, restore, scheduled backup |
 | Admin | [docs/admin-guide.md](docs/admin-guide.md) | Admin console |
 | Integration | [docs/brevo-setup.md](docs/brevo-setup.md) | Brevo + DNS |
 | Testing | [docs/testing.md](docs/testing.md) | Production E2E report |

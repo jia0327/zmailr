@@ -100,7 +100,7 @@ Web Dashboard 专用路由（Session Cookie）见 [user-auth.md](./user-auth.md)
 | `r2` | 附件 bucket `list({ limit: 1 })` | `optional: false`；失败时 `message` |
 | `brevo` | 已配置时调用 Brevo 账户 API | `configured`（是否设置 `BREVO_API_KEY`）、`optional: true`；未配置时 `ok: true, configured: false` |
 
-`GET /api/health` 仅返回静态 `{ "status": "ok" }`，**不含**依赖探测。部署验证与备份前检查见 [deploy.md §9](./deploy.md#9-部署后验证)、[backup.md](./backup.md)。
+`GET /api/health` 仅返回静态 `{ "status": "ok" }`，**不含**依赖探测。部署验证见 [deploy.md §9](./deploy.md#9-部署后验证)。
 
 ---
 
@@ -199,5 +199,4 @@ curl "https://你的域名/api/user/quota" \
 | [user-auth.md](./user-auth.md) | Session 登录、Token 创建、附件访问、提取规则、安全说明 |
 | [mcp.md](./mcp.md) | `@zmailr/mcp` 工具与 Cursor 配置 |
 | [deploy.md](./deploy.md) | 部署与部署后验证 |
-| [backup.md](./backup.md) | D1 备份脚本与恢复 |
 | [文档首页](./) | 全部文档分类导航 |
