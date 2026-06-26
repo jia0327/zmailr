@@ -1,8 +1,6 @@
 # <div align="center">zMailR</div>
 
 <div align="center">
-  <p><strong>24 小时临时邮箱服务</strong></p>
-
   <p>
     <a href="https://github.com/jia0327/zmailr/stargazers"><img src="https://img.shields.io/github/stars/jia0327/zmailr?style=social" alt="GitHub stars"></a>
     <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
@@ -23,9 +21,15 @@
 
 ---
 
+## 一句话介绍
+
+**开源、可自托管的 24 小时临时邮箱与 OTP 自动化平台——Web 控制台收信发信，Bearer API 对接脚本与 CI。**
+
+---
+
 ## 项目简介
 
-**zMailR** 是基于 Cloudflare Workers + D1 部署的**开源、可自托管**临时邮箱服务。用户可在 Web 界面一键生成 24 小时有效地址并实时收信；开发者通过 Bearer Token 完成「租用邮箱 → 长轮询收信 → 提取验证码 → 可选 Brevo 发信」。定位类似 [MailSink](https://mailsink.dev/docs/) 的收信与 OTP 自动化，但以自托管与出站发信为差异化。
+**zMailR** 是基于 Cloudflare Workers + D1 部署的临时邮箱服务，面向需要**自托管收信/发信**的个人开发者与小团队。Web 端一键生成 24 小时地址并实时收信；API 端通过 Bearer Token 完成「租用邮箱 → 长轮询收信 → 提取验证码 → 可选 Brevo 发信」，定位类似 [MailSink](https://mailsink.dev/docs/) 的 OTP 自动化，但以自托管与出站发信为差异化。
 
 **技术栈**：Cloudflare Workers、D1、Email Routing（入站）、Brevo Transactional API（出站）、React + Vite 前端。
 
@@ -33,15 +37,58 @@
 
 ---
 
-## 功能亮点
+## 实现的功能
 
-- **Web 控制台**：临时邮箱、收件箱/发件箱、验证码高亮（OtpBox）、明暗主题、简体中文界面
-- **程序化 API**：`lease` / `mail` / `send` scope 的 Bearer Token，长轮询收信与 OTP 提取
-- **提取规则**：系统内置 + 用户自定义，按发件人域名匹配正则
-- **管理后台**：用户治理、公告、限流监控、维护模式、审计日志（路径由 `ADMIN_PATH` 配置）
-- **GitHub Actions**：推送 `main` 自动部署至 Cloudflare Workers
+### Web 端
+
+- **登录与会话**：用户名密码登录，受保护的路由与登出
+- **仪表板**：API Token 状态、收件/发件用量、今日发信配额
+- **收件箱 / 发件箱**：新建 24 小时临时地址、收信列表、OTP 高亮（OtpBox）、Brevo 出站撰写与发信记录
+- **邮箱历史**：已过期/历史邮箱列表，支持批量删除
+- **邮件批量删除**：收件箱与发件箱多选删除
+- **API 密钥**：每位用户 1 个 Bearer Token，可选 `lease` / `mail` / `send` scope，含 curl 示例
+- **API 调试**：浏览器内调用 Bearer API，查看 JSON 响应与 `x-ratelimit-*` 头
+- **提取规则**：系统内置（只读）+ 用户自定义（按发件人域名优先级匹配），支持备注字段
+- **系统公告**：登录后未读公告弹窗，逐条确认或全部标记已读
+- **明暗主题**、**移动端响应式**侧边栏布局
+- **简体中文界面**（zh-CN only）
+
+### 程序化 API
+
+- **`POST /api/lease`**：租用临时邮箱（长轮询可选）
+- **`GET /api/mail`**：拉取邮件与 OTP 提取结果
+- **`POST /api/send`**：Brevo 出站发信
+- **`GET /api/user/quota`**：配额与用量查询
+- **Bearer Token 认证**（`Authorization: Bearer <token>`）
+- **速率限制响应头**：`x-ratelimit-limit` / `remaining` / `reset`
 
 完整 API 列表与限流说明见部署后的 [`/api-docs`](https://zmailr.itool.eu.cc/api-docs) 或 [user-auth.md](docs/user-auth.md)。
+
+### OTP 提取规则
+
+- **系统内置规则**：常见服务商 OTP 正则（只读）
+- **全局规则**：管理后台维护，对所有用户生效
+- **用户自定义规则**：按发件人域名配置正则，支持**备注**字段说明用途
+
+### 管理后台
+
+访问路径 `https://你的域名/{ADMIN_PATH}`，需 `ADMIN_PASSWORD` 登录。详见 [admin-guide.md](docs/admin-guide.md)。
+
+- **密钥路径**：`ADMIN_PATH` 环境变量配置，隐藏管理入口
+- **用户管理**：创建/编辑用户、禁用账号、日发信配额
+- **速率方案**：每用户 Free / Pro / Team 档位（独立 RPM 与 burst）
+- **公告管理**：创建/启用/停用面向用户的系统公告
+- **提取规则**：全局内置规则 + 所有用户自定义规则汇总
+- **限流监控**：今日 429 次数、Top IP / Top 用户排行
+- **维护模式**：可选阻断 lease、发信、创建邮箱等 API
+- **审计日志**：管理员与用户关键操作，按日期筛选
+- **Brevo 统计**：出站套餐用量与发信配额概览
+
+### 运维与部署
+
+- **GitHub Actions**：推送 `main` 自动构建并部署至 Cloudflare Workers
+- **Cloudflare D1**：用户、邮箱、邮件、规则、审计等持久化
+- **Brevo 出站**：Transactional API 发信，SPF/DKIM/DMARC 见 [brevo-setup.md](docs/brevo-setup.md)
 
 ---
 
