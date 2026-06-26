@@ -186,8 +186,8 @@
 全局内置规则与所有用户自定义规则汇总。
 
 #### 请求监控
+![管理后台请求监控 — 近 7 日趋势、状态码分布、429 Top IP/用户]<img width="1545" height="836" alt="image" src="https://github.com/user-attachments/assets/ff03d0bd-e17f-40c8-bd49-37091ffd1643" />
 
-![管理后台请求监控 — 近 7 日趋势、状态码分布、429 Top IP/用户](docs/screenshots/admin-request-monitor.png)
 
 #### 系统设置
 
