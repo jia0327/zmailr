@@ -94,7 +94,6 @@ Full categorized index: **[docs/README.md](docs/README.md)** (Chinese hub).
 | Admin | [docs/admin-guide.md](docs/admin-guide.md) | Admin console |
 | Integration | [docs/brevo-setup.md](docs/brevo-setup.md) | Brevo + DNS |
 | Testing | [docs/testing.md](docs/testing.md) | Production E2E report |
-| Comparison | [docs/mailsink-comparison.md](docs/mailsink-comparison.md) | vs MailSink |
 | Other | [README.md](README.md) | Full Chinese README with screenshots |
 
 ---

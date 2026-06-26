@@ -128,5 +128,4 @@ Authorization: Bearer YOUR_TOKEN
 | [管理后台指南](./admin-guide.md) | 用户、速率方案、维护模式、审计 |
 | [Brevo 发信配置](./brevo-setup.md) | 出站发信、SPF/DKIM/DMARC |
 | [E2E 测试报告](./testing.md) | 演示站 Pass/Fail 与截图 |
-| [与 MailSink 对照](./mailsink-comparison.md) | 端点映射、架构、差异化 |
 | [项目 README](https://github.com/jia0327/zmailr/blob/main/README.md) | 功能概览、效果图、使用指南 |

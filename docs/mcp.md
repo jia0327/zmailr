@@ -107,8 +107,6 @@ npm install -g @zmailr/mcp
 3. 在目标站点使用该地址注册或验证。
 4. 调用 `wait_for_mail` 或 `get_latest_code` 获取 OTP。
 
-与 MailSink MCP 的对照见 [与 MailSink 对照](./mailsink-comparison.md)。
-
 ---
 
 ## 相关文档
@@ -119,6 +117,5 @@ npm install -g @zmailr/mcp
 | [API 速通](./api.md) | API 端点速查 |
 | [用户认证与 Token](./user-auth.md) | 用户认证、Token scope、速率限制 |
 | [自托管部署](./deploy.md) | 自托管部署 |
-| [与 MailSink 对照](./mailsink-comparison.md) | 与 MailSink MCP 对照 |
 | [项目 README](https://github.com/jia0327/zmailr/blob/main/README.md) | 项目简介 |
 | [packages/mcp README](https://github.com/jia0327/zmailr/blob/main/packages/mcp/README.md) | 包 README（英文） |

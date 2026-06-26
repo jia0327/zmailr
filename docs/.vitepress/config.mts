@@ -65,7 +65,6 @@ export default defineConfig({
         items: [
           { text: 'OpenAPI 规范', link: '/openapi.json', target: '_blank', rel: 'noopener noreferrer' },
           { text: 'E2E 测试报告', link: '/testing' },
-          { text: '与 MailSink 对照', link: '/mailsink-comparison' },
         ],
       },
     ],

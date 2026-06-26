@@ -200,5 +200,4 @@ curl "https://你的域名/api/user/quota" \
 | [mcp.md](./mcp.md) | `@zmailr/mcp` 工具与 Cursor 配置 |
 | [deploy.md](./deploy.md) | 部署与部署后验证 |
 | [backup.md](./backup.md) | D1 备份脚本与恢复 |
-| [mailsink-comparison.md](./mailsink-comparison.md) | 与 MailSink 端点对照 |
 | [文档首页](./) | 全部文档分类导航 |

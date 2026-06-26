@@ -234,7 +234,6 @@
 | 管理后台 | [docs/admin-guide.md](docs/admin-guide.md) | `ADMIN_PATH`、用户、维护模式、审计日志 |
 | 集成 | [docs/brevo-setup.md](docs/brevo-setup.md) | Brevo 出站发信与 DNS |
 | 测试 | [docs/testing.md](docs/testing.md) | 生产 E2E 测试报告 |
-| 对比 | [docs/mailsink-comparison.md](docs/mailsink-comparison.md) | 与 MailSink 功能对照 |
 | 其他 | [README.en.md](README.en.md) | English README |
 
 ---

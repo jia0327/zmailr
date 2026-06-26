@@ -191,5 +191,4 @@ node scripts/backup-d1-to-r2.mjs
 | [brevo-setup.md](./brevo-setup.md) | Brevo 发信与 DNS 配置 |
 | [user-auth.md](./user-auth.md) | 用户登录、API Token scope、per-user 速率限制 |
 | [mcp.md](./mcp.md) | MCP 集成（`@zmailr/mcp`） |
-| [mailsink-comparison.md](./mailsink-comparison.md) | 与 MailSink 功能对照 |
 | [项目 README](https://github.com/jia0327/zmailr/blob/main/README.md) | 项目简介与效果图 |
