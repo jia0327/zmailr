@@ -5,6 +5,7 @@ import DashboardPageHeader from '../components/DashboardPageHeader';
 import StatCard from '../components/StatCard';
 import { useAuth } from '../contexts/AuthContext';
 import { MailboxContext } from '../contexts/MailboxContext';
+import ListPagination, { useClientPagination } from '../components/ListPagination';
 import { getUserSentEmails, deleteUserSentEmails, SentEmailItem } from '../utils/api';
 import { getDefaultEmailDomain, DEFAULT_EMAIL_DOMAIN } from '../config';
 
@@ -17,6 +18,7 @@ const OutboxPage: React.FC = () => {
   const [defaultDomain, setDefaultDomain] = useState(DEFAULT_EMAIL_DOMAIN);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const { page, setPage, totalPages, pageItems, resetPage } = useClientPagination(sentEmails);
 
   const loadSent = async () => {
     setLoadingSent(true);
@@ -24,6 +26,7 @@ const OutboxPage: React.FC = () => {
     if (result.success) setSentEmails(result.emails);
     setLoadingSent(false);
     setSelectedIds(new Set());
+    resetPage();
   };
 
   useEffect(() => {
@@ -59,11 +62,22 @@ const OutboxPage: React.FC = () => {
     });
   };
 
+  const pageIds = pageItems.map((e) => e.id);
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+
   const toggleSelectAll = () => {
-    if (selectedIds.size === sentEmails.length) {
-      setSelectedIds(new Set());
+    if (allPageSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        pageIds.forEach((id) => next.delete(id));
+        return next;
+      });
     } else {
-      setSelectedIds(new Set(sentEmails.map((e) => e.id)));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        pageIds.forEach((id) => next.add(id));
+        return next;
+      });
     }
   };
 
@@ -170,7 +184,7 @@ const OutboxPage: React.FC = () => {
             <div className="hidden sm:grid grid-cols-[auto_1fr_2fr_auto] gap-2 px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide border-b bg-muted/10 items-center">
               <input
                 type="checkbox"
-                checked={selectedIds.size === sentEmails.length && sentEmails.length > 0}
+                checked={allPageSelected}
                 onChange={toggleSelectAll}
                 className="rounded"
               />
@@ -179,7 +193,7 @@ const OutboxPage: React.FC = () => {
               <span className="text-right">{t('email.date')}</span>
             </div>
             <div className="divide-y">
-              {sentEmails.map((email) => (
+              {pageItems.map((email) => (
                 <div key={email.id} className="px-4 py-3 grid sm:grid-cols-[auto_1fr_2fr_auto] gap-2 items-center text-sm">
                   <input
                     type="checkbox"
@@ -204,6 +218,12 @@ const OutboxPage: React.FC = () => {
                 </div>
               ))}
             </div>
+            <ListPagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              disabled={bulkBusy}
+            />
           </>
         )}
       </div>

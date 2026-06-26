@@ -154,7 +154,10 @@
     "confirmClearAllEmails": "确定清空当前邮箱的全部邮件？",
     "confirmDeleteSent": "确定删除选中的 {{count}} 条发信记录？",
     "confirmClearAllSent": "确定清空全部发信记录？",
-    "confirmDeleteMailboxes": "确定删除选中的 {{count}} 个邮箱记录？删除后无法恢复。"
+    "confirmDeleteMailboxes": "确定删除选中的 {{count}} 个邮箱记录？删除后无法恢复。",
+    "prevPage": "上一页",
+    "nextPage": "下一页",
+    "pageInfo": "第 {{current}} / {{total}} 页"
   },
   "announcements": {
     "label": "系统公告",

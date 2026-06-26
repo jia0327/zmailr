@@ -7,6 +7,7 @@ import {
   UserMailboxItem,
 } from '../utils/api';
 import { getDefaultEmailDomain, DEFAULT_EMAIL_DOMAIN } from '../config';
+import ListPagination, { useClientPagination } from './ListPagination';
 
 interface MailboxHistoryListProps {
   activeAddress?: string;
@@ -27,6 +28,7 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
   const [domain, setDomain] = useState(DEFAULT_EMAIL_DOMAIN);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const { page, setPage, totalPages, pageItems, resetPage } = useClientPagination(mailboxes);
 
   const load = async () => {
     setLoading(true);
@@ -34,6 +36,7 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
     if (result.success) setMailboxes(result.mailboxes);
     setLoading(false);
     setSelected(new Set());
+    resetPage();
   };
 
   useEffect(() => {
@@ -53,11 +56,23 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
     });
   };
 
+  const pageAddresses = pageItems.map((m) => m.address);
+  const allPageSelected =
+    pageAddresses.length > 0 && pageAddresses.every((address) => selected.has(address));
+
   const toggleSelectAll = () => {
-    if (selected.size === mailboxes.length) {
-      setSelected(new Set());
+    if (allPageSelected) {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        pageAddresses.forEach((address) => next.delete(address));
+        return next;
+      });
     } else {
-      setSelected(new Set(mailboxes.map((m) => m.address)));
+      setSelected((prev) => {
+        const next = new Set(prev);
+        pageAddresses.forEach((address) => next.add(address));
+        return next;
+      });
     }
   };
 
@@ -127,7 +142,7 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
           <div className="hidden sm:grid grid-cols-[auto_1fr_auto_auto] gap-2 px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide border-b bg-muted/10 items-center">
             <input
               type="checkbox"
-              checked={selected.size === mailboxes.length && mailboxes.length > 0}
+              checked={allPageSelected}
               onChange={toggleSelectAll}
               className="rounded"
             />
@@ -135,8 +150,8 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
             <span>{t('mailbox.created')}</span>
             <span className="text-right">{t('mailbox.expiresAt')}</span>
           </div>
-          <div className="divide-y max-h-72 overflow-y-auto">
-            {mailboxes.map((mb) => {
+          <div className="divide-y">
+            {pageItems.map((mb) => {
               const full = mb.email || `${mb.address}@${domain}`;
               const isActive = activeAddress === mb.address;
               const isExpired = mb.isExpired ?? mb.expiresAt <= Math.floor(Date.now() / 1000);
@@ -194,6 +209,12 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
               );
             })}
           </div>
+          <ListPagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            disabled={busy}
+          />
         </>
       )}
     </div>
