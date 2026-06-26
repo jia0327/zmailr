@@ -41,6 +41,8 @@ import {
 } from './utils';
 import { hashPassword, hashToken } from './crypto';
 import { SEED_GLOBAL_EXTRACT_RULES } from './extractor';
+import { storeAttachmentInR2 } from './r2-attachments';
+import type { SaveAttachmentOptions } from './types';
 
 // 附件分块大小（字节）
 const CHUNK_SIZE = 500000; // 约500KB
@@ -104,6 +106,7 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await migrateAddColumn(db, 'extract_rules', 'remark', 'TEXT');
     await migrateAddColumn(db, 'users', 'rate_limit_per_min', 'INTEGER DEFAULT 60');
     await migrateAddColumn(db, 'users', 'rate_limit_burst', 'INTEGER');
+    await migrateAddColumn(db, 'attachments', 'r2_key', 'TEXT');
 
     // Phase 3: create indexes (after all columns exist)
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_mailboxes_address ON mailboxes(address);`);
@@ -546,12 +549,48 @@ export async function saveEmail(db: D1Database, params: SaveEmailParams): Promis
  * @param params 参数
  * @returns 保存的附件
  */
-export async function saveAttachment(db: D1Database, params: SaveAttachmentParams): Promise<Attachment> {
+export async function saveAttachment(
+  db: D1Database,
+  params: SaveAttachmentParams,
+  options?: SaveAttachmentOptions
+): Promise<Attachment> {
   try {
     console.log('开始保存附件...');
     
     const now = getCurrentTimestamp();
     const attachmentId = generateId();
+
+    if (options?.r2Bucket) {
+      const r2Key = await storeAttachmentInR2(options.r2Bucket, attachmentId, params.content);
+      const attachment: Attachment = {
+        id: attachmentId,
+        emailId: params.emailId,
+        filename: params.filename,
+        mimeType: params.mimeType,
+        content: '',
+        size: params.size,
+        createdAt: now,
+        isLarge: false,
+        chunksCount: 0,
+        r2Key,
+      };
+      await db.prepare(
+        `INSERT INTO attachments (id, email_id, filename, mime_type, content, size, created_at, is_large, chunks_count, r2_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        attachment.id,
+        attachment.emailId,
+        attachment.filename,
+        attachment.mimeType,
+        attachment.content,
+        attachment.size,
+        attachment.createdAt,
+        0,
+        0,
+        r2Key
+      ).run();
+      console.log('附件已存入 R2:', attachment.id, r2Key);
+      return attachment;
+    }
     
     // 检查附件大小，决定是否需要分块存储
     const isLarge = params.content.length > CHUNK_SIZE;
@@ -754,15 +793,18 @@ export async function getAttachments(db: D1Database, emailId: string): Promise<A
  * @returns 附件详情
  */
 export async function getAttachment(db: D1Database, id: string): Promise<Attachment | null> {
-  const result = await db.prepare(`SELECT id, email_id, filename, mime_type, content, size, created_at, is_large, chunks_count FROM attachments WHERE id = ?`).bind(id).first();
+  const result = await db.prepare(
+    `SELECT id, email_id, filename, mime_type, content, size, created_at, is_large, chunks_count, r2_key FROM attachments WHERE id = ?`
+  ).bind(id).first();
   
   if (!result) return null;
   
   const isLarge = !!result.is_large;
+  const r2Key = (result.r2_key as string | null) ?? null;
   let content = result.content as string;
   
-  // 如果是大型附件，需要从块表中获取内容
-  if (isLarge) {
+  // R2-backed attachments keep empty content in D1
+  if (!r2Key && isLarge) {
     const chunksCount = result.chunks_count as number;
     content = await getAttachmentContent(db, id, chunksCount);
   }
@@ -776,7 +818,8 @@ export async function getAttachment(db: D1Database, id: string): Promise<Attachm
     size: result.size as number,
     createdAt: result.created_at as number,
     isLarge: isLarge,
-    chunksCount: result.chunks_count as number
+    chunksCount: result.chunks_count as number,
+    r2Key,
   };
 }
 

@@ -14,6 +14,12 @@ binding = "DB"
 database_name = "${D1_DATABASE_NAME}"  # 这是 D1 数据库名称的占位符
 database_id = "${D1_DATABASE_ID}"      # 这是 D1 数据库 ID 的占位符
 
+# R2 bucket for inbound email attachments (create in Cloudflare dashboard; see docs/deploy.md)
+[[r2_buckets]]
+binding = "ATTACHMENTS"
+bucket_name = "zmailr-attachments"
+preview_bucket_name = "zmailr-attachments"
+
 # 设置域名
 # 注意：这里的 VITE_EMAIL_DOMAIN 将由 GitHub Action 动态替换
 [vars]

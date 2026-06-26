@@ -73,6 +73,8 @@ import {
 } from './rate-limit';
 import { checkMaintenanceBlock, maintenanceBlockedBody } from './maintenance';
 import { logRateLimitHit } from './monitoring';
+import { getOpenApiJson } from './openapi';
+import { resolveAttachmentBytes } from './r2-attachments';
 
 type AppVariables = {
   auth?: ApiAuthContext;
@@ -465,14 +467,11 @@ app.get('/api/attachments/:id', async (c) => {
     const download = c.req.query('download') === 'true';
     
     if (download) {
-      // 将Base64内容转换为二进制
-      const binaryContent = atob(attachment.content);
-      const bytes = new Uint8Array(binaryContent.length);
-      for (let i = 0; i < binaryContent.length; i++) {
-        bytes[i] = binaryContent.charCodeAt(i);
+      const bytes = await resolveAttachmentBytes(attachment, c.env.ATTACHMENTS);
+      if (!bytes) {
+        return c.json({ success: false, error: '附件内容不存在' }, 404);
       }
       
-      // 设置响应头
       c.header('Content-Type', attachment.mimeType);
       c.header('Content-Disposition', `attachment; filename="${encodeURIComponent(attachment.filename)}"`);
       
@@ -1255,6 +1254,14 @@ app.post('/api/send', async (c) => {
       message: error instanceof Error ? error.message : String(error),
     }, 500);
   }
+});
+
+// OpenAPI specification (public)
+app.get('/openapi.json', (c) => {
+  return c.body(getOpenApiJson(), 200, {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'public, max-age=3600',
+  });
 });
 
 // SPA fallback: serve static assets or index.html for frontend routes (/login, /account, etc.)

@@ -56,10 +56,12 @@
 - **`GET /api/mail`**：拉取邮件与 OTP 提取结果
 - **`POST /api/send`**：Brevo 出站发信
 - **`GET /api/user/quota`**：配额与用量查询
+- **OpenAPI**：[`/openapi.json`](https://zmailr.itool.eu.cc/openapi.json) 机器可读规范
+- **MCP**：[`@zmailr/mcp`](packages/mcp) npm 包（Cursor / Claude Desktop）
 - **Bearer Token 认证**（`Authorization: Bearer <token>`）
 - **速率限制响应头**：`x-ratelimit-limit` / `remaining` / `reset`
 
-完整 API 列表与限流说明见部署后的 [`/api-docs`](https://zmailr.itool.eu.cc/api-docs) 或 [user-auth.md](docs/user-auth.md)。
+完整 API 列表与限流说明见部署后的 [`/api-docs`](https://zmailr.itool.eu.cc/api-docs)（含 [`/openapi.json`](https://zmailr.itool.eu.cc/openapi.json) OpenAPI 规范）或 [user-auth.md](docs/user-auth.md)。
 
 ### OTP 提取规则
 

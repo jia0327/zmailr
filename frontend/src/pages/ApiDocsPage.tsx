@@ -34,6 +34,12 @@ const ApiDocsPage: React.FC = () => {
         <div className="text-center">
           <h1 className="text-2xl sm:text-3xl font-bold">{t('apiDocs.title')}</h1>
           <p className="mt-2 text-muted-foreground">{t('apiDocs.subtitle')}</p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            {t('apiDocs.openApiDescription')}{' '}
+            <a href="/openapi.json" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+              {t('apiDocs.openApiLink')}
+            </a>
+          </p>
         </div>
 
         <section className="space-y-4">

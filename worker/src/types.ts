@@ -1,8 +1,9 @@
-import { D1Database } from '@cloudflare/workers-types';
+import { D1Database, R2Bucket } from '@cloudflare/workers-types';
 
 // 环境变量类型
 export interface Env {
   DB: D1Database;
+  ATTACHMENTS?: R2Bucket;
   ASSETS?: Fetcher;
   VITE_EMAIL_DOMAIN?: string;
   MAIL_DOMAIN?: string;
@@ -313,6 +314,8 @@ export interface Attachment {
   createdAt: number;
   isLarge: boolean; // 是否为大型附件
   chunksCount: number; // 分块数量
+  /** R2 object key when binary stored in R2; D1 content/chunks used as fallback */
+  r2Key?: string | null;
 }
 
 // 附件块类型
@@ -342,6 +345,10 @@ export interface SaveAttachmentParams {
   mimeType: string;
   content: string; // Base64编码的内容
   size: number;
+}
+
+export interface SaveAttachmentOptions {
+  r2Bucket?: R2Bucket;
 }
 
 // API 响应类型

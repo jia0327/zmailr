@@ -1,0 +1,29 @@
+{
+  "name": "@zmailr/mcp",
+  "version": "1.0.0",
+  "description": "MCP server for zMailR temporary email API",
+  "type": "module",
+  "bin": {
+    "zmailr-mcp": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "pnpm run build"
+  },
+  "keywords": ["mcp", "zmailr", "temporary-email", "otp"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jia0327/zmailr.git",
+    "directory": "packages/mcp"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "^5.8.2"
+  }
+}

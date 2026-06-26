@@ -541,6 +541,8 @@
   "apiDocs": {
     "title": "API 文档",
     "subtitle": "需 Bearer Token 鉴权的程序化 API，适用于自动化注册、收验证码、发通知等场景。",
+    "openApiLink": "OpenAPI 规范（openapi.json）",
+    "openApiDescription": "机器可读的 API 定义，可用于 SDK 生成与 IDE 集成。",
     "auth": {
       "title": "身份验证",
       "description": "程序化 API 需在请求头携带 Bearer Token，且 Token 须具备对应权限（lease / mail / send）。",

@@ -25,8 +25,13 @@
                     ┌─────────┐        ┌──────────┐       ┌─────────────┐
                     │   D1    │        │  ASSETS  │       │ Brevo API   │
                     │ 邮箱/邮件│        │ React SPA│       │ 出站发信     │
-                    │ 附件块  │        │ /admin   │       │ /api/send   │
+                    │附件元数据│        │ /admin   │       │ /api/send   │
                     │ Token   │        └──────────┘       └─────────────┘
+                    └────┬────┘
+                         │
+                    ┌────▼────┐
+                    │   R2    │
+                    │附件二进制│
                     └─────────┘
 
 定时任务 (Cron)：清理过期邮箱、过期/已读邮件
@@ -37,7 +42,7 @@
 1. **入站**：域名 Catch-all → Email Routing → Worker `email()` → postal-mime 解析 → D1 入库 → 按规则提取 `extracted_code`。
 2. **收信 API**：Bearer Token → `GET /api/mail` 长轮询 → 返回验证码与邮件摘要。
 3. **出站**：`POST /api/send` / `POST /api/user/send` → Brevo Transactional API。
-4. **附件**：当前存于 **D1**（Base64 + 分块）；**R2 尚未接入**（路线图）。
+4. **附件**：新入站附件存入 **R2**（`zmailr-attachments`）；元数据在 D1。历史 D1 Base64/分块附件仍可读（回退）。
 
 ---
 
@@ -84,15 +89,15 @@
 | 原始 `.eml` 下载 | ✅ | ✅ | 入站存 raw + `GET /api/emails/:id/raw` |
 | API Key 创建/吊销 | ✅ | ✅ | Dashboard 用户 Token；legacy admin API 仍可用 |
 | 速率限制 | ✅ 按分钟 + Header | ✅ | 全局 IP 60/min 兜底 + **按用户** `rate_limit_per_min` / burst；`X-RateLimit-*` |
-| MCP Server | ✅ `@mailsink/mcp` | ❌ | **缺口**（可选） |
+| MCP Server | ✅ `@mailsink/mcp` | ✅ | `@zmailr/mcp` npm 包 |
 | 出站发信 | ❌ | ✅ | **zMailR 优势** |
 | 自定义发件人（已租邮箱） | — | ✅ | **zMailR 优势** |
 | 开源 / 自托管 | ❌ SaaS | ✅ | **zMailR 优势** |
 | Web UI（简体中文） | ✅ | ✅ | 均有 |
 | 用户账户与配额 | 套餐制 | ✅ 自管 | **zMailR 优势** |
 | 自定义 OTP 提取规则 | — | ✅ | **zMailR 扩展** |
-| 附件 | — | ✅ D1 | D1 存储；R2 待接入（路线图） |
-| OpenAPI 规范 | ✅ | ⚠️ | 内置 `/api-docs` 页面，无 `openapi.json` |
+| 附件 | — | ✅ | R2 二进制 + D1 元数据；历史 D1 附件回退可读 |
+| OpenAPI 规范 | ✅ | ✅ | `/openapi.json` + `/api-docs` |
 
 图例：✅ 已实现 · ⚠️ 部分实现 · ❌ 未实现
 
@@ -120,11 +125,9 @@
 
 | 优先级 | 缺口 | 建议方向 |
 |:------:|------|----------|
-| P4 | MCP Server | 可选 npm 包，封装 lease / mail / send 工具 |
-| P4 | OpenAPI | 导出 `openapi.json` 便于 SDK 生成 |
-| — | R2 附件存储 | 当前 D1 分块；R2 为路线图 |
+| — | — | 主要 MailSink 对等项已补齐（2026-06） |
 
-已补齐（2026-06）：`GET /api/mailboxes`、`latest-code`、`latest-link`、`GET /api/emails/:id/raw`、速率限制 Header、Dashboard UI。
+已补齐（2026-06）：`GET /api/mailboxes`、`latest-code`、`latest-link`、`GET /api/emails/:id/raw`、速率限制 Header、Dashboard UI、**OpenAPI**（`/openapi.json`）、**MCP**（`@zmailr/mcp`）、**R2 附件存储**。
 
 ---
 

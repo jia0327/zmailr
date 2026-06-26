@@ -84,7 +84,7 @@ export async function handleEmail(message: any, env: Env): Promise<void> {
             mimeType: attachment.mimeType,
             content: base64Content,
             size: size
-          });
+          }, { r2Bucket: env.ATTACHMENTS });
           
           console.log(`附件 ${attachment.filename} 保存成功`);
         } catch (attachmentError) {
