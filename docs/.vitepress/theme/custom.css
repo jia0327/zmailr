@@ -9,3 +9,31 @@
   --vp-c-brand-2: #6366f1;
   --vp-c-brand-3: #4f46e5;
 }
+
+/* Homepage hero tagline */
+.zmailr-hero {
+  margin: 0 0 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  line-height: 1.7;
+}
+
+.zmailr-hero p:last-child {
+  margin-bottom: 0;
+}
+
+/* Self-host callout between API quickstart and doc index */
+.zmailr-callout {
+  margin: 1.5rem 0;
+  padding: 0.875rem 1.25rem;
+  border-radius: 8px;
+  border-left: 4px solid var(--vp-c-brand-1);
+  background: var(--vp-c-brand-soft);
+  line-height: 1.7;
+}
+
+.zmailr-callout p {
+  margin: 0;
+}
