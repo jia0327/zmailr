@@ -8,6 +8,10 @@ export default defineConfig({
   outDir: '../frontend/public/docs',
   // Match Cloudflare Workers html_handling (drops .html); false breaks VitePress client hydration/search
   cleanUrls: true,
+  ignoreDeadLinks: [
+    /^\/mcp\.json\.example$/,
+    /^\.\/mcp\.json\.example$/,
+  ],
   // README.md is the doc hub; map it to index so /docs/ gets index.html + correct client route
   rewrites: {
     'README.md': 'index.md',

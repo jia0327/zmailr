@@ -5,7 +5,7 @@
 [zMailR](https://github.com/jia0327/zmailr) 提供 npm 包 **`@zmailr/mcp`**，作为 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) 服务器，供 Cursor、Claude Desktop 等 AI 助手调用临时邮箱与 OTP 自动化能力。
 源码与英文 README 见 [packages/mcp README](https://github.com/jia0327/zmailr/blob/main/packages/mcp/README.md)。
 
-> **npm**：[`@zmailr/mcp`](https://www.npmjs.com/package/@zmailr/mcp) 已发布（当前 `1.0.0`）。推荐在 Cursor / Claude Desktop 中使用 `npx @zmailr/mcp`；克隆本仓库开发时见下方「[本地 monorepo 开发](#本地-monorepo-开发)」或 [`.cursor/mcp.json.example`](../.cursor/mcp.json.example)。
+> **npm**：[`@zmailr/mcp`](https://www.npmjs.com/package/@zmailr/mcp) 已发布（当前 `1.0.0`）。推荐在 Cursor / Claude Desktop 中使用 `npx @zmailr/mcp`；克隆本仓库开发时见下方「[本地 monorepo 开发](#本地-monorepo-开发)」或 [mcp.json.example](./mcp.json.example)。
 
 ---
 
@@ -53,7 +53,7 @@
 
 ## Cursor 配置
 
-在 `.cursor/mcp.json` 或 **Cursor Settings → MCP** 中添加。可复制仓库根目录 [`.cursor/mcp.json.example`](../.cursor/mcp.json.example) 为 `.cursor/mcp.json` 并填入 Token（该文件已 gitignore，勿提交）。
+在 `.cursor/mcp.json` 或 **Cursor Settings → MCP** 中添加。可复制 [mcp.json.example](./mcp.json.example) 到仓库根目录 `.cursor/mcp.json` 并填入 Token（该文件已 gitignore，勿提交）。
 
 `ZMAILR_BASE_URL` 填你的实例地址；使用 [演示站](https://zmailr.itool.eu.cc/) 时可填 `https://zmailr.itool.eu.cc`：
 

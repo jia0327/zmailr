@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "zmailr": {
+      "_comment": "Primary: published on npm — npx @zmailr/mcp (stdio MCP server)",
+      "command": "npx",
+      "args": ["-y", "@zmailr/mcp"],
+      "env": {
+        "ZMAILR_BASE_URL": "https://zmailr.itool.eu.cc",
+        "ZMAILR_TOKEN": "your-bearer-token"
+      }
+    },
+    "zmailr-local": {
+      "_comment": "Monorepo dev only — build: pnpm --filter @zmailr/mcp run build",
+      "command": "node",
+      "args": ["packages/mcp/dist/index.js"],
+      "env": {
+        "ZMAILR_BASE_URL": "https://zmailr.itool.eu.cc",
+        "ZMAILR_TOKEN": "your-bearer-token"
+      }
+    }
+  }
+}
