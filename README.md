@@ -107,7 +107,8 @@
 
 #### 仪表板
 
-![仪表板 — API Token 状态、收件/发件用量与今日发信配额](docs/screenshots/dashboard.png)
+<img width="1542" height="791" alt="image" src="https://github.com/user-attachments/assets/602b9f5e-c745-48ae-b525-9a47e82c157e" />
+
 
 #### 收件箱
 
