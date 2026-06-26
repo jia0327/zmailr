@@ -7,7 +7,10 @@
     "zmailr-mcp": "dist/index.js"
   },
   "main": "./dist/index.js",
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "engines": {
     "node": ">=18"
   },
@@ -19,11 +22,16 @@
     "test": "tsx --test src/lib.test.ts",
     "prepublishOnly": "pnpm run build"
   },
-  "keywords": ["mcp", "zmailr", "temporary-email", "otp"],
+  "keywords": [
+    "mcp",
+    "zmailr",
+    "temporary-email",
+    "otp"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jia0327/zmailr.git",
+    "url": "git+https://github.com/jia0327/zmailr.git",
     "directory": "packages/mcp"
   },
   "dependencies": {

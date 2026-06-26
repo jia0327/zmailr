@@ -57,7 +57,7 @@
 - **`POST /api/send`**：Brevo 出站发信
 - **`GET /api/user/quota`**：配额与用量查询
 - **OpenAPI**：[`/openapi.json`](https://zmailr.itool.eu.cc/openapi.json) 机器可读规范（`pnpm run build` 生成 `frontend/public/openapi.json`）
-- **MCP**：[`@zmailr/mcp`](packages/mcp) npm 包（Cursor / Claude Desktop），详见 [docs/mcp.md](docs/mcp.md)
+- **MCP**：[`@zmailr/mcp`](https://www.npmjs.com/package/@zmailr/mcp) npm 包（`npx @zmailr/mcp`，Cursor / Claude Desktop），详见 [docs/mcp.md](docs/mcp.md)
 - **Bearer Token 认证**（`Authorization: Bearer <token>`）；**不支持匿名 API**
 - **速率限制响应头**：`x-ratelimit-limit` / `remaining` / `reset`
 

@@ -90,11 +90,18 @@ pnpm --filter @zmailr/mcp run test
 
 ## Install
 
-After npm publish:
+Published on npm: [@zmailr/mcp](https://www.npmjs.com/package/@zmailr/mcp) (`1.0.0`).
+
+Recommended (MCP host starts the stdio server via `npx`):
+
+```bash
+npx -y @zmailr/mcp
+```
+
+Or install globally:
 
 ```bash
 npm install -g @zmailr/mcp
-# or use npx @zmailr/mcp (stdio server — started by MCP host)
 ```
 
 ## License

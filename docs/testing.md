@@ -39,7 +39,7 @@
 | | `/docs/testing` | 本测试报告 |
 | | `/docs/api-interactive` | 交互式 API 文档 |
 | | `/openapi.json` | 机器可读 OpenAPI |
-| **MCP** | `@zmailr/mcp` | 单元测试（工具注册、env 校验、mock API）；见 [mcp.md](./mcp.md) |
+| **MCP** | `@zmailr/mcp` | npm 已发布；单元测试（工具注册、env 校验、mock API）；见 [mcp.md](./mcp.md) |
 | **Ops** | `GET /api/health` | 静态 `{ status: "ok" }` |
 | | `GET /api/public/status` | D1/R2/Brevo 依赖探测 + 维护模式 |
 | | D1 备份 | [backup.md](./backup.md) — `scripts/backup-d1-to-r2.mjs` |
