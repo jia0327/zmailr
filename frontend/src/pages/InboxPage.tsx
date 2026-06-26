@@ -136,17 +136,17 @@ const InboxPage: React.FC = () => {
         </div>
       )}
 
-      <MailboxHistoryList
-        activeAddress={mailbox?.address}
-        onSelect={handleSelectHistoryMailbox}
-        onDeleted={handleHistoryDeleted}
-      />
-
       <EmailList
         emails={emails}
         selectedEmailId={selectedEmail}
         onSelectEmail={setSelectedEmail}
         isLoading={isEmailsLoading}
+      />
+
+      <MailboxHistoryList
+        activeAddress={mailbox?.address}
+        onSelect={handleSelectHistoryMailbox}
+        onDeleted={handleHistoryDeleted}
       />
     </div>
   );
