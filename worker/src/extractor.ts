@@ -10,6 +10,10 @@ export const SUBJECT_VERIFICATION_HINT =
   /(?:验证码|verification|verify|code|otp)/i;
 export const STANDALONE_SIX_DIGIT = /\b(\d{6})\b/;
 
+/** npm signup OTP: "The OTP code is: 17554235" */
+export const NPM_OTP_REGEX =
+  /(?:the\s+)?otp\s+code\s+is[：:\s]+(\d{6,8})/i;
+
 /** 首次初始化时写入 extract_rules（user_id IS NULL）的默认全局规则 */
 export const SEED_GLOBAL_EXTRACT_RULES = [
   {
@@ -27,6 +31,13 @@ export const SEED_GLOBAL_EXTRACT_RULES = [
     priority: -101,
     remark:
       '主题含验证码语义时，从正文提取独立的 6 位数字（适用于正文仅含数字、无关键词的场景）',
+  },
+  {
+    seedKey: 'npm-otp',
+    domain: 'npmjs.com',
+    regex: NPM_OTP_REGEX.source,
+    priority: 0,
+    remark: 'npm 注册邮件：The OTP code is: 后的 6–8 位数字',
   },
 ] as const;
 

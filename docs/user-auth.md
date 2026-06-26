@@ -198,6 +198,8 @@ Cookie: zmail_user_session=...
 
 同层级内：发件人域名精确匹配优于 `*`，再按 `priority` 降序。
 
+首次部署时还会写入若干全局种子规则（如 `npmjs.com` 的 OTP 格式）；已有数据库在迁移时自动补全缺失的种子规则。用户可在 Dashboard 添加个人规则覆盖或补充特定发件人域名。
+
 管理后台全局规则：`GET/POST/PUT/DELETE /{ADMIN_PATH}/api/rules`。
 
 ---

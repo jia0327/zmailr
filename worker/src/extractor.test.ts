@@ -1,6 +1,12 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { SEED_GLOBAL_EXTRACT_RULES, matchGenericCode, matchWithRegex, extractLink } from './extractor';
+import {
+  SEED_GLOBAL_EXTRACT_RULES,
+  NPM_OTP_REGEX,
+  matchGenericCode,
+  matchWithRegex,
+  extractLink,
+} from './extractor';
 import { reconstructRawEmail } from './database';
 
 describe('extractLink', () => {
@@ -72,10 +78,30 @@ describe('matchGenericCode', () => {
 
 describe('SEED_GLOBAL_EXTRACT_RULES', () => {
   it('defines default global rules for DB seeding', () => {
-    assert.equal(SEED_GLOBAL_EXTRACT_RULES.length, 2);
-    assert.ok(SEED_GLOBAL_EXTRACT_RULES.every((r) => r.domain === '*'));
+    assert.equal(SEED_GLOBAL_EXTRACT_RULES.length, 3);
+    assert.ok(SEED_GLOBAL_EXTRACT_RULES.every((r) => r.seedKey));
     assert.ok(SEED_GLOBAL_EXTRACT_RULES[0].regex.includes('验证码'));
     assert.ok(SEED_GLOBAL_EXTRACT_RULES[1].remark.includes('6 位数字'));
+    const npmRule = SEED_GLOBAL_EXTRACT_RULES.find((r) => r.seedKey === 'npm-otp');
+    assert.ok(npmRule);
+    assert.equal(npmRule!.domain, 'npmjs.com');
+  });
+});
+
+describe('NPM_OTP_REGEX', () => {
+  it('extracts npm signup OTP from body text', () => {
+    assert.equal(
+      matchWithRegex('The OTP code is: 17554235', NPM_OTP_REGEX.source),
+      '17554235'
+    );
+    assert.equal(
+      matchWithRegex('OTP code is: 123456', NPM_OTP_REGEX.source),
+      '123456'
+    );
+  });
+
+  it('does not match unrelated npm email content', () => {
+    assert.equal(matchWithRegex('Your package was published', NPM_OTP_REGEX.source), null);
   });
 });
 
