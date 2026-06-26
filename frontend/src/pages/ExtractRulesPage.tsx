@@ -8,6 +8,9 @@ const ExtractRulesPage: React.FC = () => {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const prefillDomain = searchParams.get('domain')?.trim() || null;
+  const ruleIdRaw = searchParams.get('ruleId')?.trim();
+  const parsedRuleId = ruleIdRaw ? parseInt(ruleIdRaw, 10) : NaN;
+  const highlightRuleId = Number.isFinite(parsedRuleId) ? parsedRuleId : null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -20,7 +23,7 @@ const ExtractRulesPage: React.FC = () => {
         <p className="font-medium text-foreground mb-1">{t('extractRules.priorityHintTitle')}</p>
         <p>{t('extractRules.priorityHintBody')}</p>
       </div>
-      <ExtractRuleManager prefillDomain={prefillDomain} />
+      <ExtractRuleManager prefillDomain={prefillDomain} highlightRuleId={highlightRuleId} />
     </div>
   );
 };

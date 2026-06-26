@@ -406,16 +406,12 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium">{t('email.verificationCode')}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{t('email.clickToCopy')}</p>
-                {email.matchedRuleRemark && (
-                  <p className="text-xs text-muted-foreground mt-1">{email.matchedRuleRemark}</p>
-                )}
               </div>
               <OtpBox
                 code={email.extractedCode}
                 size="md"
                 className="self-start sm:self-auto"
                 matchedRuleId={email.matchedRuleId}
-                matchedRuleDomain={email.matchedRuleDomain}
                 onCopy={() => showSuccessMessage(t('common.copied'))}
               />
             </div>

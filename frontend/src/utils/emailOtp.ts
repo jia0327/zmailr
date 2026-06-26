@@ -20,3 +20,7 @@ export function extractRulesUrl(senderDomain: string | null): string {
   if (!senderDomain) return base;
   return `${base}?domain=${encodeURIComponent(senderDomain)}`;
 }
+
+export function extractRuleUrl(ruleId: number): string {
+  return `/dashboard/extract-rules?ruleId=${ruleId}`;
+}

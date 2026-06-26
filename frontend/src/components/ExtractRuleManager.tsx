@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { cn } from '../lib/utils';
 import {
   createUserExtractRule,
   deleteUserExtractRule,
@@ -20,9 +21,13 @@ const emptyForm = {
 
 interface ExtractRuleManagerProps {
   prefillDomain?: string | null;
+  highlightRuleId?: number | null;
 }
 
-const ExtractRuleManager: React.FC<ExtractRuleManagerProps> = ({ prefillDomain }) => {
+const ruleRowHighlightClass =
+  'bg-amber-100/80 dark:bg-amber-950/40 ring-2 ring-amber-500/50 ring-inset';
+
+const ExtractRuleManager: React.FC<ExtractRuleManagerProps> = ({ prefillDomain, highlightRuleId }) => {
   const { t } = useTranslation();
   const [rules, setRules] = useState<ExtractRuleItem[]>([]);
   const [globalRules, setGlobalRules] = useState<GlobalExtractRuleItem[]>([]);
@@ -56,6 +61,14 @@ const ExtractRuleManager: React.FC<ExtractRuleManagerProps> = ({ prefillDomain }
     setShowForm(true);
     setError('');
   }, [prefillDomain]);
+
+  useEffect(() => {
+    if (highlightRuleId == null || loading) return;
+    const el = document.querySelector(`[data-rule-id="${highlightRuleId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightRuleId, loading, rules, globalRules]);
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -134,6 +147,7 @@ const ExtractRuleManager: React.FC<ExtractRuleManagerProps> = ({ prefillDomain }
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
+                  <th className="py-2 pr-3 font-medium w-12">{t('extractRules.colId')}</th>
                   <th className="py-2 pr-3 font-medium">{t('extractRules.colDomain')}</th>
                   <th className="hidden sm:table-cell py-2 pr-3 font-medium">{t('extractRules.colDescription')}</th>
                   <th className="py-2 pr-3 font-medium">{t('extractRules.colRegex')}</th>
@@ -143,7 +157,15 @@ const ExtractRuleManager: React.FC<ExtractRuleManagerProps> = ({ prefillDomain }
               </thead>
               <tbody>
                 {globalRules.map((rule) => (
-                  <tr key={rule.id} className="border-b last:border-b-0">
+                  <tr
+                    key={rule.id}
+                    data-rule-id={rule.id}
+                    className={cn(
+                      'border-b last:border-b-0',
+                      highlightRuleId === rule.id && ruleRowHighlightClass
+                    )}
+                  >
+                    <td className="py-2 pr-3 font-mono text-muted-foreground">{rule.id}</td>
                     <td className="py-2 pr-3">{rule.domain}</td>
                     <td className="hidden sm:table-cell py-2 pr-3 text-muted-foreground">
                       {stripSeedRemarkPrefix(rule.remark)}
@@ -273,6 +295,7 @@ const ExtractRuleManager: React.FC<ExtractRuleManagerProps> = ({ prefillDomain }
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
+                  <th className="py-2 pr-3 font-medium w-12">{t('extractRules.colId')}</th>
                   <th className="py-2 pr-3 font-medium">{t('extractRules.colDomain')}</th>
                   <th className="py-2 pr-3 font-medium">{t('extractRules.colRegex')}</th>
                   <th className="hidden sm:table-cell py-2 pr-3 font-medium">{t('extractRules.colPriority')}</th>
@@ -283,7 +306,15 @@ const ExtractRuleManager: React.FC<ExtractRuleManagerProps> = ({ prefillDomain }
               </thead>
               <tbody>
                 {rules.map((rule) => (
-                  <tr key={rule.id} className="border-b last:border-b-0">
+                  <tr
+                    key={rule.id}
+                    data-rule-id={rule.id}
+                    className={cn(
+                      'border-b last:border-b-0',
+                      highlightRuleId === rule.id && ruleRowHighlightClass
+                    )}
+                  >
+                    <td className="py-2 pr-3 font-mono text-muted-foreground">{rule.id}</td>
                     <td className="py-2 pr-3">{rule.domain}</td>
                     <td className="py-2 pr-3">
                       <code className="text-xs bg-muted px-1.5 py-0.5 rounded break-all">{rule.regex}</code>

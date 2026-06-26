@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractRulesUrl, extractSenderDomain, isVerificationLikeSubject } from '../../frontend/src/utils/emailOtp';
+import { extractRuleUrl, extractRulesUrl, extractSenderDomain, isVerificationLikeSubject } from '../../frontend/src/utils/emailOtp';
 
 describe('emailOtp utils', () => {
   it('extracts sender domain from angle-addr and plain email', () => {
@@ -19,5 +19,9 @@ describe('emailOtp utils', () => {
   it('builds extract rules URL with domain query', () => {
     assert.equal(extractRulesUrl('example.com'), '/dashboard/extract-rules?domain=example.com');
     assert.equal(extractRulesUrl(null), '/dashboard/extract-rules');
+  });
+
+  it('builds extract rules URL with rule id', () => {
+    assert.equal(extractRuleUrl(4), '/dashboard/extract-rules?ruleId=4');
   });
 });
