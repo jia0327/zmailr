@@ -107,7 +107,8 @@
 
 #### 仪表板
 
-<img width="1542" height="791" alt="image" src="https://github.com/user-attachments/assets/602b9f5e-c745-48ae-b525-9a47e82c157e" />
+<img width="1798" height="810" alt="image" src="https://github.com/user-attachments/assets/c84bd5fc-4e16-4e05-9547-6bf23681e981" />
+
 
 
 #### 收件箱
