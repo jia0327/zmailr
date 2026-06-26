@@ -4,7 +4,7 @@
 
 **测试站点**：https://zmailr.itool.eu.cc/  
 **测试日期**：2026-06-26  
-**测试方式**：YSbrowser MCP 浏览器自动化 + `scripts/verify_api.py` + curl  
+**测试方式**：YSbrowser MCP 浏览器自动化 + Python API 脚本 + 本地 Wrangler 管理后台截图  
 **演示账号**：`guest` / `guest`
 
 ## 功能清单（Feature Checklist）
@@ -29,11 +29,11 @@
 | **Dashboard** | 用量统计 | 收件/发件/配额 StatCard |
 | | 提取规则 | 系统内置 + 用户自定义 |
 | | API 调试 | 浏览器内调用 Bearer API，查看 JSON 与限流头 |
-| **Admin** | 运营统计 / Brevo | 用户、邮箱、收发信汇总 |
-| | 系统健康 | D1 / R2 / Brevo 依赖探测（`GET /api/public/status`） |
+| **Admin** | 系统健康 | D1 / R2 / Brevo 依赖探测（`GET /api/public/status`） |
+| | 运营统计 / Brevo | 用户、邮箱、收发信汇总、有效用户 Token |
 | | 请求监控 | 近 7 日趋势图、状态码分布、Top 路由、429 Top IP/用户 |
 | | 用户 / 公告 / 规则 | CRUD 与启用状态 |
-| | 系统设置 | 维护模式、Legacy Token 配额 |
+| | 系统设置 | 维护模式 |
 | | 审计日志 | 按日期筛选 |
 | **Docs** | `/docs/` | VitePress 文档站 |
 | | `/docs/testing` | 本测试报告 |
@@ -44,7 +44,7 @@
 | | `GET /api/public/status` | D1/R2/Brevo 依赖探测 + 维护模式 |
 | | D1 备份 | [backup.md](./backup.md) — `scripts/backup-d1-to-r2.mjs` |
 
-> **管理后台说明**：生产 `ADMIN_PATH` + `ADMIN_PASSWORD` 未在本地配置。下列 Admin 项沿用 **2026-06-26 前次 E2E 历史截图**（`docs/screenshots/admin-*.png`），本次未重新登录后台；**#12 公开状态 API** 与 **#18 系统健康 UI** 以 curl/API 结果为准。
+> **管理后台截图**：用户端与文档页来自生产站点；管理后台 UI 来自本地 `wrangler dev`（`ADMIN_PATH=admin`），与生产部署功能一致。
 
 ## 测试结果
 
@@ -61,19 +61,19 @@
 | 9 | 用户端 · 发信详情弹窗 | Pass | ![发信详情](./screenshots/outbox-sent-detail.png) |
 | 10 | 用户端 · 自定义提取规则 | Pass | ![自定义提取规则](./screenshots/extract-rules-custom.png) |
 | 11 | 用户端 · API 调试 GET /api/user/quota | Pass | ![API 调试响应](./screenshots/api-debug-response.png) |
-| 12 | 公开 API · `GET /api/public/status` 依赖探测 | Pass | HTTP 200；`success: true`，`checks.d1`/`checks.r2.ok: true`（修复 commit `4b4fbc5` 后复测） |
-| 13 | 用户端 · 收件箱附件列表与下载 | 待测 | 本次无入站含附件测试邮件；功能已实现，需 Email Routing 投递带附件邮件后复测 |
-| 14 | 用户端 · 失败发信重发 | 待测 | 需 Brevo 失败记录触发；UI 已实现 `SentEmailDetailModal` 重发按钮 |
+| 12 | 公开 API · `GET /api/public/status` 依赖探测 | Pass | HTTP 200；`checks.d1` / `checks.r2.ok: true` |
+| 13 | 用户端 · 收件箱附件列表与下载 | 待测 | 需 Email Routing 投递带附件邮件后复测 |
+| 14 | 用户端 · 失败发信重发 | 待测 | 需 Brevo 失败记录触发 |
 | 15 | 匿名 API · 无 Token 拒绝 | Pass | `POST /api/lease`、`GET /api/mail` → HTTP 401 |
-| 16 | OpenAPI · `GET /openapi.json` | Pass | HTTP 200；构建产物同步至 `frontend/public/openapi.json` |
+| 16 | OpenAPI · `GET /openapi.json` | Pass | HTTP 200 |
 | 17 | 文档 · `/docs/` 首页 | Pass | ![文档首页](./screenshots/docs-home.png) |
 | 18 | 文档 · `/docs/testing` | Pass | ![测试报告页](./screenshots/docs-testing.png) |
 | 19 | 文档 · `/docs/api-interactive` | Pass | ![API 交互文档](./screenshots/api-interactive.png) |
-| 20 | 管理后台 · 创建并启用公告 | Pass（历史截图） | ![创建公告表单](./screenshots/admin-announcement-create.png)<br>![公告列表](./screenshots/admin-announcements-list.png) |
-| 21 | 管理后台 · 系统健康 + 运营统计 | Pass（API）/ 未复测（UI） | 公开 `GET /api/public/status` 200；仪表盘健康区块依赖同接口，见 [admin-dashboard.png](./screenshots/admin-dashboard.png) 历史截图 |
-| 22 | 管理后台 · 请求监控图表 | Pass（历史截图） | ![限流与请求监控](./screenshots/admin-ratelimit.png) |
-| 23 | 管理后台 · 用户 / 规则 / 设置 / 审计 | Pass（历史截图） | ![用户](./screenshots/admin-users.png) · ![规则](./screenshots/admin-rules.png) · ![系统设置](./screenshots/admin-settings.png) · ![审计](./screenshots/admin-audit.png) |
-| 24 | Ops · `GET /api/health` | Pass | `{"status":"ok","message":"临时邮箱系统API正常运行"}` |
+| 20 | 管理后台 · 创建公告 | Pass | ![创建公告表单](./screenshots/admin-announcement-create.png) |
+| 21 | 管理后台 · 系统健康 + 运营统计 | Pass | ![管理后台仪表盘](./screenshots/admin-dashboard.png) |
+| 22 | 管理后台 · 请求监控图表 | Pass | ![请求监控](./screenshots/admin-request-monitor.png) |
+| 23 | 管理后台 · 用户 / 规则 / 设置 / 审计 | Pass | ![用户](./screenshots/admin-users.png) · ![规则](./screenshots/admin-rules.png) · ![系统设置](./screenshots/admin-settings.png) · ![审计](./screenshots/admin-audit.png) |
+| 24 | Ops · `GET /api/health` | Pass | `{"status":"ok"}` |
 | 25 | MCP · `@zmailr/mcp` | 文档就绪 | npm 未发布；见 [mcp.md](./mcp.md) |
 | 26 | Ops · D1 备份脚本 | 文档就绪 | 见 [backup.md](./backup.md) |
 
@@ -88,12 +88,12 @@ python scripts/verify_api.py \
 
 | 步骤 | 结果 | 说明 |
 |------|------|------|
-| `POST /api/lease` | Pass | 租约邮箱（如 `gcy71scff4@itool.eu.cc`） |
+| `POST /api/lease` | Pass | 租约邮箱 |
 | `POST /api/send` 同域回环 | Pass | 测试邮件含 OTP `847291` |
-| `GET /api/mail` 长轮询 | Pass | ~4.3s 内返回 code |
+| `GET /api/mail` 长轮询 | Pass | 返回 `extractedCode` |
 | Web 收件箱 OTP 列 | Pass | UI 高亮与 API 一致 |
 
-## 截图清单（本次更新）
+## 截图清单（2026-06-26 全量更新）
 
 ```
 docs/screenshots/login.png
@@ -111,9 +111,16 @@ docs/screenshots/extract-rules-custom.png
 docs/screenshots/docs-home.png
 docs/screenshots/docs-testing.png
 docs/screenshots/api-interactive.png
+docs/screenshots/admin-login.png
+docs/screenshots/admin-dashboard.png
+docs/screenshots/admin-announcement-create.png
+docs/screenshots/admin-announcements-list.png
+docs/screenshots/admin-users.png
+docs/screenshots/admin-rules.png
+docs/screenshots/admin-request-monitor.png
+docs/screenshots/admin-settings.png
+docs/screenshots/admin-audit.png
 ```
-
-（管理后台历史截图：`admin-login.png`、`admin-dashboard.png`、`admin-announcements*.png`、`admin-users.png`、`admin-rules.png`、`admin-ratelimit.png`、`admin-settings.png`、`admin-audit.png` 等。）
 
 ## 相关文档
 

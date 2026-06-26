@@ -105,12 +105,6 @@
 
 ![登录页 — guest 账号入口](docs/screenshots/login.png)
 
-#### 系统公告
-
-登录后弹出未读公告，支持逐条确认与「全部标记已读」。
-
-![公告弹窗 — 验证 E2E 测试公告展示与已读流程](docs/screenshots/announcement-modal.png)
-
 #### 仪表板
 
 ![仪表板 — API Token 状态、收件/发件用量与今日发信配额](docs/screenshots/dashboard.png)
@@ -171,7 +165,7 @@
 
 #### 仪表盘
 
-![管理后台仪表盘 — 用户/邮箱/收发信统计与 Brevo 套餐信息](docs/screenshots/admin-dashboard.png)
+![管理后台仪表盘 — 系统健康、用户/邮箱/收发信统计与 Brevo 套餐信息](docs/screenshots/admin-dashboard.png)
 
 #### 公告
 
@@ -191,11 +185,9 @@
 
 全局内置规则与所有用户自定义规则汇总。
 
-#### 限流监控
+#### 请求监控
 
-![管理后台限流监控](docs/screenshots/admin-ratelimit.png)
-
-今日 429 次数、Top IP / Top 用户排行。
+![管理后台请求监控 — 近 7 日趋势、状态码分布、429 Top IP/用户](docs/screenshots/admin-request-monitor.png)
 
 #### 系统设置
 

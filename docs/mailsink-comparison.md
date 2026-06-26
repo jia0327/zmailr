@@ -55,7 +55,7 @@
 | `POST /v1/inboxes` | `POST /api/lease` | Bearer Token（`lease` scope）；随机地址，24h TTL |
 | | `POST /api/user/mailboxes` | Web 会话；可指定 local-part |
 | | `POST /api/mailboxes` | **已废弃**（恒 401）；创建邮箱请用上述两路径。**不再支持匿名** |
-| `GET /v1/inboxes` | `GET /api/mailboxes` | Bearer Token（`mail`）；**仅用户 Token**，按 `user_id` 过滤；legacy Token 返回 403 |
+| `GET /v1/inboxes` | `GET /api/mailboxes` | Bearer Token（`mail`）；**仅用户 Token**，按 `user_id` 过滤 |
 | `DELETE /v1/inboxes/{id}` | `DELETE /api/mailboxes/:address` | 需 Bearer（`mail`）或会话 + 邮箱所有权 |
 | `GET /v1/inboxes/{id}/messages` | `GET /api/mailboxes/:address/emails` | 列出邮件（含 `extractedCode` 字段） |
 | `GET /v1/inboxes/{id}/latest-code` | `GET /api/mailboxes/:address/latest-code` | 非阻塞即时查询最新 OTP |
@@ -64,9 +64,7 @@
 | `GET /v1/messages/{id}` | `GET /api/emails/:id` | 完整正文（text/html） |
 | `GET /v1/messages/{id}/raw` | `GET /api/emails/:id/raw` | 存储的 raw MIME 或从 DB 重建 |
 | `POST /v1/keys` | `POST /api/user/tokens` | Dashboard → API 密钥（Web 会话）；可配置 scope |
-| | `POST /{ADMIN_PATH}/api/tokens` | Legacy 全局 Token（admin API，向后兼容；**管理 UI 已无 Token 标签页**） |
 | `DELETE /v1/keys/{id}` | `DELETE /api/user/tokens/:id` | 用户 Token 吊销（需 Web 会话） |
-| | `DELETE /{ADMIN_PATH}/api/tokens/:id` | Legacy Token 吊销（admin API） |
 | — | `POST /api/send` | **zMailR 独有**：API Token 出站发信 |
 | — | `POST /api/user/send` | **zMailR 独有**：Web 会话出站发信 |
 | — | `GET/POST /api/auth/*` | **zMailR 独有**：用户登录与会话 |
@@ -89,7 +87,7 @@
 | 最新验证链接 | ✅ | ✅ | `/api/mailboxes/:address/latest-link` |
 | 单封邮件详情 | ✅ | ✅ | 对等 |
 | 原始 `.eml` 下载 | ✅ | ✅ | 入站存 raw + `GET /api/emails/:id/raw` |
-| API Key 创建/吊销 | ✅ | ✅ | Dashboard 用户 Token；legacy admin API 仍可用 |
+| API Key 创建/吊销 | ✅ | ✅ | Dashboard 用户 Token |
 | 速率限制 | ✅ 按分钟 + Header | ✅ | 全局 IP 60/min 兜底 + **按用户** `rate_limit_per_min` / burst；`X-RateLimit-*` |
 | MCP Server | ✅ `@mailsink/mcp` | ✅ | `@zmailr/mcp` npm 包 |
 | 出站发信 | ❌ | ✅ | **zMailR 优势** |
@@ -114,7 +112,8 @@
 5. **完整 Web 控制台**：Dashboard 收信/发信、OTP 高亮、API 文档页，无需仅依赖 REST。
 6. **密钥路径管理后台**：`ADMIN_PATH` 环境变量配置不可猜测的 URL；错误路径返回 404，不暴露后台存在。详见 [管理后台指南](./admin-guide.md)。
 7. **运维与治理能力**（MailSink 无对等项）：
-   - **限流监控**：429 事件、Top IP / 用户（D1 `rate_limit_hits`，保留约 7 天）
+   - **请求监控**：近 7 日趋势、状态码分布、429 Top IP / 用户（D1 `api_request_stats` / `rate_limit_hits`，保留约 7 天）
+   - **系统健康**：仪表盘展示 D1 / R2 / Brevo 依赖状态（`GET /api/public/status`）
    - **系统设置 / 维护模式**：可选阻断 lease、发信、创建邮箱；Dashboard 横幅 + API 503
    - **审计日志**：管理员与用户关键操作追溯
    - **Brevo 统计**：仪表盘展示本地发信统计与 Brevo 账户 credits
@@ -158,7 +157,7 @@ POST /api/send            （可选）以租用的地址发信
 |----------|--------|
 | `local_part` / `domain` / `ttl` | 随机 local-part；域名由 `VITE_EMAIL_DOMAIN` 决定；固定 24h |
 | inbox `id` | mailbox `address`（local-part）或完整 `email` |
-| Bearer `msk_*` | Bearer 用户 Token（Dashboard 创建）或 legacy admin Token |
+| Bearer `msk_*` | Bearer 用户 Token（Dashboard → API 密钥 创建） |
 
 ---
 
@@ -167,7 +166,6 @@ POST /api/send            （可选）以租用的地址发信
 | | MailSink | zMailR |
 |---|----------|--------|
 | 获取 API Key | GitHub 登录 → 控制台 | 用户登录后在 **Dashboard → API 密钥** 创建 scoped Token |
-| Legacy 全局 Token | — | Admin API `/{ADMIN_PATH}/api/tokens` 仍可用（向后兼容）；**管理 UI 已无 Token 标签页** |
 | Key 权限 | 统一 | `lease` / `mail` / `send` 分 scope |
 | 匿名 API | — | **不支持**；所有收信/发信/创建邮箱均需会话或 Bearer Token |
 | 创建邮箱 | Bearer | `POST /api/lease`（Bearer `lease`）或 `POST /api/user/mailboxes`（Web 会话） |
@@ -180,8 +178,7 @@ POST /api/send            （可选）以租用的地址发信
 | 层级 | 规则 |
 |------|------|
 | **按用户**（会话或用户 Bearer Token） | 固定 1 分钟窗口；`rate_limit_per_min` + 可选 `rate_limit_burst` |
-| **全局 IP 兜底** | 未识别为用户时（如 legacy Token）默认 **60 req/min** |
-| **Legacy 发信配额** | 管理后台 **系统设置** → Legacy Token 日发信上限（每 IP，默认 50） |
+| **全局 IP 兜底** | 未识别为用户时默认 **60 req/min** |
 
 安全细节见 [security.md](./security.md)。
 | **管理预设** | Admin → 用户弹窗：Free 60/min、Pro 600/min + burst 30、Team 3000/min + burst 200、自定义 |

@@ -24,28 +24,25 @@ zMailR 管理后台用于运维与用户治理，**不在前端 bundle 中暴露
 
 | 标签 | 功能 |
 |------|------|
-| **仪表盘** | 今日收信/发信、活跃用户、有效用户 Token、本地发信统计；Brevo 套餐信息（已配置 `BREVO_API_KEY` 时） |
+| **仪表盘** | **系统健康**（D1 / R2 / Brevo）；今日收信/发信、活跃用户、有效用户 Token；Brevo 套餐信息（已配置 `BREVO_API_KEY` 时） |
 | **用户** | 创建/编辑/禁用/删除用户，日发信配额，**速率方案**（Free / Pro / Team / 自定义） |
 | **公告** | 面向 Dashboard 用户的系统公告（Markdown/纯文本） |
 | **提取规则** | 全局规则 + 汇总所有用户自定义规则 |
 | **请求监控** | 近 7 日折线趋势、今日状态码分布、429 Top IP / 用户 |
-| **系统设置** | **维护模式**（可选阻断 lease / 发信 / 创建邮箱）；**Legacy Token 日发信上限**（每 IP，与用户日配额独立） |
+| **系统设置** | **维护模式**（可选阻断 lease / 发信 / 创建邮箱） |
 | **审计日志** | 管理员与用户关键操作记录，按日期筛选 |
 
-Legacy **API Token**（`api_tokens`）仍可通过管理 API（`GET/POST/DELETE /{ADMIN_PATH}/api/tokens`）管理，供向后兼容；**不推荐**新部署使用。限制见 [security.md](./security.md)（哈希存储、禁止列邮箱、IP 日发信配额）。新用户请使用 Dashboard → API 密钥。
+程序化 API 请使用 Dashboard → **API 密钥**（用户 Bearer Token + scope + 日配额）。详见 [user-auth.md](./user-auth.md)。
 
 ---
 
 ## 用户与速率限制
 
-### 两种发信配额（勿混淆）
+### 日发信配额
 
 | 配置位置 | 适用对象 | 计数维度 | 存储 |
 |----------|----------|----------|------|
-| **用户** 标签 → 日发信配额 | Dashboard 用户 Token、`POST /api/user/send`、Web 发件箱 | 按 **用户 ID** / UTC 日 | `users.daily_send_quota` + `daily_usage` |
-| **系统设置** → Legacy Token 日发信上限 | 管理 API 创建的 **全局 `api_tokens`**（Legacy Token） | 按 **来源 IP** / UTC 日 | `system_settings.legacy_send_daily_quota` |
-
-新部署应使用 Dashboard → **API 密钥**（用户 Token）；Legacy Token 仅向后兼容。两套配额互不影响：给用户设 100 封/日，不会放宽 Legacy Token 的 IP 上限；反之亦然。
+| **用户** 标签 → 日发信配额 | Dashboard 用户 Token、`POST /api/user/send`、Web 发件箱、`POST /api/send` | 按 **用户 ID** / UTC 日 | `users.daily_send_quota` + `daily_usage` |
 
 每位用户除 **日发信配额**（`daily_send_quota`，`-1` 为无限）外，还有 **API 速率限制**（按用户 ID 计数，固定 1 分钟窗口）：
 
@@ -57,7 +54,7 @@ Legacy **API Token**（`api_tokens`）仍可通过管理 API（`GET/POST/DELETE 
 | **自定义** | 手动填写 | 可选 | 覆盖上述预设 |
 
 - 响应头：`X-RateLimit-Limit`（sustained 速率，不含 burst）、`X-RateLimit-Remaining`（含 burst 剩余额度）、`X-RateLimit-Reset`、`Retry-After`
-- 未识别为登录用户/用户 Token 的请求（如 legacy Token）走 **全局 IP 限流**（默认 60 req/min）
+- 未识别为登录用户/用户 Token 的请求走 **全局 IP 限流**（默认 60 req/min）
 - 在用户弹窗中选择方案会自动填充数值；保存后写入 D1 `users.rate_limit_per_min` / `rate_limit_burst`
 
 ---
@@ -108,21 +105,15 @@ Legacy **API Token**（`api_tokens`）仍可通过管理 API（`GET/POST/DELETE 
 - 被阻断的 API 返回 `503`，body：`{ "success": false, "error": "maintenance", "message": "..." }`
 - 读信、查询配额等未勾选阻断的功能仍可用
 
-### Legacy Token 日发信上限
-
-同一 **系统设置** 面板底部可配置 **Legacy Token 日发信上限（每 IP）**：
-
-- 作用于管理 API 创建的 **全局 `api_tokens`**（非 Dashboard 用户 Token）
-- 与用户 **日发信配额**（用户标签页）相互独立
-- 默认 `50`；设为 `-1` 表示不限制（不推荐生产环境）
-
 配置持久化在 D1 `system_settings` 表，保存时写入审计日志 `maintenance.update`。
 
 ---
 
 ## 依赖健康检查
 
-公开端点 `GET /api/public/status`（无需认证）同时返回 **D1 / R2 / Brevo** 连通性与聚合 `status`（`ok` / `degraded` / `error`）。管理员可用于：
+公开端点 `GET /api/public/status`（无需认证）同时返回 **D1 / R2 / Brevo** 连通性与聚合 `status`（`ok` / `degraded` / `error`）。管理后台 **仪表盘** 顶部 **系统健康** 区块调用同一接口展示。
+
+管理员可用于：
 
 - 部署后确认 D1 与 R2 附件 bucket 可用（见 [deploy.md §9](./deploy.md#9-部署后验证)）
 - 排查 Brevo 发信异常：已配置但 `checks.brevo.ok: false` 时整体为 `degraded`

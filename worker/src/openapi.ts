@@ -23,7 +23,7 @@ export const OPENAPI_SPEC = {
       bearerAuth: {
         type: 'http',
         scheme: 'bearer',
-        description: 'User API Token or legacy admin token. Scopes: lease, mail, send.',
+        description: 'User API Token from Dashboard → API Keys. Scopes: lease, mail, send.',
       },
       sessionCookie: {
         type: 'apiKey',

@@ -576,8 +576,6 @@
       "userTokenStep3": "立即复制 Token（仅显示一次）。",
       "oneTokenLimit": "每位用户仅可持有一个 API Token，创建新 Token 前请先删除现有 Token。",
       "scopesNote": "权限说明：lease（POST /api/lease）、mail（GET /api/mail、列出邮箱、latest-code/link、原始 .eml）、send（POST /api/send）。",
-      "legacyTitle": "Legacy 管理后台 Token",
-      "legacyDescription": "无用户配额限制的管理员 Token 仍可在管理后台创建。管理后台 URL 由部署时的 ADMIN_PATH 环境变量配置（推荐 UUID），不在此公开；请向站点管理员索取完整地址。",
       "headerNote": "每个程序化请求需携带以下 Header：",
       "sessionVsBearerTitle": "会话 vs Bearer",
       "sessionVsBearer": "Web 界面路由（POST /api/user/mailboxes、POST /api/user/send、浏览器收件箱/发件箱）使用登录会话 Cookie（credentials: include）。Bearer Token 供自动化脚本调用 /api/lease、/api/mail、/api/send 等接口。所有邮箱与邮件路由均需有效会话（所有者）或 Bearer Token（mail 权限 + 所有权校验）。匿名 POST /api/mailboxes 返回 401。"
@@ -585,7 +583,7 @@
     "quota": {
       "title": "GET /api/user/quota — 每日发信配额",
       "description": "返回当前用户今日发信用量与剩余每日配额。",
-      "usageHint": "支持登录会话 Cookie，或任意有效用户 Bearer Token（lease / mail / send 任一 scope）。不支持旧版管理员 Token。"
+      "usageHint": "支持登录会话 Cookie，或任意有效用户 Bearer Token（lease / mail / send 任一 scope）。"
     },
     "lease": {
       "title": "POST /api/lease — 创建随机临时邮箱",
@@ -594,7 +592,7 @@
     },
     "listMailboxes": {
       "title": "GET /api/mailboxes — 列出活跃邮箱",
-      "description": "列出未过期的邮箱。用户 Token 仅返回该用户创建的邮箱；Legacy Token 返回最近活跃的邮箱。",
+      "description": "列出未过期的邮箱。用户 Token 仅返回该用户创建的邮箱。",
       "usageHint": "需要 mail 权限及邮箱所有权（或登录会话作为所有者）。租用邮箱后可用此接口确认当前活跃地址。",
       "params": {
         "limit": "可选。返回条数上限，默认 50。"

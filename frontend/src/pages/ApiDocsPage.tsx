@@ -62,12 +62,6 @@ const ApiDocsPage: React.FC = () => {
           </div>
           <p className="text-sm text-muted-foreground">{t('apiDocs.auth.oneTokenLimit')}</p>
           <p className="text-sm text-muted-foreground">{t('apiDocs.auth.scopesNote')}</p>
-          <div>
-            <p className="text-sm font-medium">{t('apiDocs.auth.legacyTitle')}</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {t('apiDocs.auth.legacyDescription')}
-            </p>
-          </div>
           <p className="text-sm text-muted-foreground">{t('apiDocs.auth.headerNote')}</p>
           <ApiDocCodeBlock>{`Authorization: Bearer <your-api-token>`}</ApiDocCodeBlock>
           <div>

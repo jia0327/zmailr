@@ -106,7 +106,7 @@ Web Dashboard 专用路由（Session Cookie）见 [user-auth.md](./user-auth.md)
 
 ## 速率限制
 
-`/api/*` 对 **已登录用户**（Session 或用户 Bearer Token）**按用户限流**：固定 **1 分钟**计数窗口，配额为 `rate_limit_per_min`（每分钟 sustained 请求数），可选 `rate_limit_burst`（同一窗口内额外突发次数）。**Legacy** admin Token 与未识别为用户的请求走 **全局 IP 限流**（默认 60 req/min，按 `CF-Connecting-IP`）。
+`/api/*` 对 **已登录用户**（Session 或用户 Bearer Token）**按用户限流**：固定 **1 分钟**计数窗口，配额为 `rate_limit_per_min`（每分钟 sustained 请求数），可选 `rate_limit_burst`（同一窗口内额外突发次数）。未识别为用户的请求走 **全局 IP 限流**（默认 60 req/min，按 `CF-Connecting-IP`）。
 
 响应头：
 
@@ -172,7 +172,7 @@ curl -X POST "https://你的域名/api/send" \
   -d '{"to":"user@example.com","subject":"Test","text":"Hello","from":"abc123@example.com"}'
 ```
 
-`from` 须为**你名下**、域名正确且未过期的临时邮箱（legacy Token 仅可使用无主邮箱）。Brevo 配置见 [brevo-setup.md](./brevo-setup.md)。
+`from` 须为**你名下**、域名正确且未过期的临时邮箱。Brevo 配置见 [brevo-setup.md](./brevo-setup.md)。
 
 ### 5. 查询发信配额
 
@@ -199,7 +199,7 @@ curl "https://你的域名/api/user/quota" \
 | 文档 | 说明 |
 |------|------|
 | [user-auth.md](./user-auth.md) | Session 登录、Token 创建、附件访问、提取规则、安全说明 |
-| [security.md](./security.md) | 鉴权模型、Legacy Token、部署检查清单 |
+| [security.md](./security.md) | 鉴权模型、部署检查清单 |
 | [mcp.md](./mcp.md) | `@zmailr/mcp` 工具与 Cursor 配置 |
 | [deploy.md](./deploy.md) | 部署与部署后验证 |
 | [文档首页](./) | 全部文档分类导航 |

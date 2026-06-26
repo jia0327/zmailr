@@ -12,7 +12,6 @@
 |------|------|------|
 | Web Dashboard | HttpOnly Session Cookie（HMAC，24h） | `POST /api/auth/login`；失败次数 IP 限流 |
 | 用户 API Token | `Authorization: Bearer` + SHA-256 哈希存储 | Scope：`lease` / `mail` / `send`；校验 `expires_at` |
-| Legacy `api_tokens` | 管理 API 创建的全局 Token（向后兼容） | 全 scope；**不推荐**新部署使用，见下文 |
 | 管理后台 | `ADMIN_PASSWORD` + Admin Session Cookie | URL 由 `ADMIN_PATH`（推荐 UUID）隐藏；登录 IP 限流 |
 | 公开端点 | 无鉴权 | `GET /api/health`、`/api/public/status`、`/api/config`、`/openapi.json` |
 
@@ -34,45 +33,25 @@
 | 配置项 | 管理后台位置 | 说明 |
 |--------|--------------|------|
 | 演示/普通用户 | **用户** 标签 | 创建用户名、密码、`daily_send_quota`、速率方案 |
-| Legacy Token 日发信上限 | **系统设置** | 每 IP 日上限（与用户配额独立）；默认 50，`-1` 表示不限 |
 
 ---
 
 ## 发信安全
 
 - **`from` 域名**：必须与 `MAIL_DOMAIN` 一致（无法伪造外域发件人）。
-- **`from` 所有权**：
-  - 用户 Session / 用户 Bearer：`from` 须为**当前用户名下**且未过期的临时邮箱。
-  - Legacy Token：仅可使用 **无主邮箱**（`mailboxes.user_id IS NULL`），不可冒用他人邮箱。
+- **`from` 所有权**：用户 Session / 用户 Bearer 的 `from` 须为**当前用户名下**且未过期的临时邮箱。
 - **默认发件人**：未指定 `from` 时使用 `no-reply@{MAIL_DOMAIN}`。
 - **`to` 校验**：须为合法邮箱格式。
 
 ---
 
-## 发信配额（两套体系，勿混淆）
+## 发信配额
 
 | 类型 | 配置位置 | 计数维度 | 适用对象 |
 |------|----------|----------|----------|
-| **用户日发信配额** | 管理后台 → **用户** → 日发信配额 | 按 `user_id` / UTC 日 | Dashboard 发信、`POST /api/send`（**用户 Bearer Token**） |
-| **Legacy Token 日发信上限** | 管理后台 → **系统设置** | 按 **IP** / UTC 日 | `POST /api/send`（**Legacy `api_tokens`**） |
+| **用户日发信配额** | 管理后台 → **用户** → 日发信配额 | 按 `user_id` / UTC 日 | Dashboard 发信、`POST /api/user/send`、`POST /api/send`（用户 Bearer Token） |
 
-用户 Token 走 `users.daily_send_quota`（`-1` 无限）；Legacy 全局 Token 与用户表无关，因此在系统设置中单独配置 IP 级上限。
-
----
-
-## Legacy API Token（`api_tokens`）
-
-管理 API `/{ADMIN_PATH}/api/tokens` 仍可创建全局 Token，行为如下：
-
-| 能力 | 限制 |
-|------|------|
-| 存储 | SHA-256 哈希（验签时自动升级旧明文记录） |
-| `GET /api/mailboxes` | **403**，禁止枚举全站邮箱 |
-| `POST /api/send` | 系统设置中的 Legacy 日发信上限（每 IP，默认 50） |
-| 速率 | 全局 IP 限流（默认 60 req/min），非 per-user |
-| 邮箱访问 | 可读**无主**邮箱；用户绑定邮箱须匹配用户 Token |
-
-**建议**：新集成使用 Dashboard → API 密钥（用户 Token + scope + 日配额）。
+`-1` 表示无限。配额通过 `GET /api/user/quota` 查询。
 
 ---
 
@@ -103,7 +82,7 @@
 ## 速率限制
 
 - 已登录用户 / 用户 Bearer：per-user `rate_limit_per_min` + 可选 burst。
-- Legacy Token / 未识别用户：全局 IP 60 req/min（`/api/*`）。
+- 未识别为用户的请求：全局 IP 60 req/min（`/api/*`）。
 - 响应头：`X-RateLimit-*`、`Retry-After`；超限 `429`。
 
 ---
@@ -121,7 +100,6 @@
 
 - 用户密码：PBKDF2-SHA256，10 万次迭代 + 随机 salt。
 - 用户 API Token：仅存 SHA-256 哈希；明文仅在创建时返回一次。
-- Legacy `api_tokens`：存哈希；列表 API 仅返回掩码。
 
 ---
 
@@ -150,7 +128,6 @@
 - [ ] `BREVO_API_KEY` 仅通过 `wrangler secret` / Actions Secret
 - [ ] Email Routing Catch-all 指向本 Worker
 - [ ] 演示账号（若需要）在管理后台 **用户** 中创建，勿依赖硬编码默认密码
-- [ ] 禁用或轮换遗留 legacy Token
 - [ ] 若前端与 API 不同域，已在 `CORS_ALLOWED_ORIGINS` 或域名变量中配置 Origin
 
 ---
@@ -159,4 +136,4 @@
 
 - [deploy.md](./deploy.md) — Secrets、部署验证
 - [user-auth.md](./user-auth.md) — Session、Scope、配额
-- [admin-guide.md](./admin-guide.md) — 审计日志、维护模式、系统设置
+- [admin-guide.md](./admin-guide.md) — 审计日志、维护模式、请求监控
