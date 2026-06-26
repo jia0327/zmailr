@@ -139,10 +139,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       </nav>
 
       <div className={`border-t space-y-2 ${collapsed ? 'md:p-2 p-3' : 'p-3'}`}>
-        <div className={`flex items-center ${collapsed ? 'md:justify-center gap-1 px-1' : 'gap-1 px-1'}`}>
-          <ThemeSwitcher />
-        </div>
         <div className={`flex flex-col gap-1 text-sm ${collapsed ? 'md:items-center' : ''}`}>
+          <ThemeSwitcher variant="sidebar" collapsed={collapsed} />
           <a
             href="/docs/"
             title={t('dashboard.docs')}

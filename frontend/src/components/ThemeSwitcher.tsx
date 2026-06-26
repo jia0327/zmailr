@@ -1,47 +1,70 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
+interface ThemeSwitcherProps {
+  variant?: 'default' | 'sidebar';
+  collapsed?: boolean;
+}
+
 /**
  * 主题切换组件
  * 用于在明亮和暗黑模式之间切换
  */
-const ThemeSwitcher: React.FC = () => {
+const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ variant = 'default', collapsed = false }) => {
   const { t } = useTranslation();
-  
-  // 从 localStorage 获取初始主题，如果不存在则默认为 'dark'
+
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme || 'dark';
   });
 
-  // 使用 useEffect 监听 theme 状态的变化，并应用到 <html> 元素上
   useEffect(() => {
     const root = window.document.documentElement;
-    // 先移除旧的 class，以防万一
     root.classList.remove(theme === 'light' ? 'dark' : 'light');
-    // 添加当前主题的 class
     root.classList.add(theme);
-    // 将当前主题保存到 localStorage
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // 定义切换主题的函数
   const toggleTheme = () => {
     setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
   };
 
+  const icon =
+    theme === 'light' ? (
+      <i className="fas fa-moon w-4 text-center shrink-0" />
+    ) : (
+      <i className="fas fa-sun w-4 text-center shrink-0" />
+    );
+
+  if (variant === 'sidebar') {
+    return (
+      <button
+        type="button"
+        onClick={toggleTheme}
+        className={`flex items-center rounded-md text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors min-h-10 w-full ${
+          collapsed ? 'md:justify-center md:px-2 md:py-2.5 gap-3 px-3 py-2' : 'gap-3 px-3 py-2'
+        }`}
+        aria-label={t('settings.toggleTheme')}
+        title={t('settings.toggleTheme')}
+      >
+        {icon}
+        <span className={collapsed ? 'md:sr-only' : undefined}>{t('settings.theme')}</span>
+      </button>
+    );
+  }
+
   return (
     <button
+      type="button"
       onClick={toggleTheme}
       className="w-8 h-8 flex items-center justify-center rounded-md transition-all duration-200 hover:bg-primary/20 hover:text-primary hover:scale-110"
       aria-label={t('settings.toggleTheme')}
       title={t('settings.toggleTheme')}
     >
-      {/* 根据当前主题显示不同的图标 */}
       {theme === 'light' ? (
-        <i className="fas fa-moon text-base"></i> // 亮色模式下，显示月亮图标以切换到暗色
+        <i className="fas fa-moon text-base" />
       ) : (
-        <i className="fas fa-sun text-base"></i> // 暗色模式下，显示太阳图标以切换到亮色
+        <i className="fas fa-sun text-base" />
       )}
     </button>
   );
