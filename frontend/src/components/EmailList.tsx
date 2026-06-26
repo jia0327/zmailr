@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { API_BASE_URL } from '../config';
 import { MailboxContext } from '../contexts/MailboxContext';
 import EmailDetail from './EmailDetail';
 import OtpBox from './OtpBox';
@@ -24,6 +25,7 @@ const EmailList: React.FC<EmailListProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [reExtractingId, setReExtractingId] = useState<string | null>(null);
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
@@ -54,6 +56,30 @@ const EmailList: React.FC<EmailListProps> = ({
 
   const handleRefresh = () => refreshEmails(true);
   const toggleAutoRefresh = () => setAutoRefresh(!autoRefresh);
+
+  const handleReExtract = async (emailId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      setReExtractingId(emailId);
+      const response = await fetch(`${API_BASE_URL}/api/user/emails/${emailId}/re-extract`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to re-extract');
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Unknown error');
+      setEmails(emails.map((item) => (item.id === emailId ? { ...item, ...data.email } : item)));
+      if (data.email.extractedCode) {
+        showSuccessMessage(t('email.reExtractSuccess'));
+      } else {
+        showErrorMessage(t('email.reExtractNoCode'));
+      }
+    } catch {
+      showErrorMessage(t('email.reExtractFailed'));
+    } finally {
+      setReExtractingId(null);
+    }
+  };
 
   const handleDeleteMailbox = async () => {
     if (window.confirm(t('mailbox.confirmDelete'))) {
@@ -253,11 +279,25 @@ const EmailList: React.FC<EmailListProps> = ({
                         onCopy={() => showSuccessMessage(t('common.copied'))}
                       />
                     ) : (
-                      <NoOtpHint
-                        fromAddress={email.fromAddress}
-                        subject={email.subject}
-                        variant="inline"
-                      />
+                      <>
+                        <NoOtpHint
+                          fromAddress={email.fromAddress}
+                          subject={email.subject}
+                          variant="inline"
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => handleReExtract(email.id, e)}
+                          disabled={reExtractingId === email.id}
+                          className="shrink-0 p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-50"
+                          title={t('email.reExtract')}
+                        >
+                          <i
+                            className={`fas fa-sync-alt text-[10px] ${reExtractingId === email.id ? 'animate-spin' : ''}`}
+                            aria-hidden
+                          />
+                        </button>
+                      </>
                     )}
                   </div>
                   <span className="text-xs text-muted-foreground whitespace-nowrap sm:text-right font-normal">

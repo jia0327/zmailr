@@ -311,7 +311,11 @@
     "noExtractedCode": "未提取到验证码",
     "noExtractedCodeBody": "请确认邮件正文是否包含验证码；若有，请前往「提取规则」添加该发件人域名的自定义规则。",
     "noExtractedCodeStrong": "主题疑似验证码邮件，但未提取到验证码。请检查邮件正文，或立即添加自定义提取规则。",
-    "addExtractRule": "前往提取规则"
+    "addExtractRule": "前往提取规则",
+    "reExtract": "重新提取",
+    "reExtractSuccess": "已重新提取验证码",
+    "reExtractFailed": "重新提取失败",
+    "reExtractNoCode": "仍未提取到验证码"
   },
   "settings": {
     "theme": "主题",

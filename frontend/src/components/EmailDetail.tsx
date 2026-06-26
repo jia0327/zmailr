@@ -23,11 +23,20 @@ interface Attachment {
 
 const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
   const { t } = useTranslation();
-  const { emailCache, addToEmailCache, handleMailboxNotFound, showErrorMessage, showSuccessMessage } = useContext(MailboxContext);
+  const {
+    emailCache,
+    addToEmailCache,
+    handleMailboxNotFound,
+    showErrorMessage,
+    showSuccessMessage,
+    emails,
+    setEmails,
+  } = useContext(MailboxContext);
   const [email, setEmail] = useState<Email | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
+  const [isReExtracting, setIsReExtracting] = useState(false);
 
   useEffect(() => {
     const fetchEmail = async () => {
@@ -124,6 +133,45 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
       }
     } catch (error) {
       showErrorMessage(t('email.deleteFailed'));
+    }
+  };
+
+  const applyEmailUpdate = (updated: Email) => {
+    setEmail(updated);
+    addToEmailCache(emailId, updated, attachments);
+    setEmails(emails.map((item: Email) => (item.id === emailId ? { ...item, ...updated } : item)));
+  };
+
+  const handleReExtract = async () => {
+    try {
+      setIsReExtracting(true);
+      const response = await fetch(`${API_BASE_URL}/api/user/emails/${emailId}/re-extract`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          await handleMailboxNotFound();
+          onClose();
+          return;
+        }
+        throw new Error('Failed to re-extract');
+      }
+
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Unknown error');
+
+      applyEmailUpdate(data.email);
+      if (data.email.extractedCode) {
+        showSuccessMessage(t('email.reExtractSuccess'));
+      } else {
+        showErrorMessage(t('email.reExtractNoCode'));
+      }
+    } catch {
+      showErrorMessage(t('email.reExtractFailed'));
+    } finally {
+      setIsReExtracting(false);
     }
   };
 
@@ -258,6 +306,14 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
               </div>
             </div>
             <div className="flex gap-1 shrink-0">
+              <button
+                onClick={handleReExtract}
+                disabled={isReExtracting}
+                className="p-2 rounded-md hover:bg-muted transition-colors disabled:opacity-50"
+                title={t('email.reExtract')}
+              >
+                <i className={`fas fa-sync-alt text-sm ${isReExtracting ? 'animate-spin' : ''}`}></i>
+              </button>
               <button onClick={onClose} className="p-2 rounded-md hover:bg-muted transition-colors" title={t('common.close')}>
                 <i className="fas fa-times"></i>
               </button>

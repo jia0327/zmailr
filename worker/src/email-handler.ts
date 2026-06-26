@@ -114,7 +114,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-function stripHtml(html: string): string {
+export function stripHtml(html: string): string {
   const noScript = html
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ');

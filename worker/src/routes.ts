@@ -50,6 +50,7 @@ import {
   getLegacySendDailyQuota,
 } from './database';
 import { generateRandomAddress, getMailDomain, parseMailboxAddress, getCurrentTimestamp, validateExtractRuleInput, isValidEmailAddress } from './utils';
+import { reExtractSingleEmail, scheduleReExtractAfterRuleChange } from './re-extract';
 import {
   authenticateApiToken,
   hasScope,
@@ -494,6 +495,24 @@ app.delete('/api/emails/:id', async (c) => {
   }
 });
 
+// 重新提取验证码（Bearer mail scope 或登录会话 + 所有权）
+app.post('/api/emails/:id/re-extract', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const access = await requireEmailAccess(c, id, 'mail');
+    if (access instanceof Response) return access;
+
+    const email = await reExtractSingleEmail(c.env.DB, id);
+    if (!email) {
+      return c.json({ success: false, error: '邮件不存在' }, 404);
+    }
+
+    return c.json({ success: true, email });
+  } catch (error) {
+    return c.json(apiInternalError('重新提取验证码失败', error), 500);
+  }
+});
+
 // ─── 用户认证（Web 会话） ─────────────────────────────────────
 
 async function requireUserSession(c: any): Promise<Response | null> {
@@ -692,6 +711,11 @@ app.post('/api/user/extract-rules', async (c) => {
     remark: body.remark,
     userId: user.id,
   });
+  scheduleReExtractAfterRuleChange(c.executionCtx, c.env.DB, {
+    userId: user.id,
+    domain: rule.domain,
+    enabled: rule.enabled,
+  });
   return c.json({ success: true, rule });
 });
 
@@ -715,6 +739,11 @@ app.put('/api/user/extract-rules/:id', async (c) => {
     }
   );
   if (!rule) return c.json({ success: false, error: '规则不存在' }, 404);
+  scheduleReExtractAfterRuleChange(c.executionCtx, c.env.DB, {
+    userId: user.id,
+    domain: rule.domain,
+    enabled: rule.enabled,
+  });
   return c.json({ success: true, rule });
 });
 
@@ -911,6 +940,26 @@ app.delete('/api/user/emails', async (c) => {
     return c.json({ success: true, deleted });
   } catch (error) {
     return c.json(apiInternalError('删除邮件失败', error), 500);
+  }
+});
+
+app.post('/api/user/emails/:id/re-extract', async (c) => {
+  const authErr = await requireUserSession(c);
+  if (authErr) return authErr;
+
+  try {
+    const id = c.req.param('id');
+    const access = await requireEmailAccess(c, id, 'mail');
+    if (access instanceof Response) return access;
+
+    const email = await reExtractSingleEmail(c.env.DB, id);
+    if (!email) {
+      return c.json({ success: false, error: '邮件不存在' }, 404);
+    }
+
+    return c.json({ success: true, email });
+  } catch (error) {
+    return c.json(apiInternalError('重新提取验证码失败', error), 500);
   }
 });
 

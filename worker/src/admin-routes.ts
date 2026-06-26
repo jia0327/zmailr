@@ -32,6 +32,7 @@ import {
 } from './database';
 import { validateExtractRuleInput } from './utils';
 import { testRunExtractRules } from './extractor';
+import { scheduleReExtractAfterRuleChange } from './re-extract';
 import {
   isAdminAuthenticated,
   verifyAdminPassword,
@@ -275,6 +276,10 @@ export function createAdminApp(): Hono<{ Bindings: Env }> {
       enabled: body.enabled,
       remark: body.remark,
     });
+    scheduleReExtractAfterRuleChange(c.executionCtx, c.env.DB, {
+      domain: rule.domain,
+      enabled: rule.enabled,
+    });
     c.executionCtx.waitUntil(
       writeAuditLog(c.env.DB, {
         actorType: 'admin',
@@ -302,6 +307,10 @@ export function createAdminApp(): Hono<{ Bindings: Env }> {
       remark: body.remark,
     });
     if (!rule) return c.json({ success: false, error: '规则不存在' }, 404);
+    scheduleReExtractAfterRuleChange(c.executionCtx, c.env.DB, {
+      domain: rule.domain,
+      enabled: rule.enabled,
+    });
     c.executionCtx.waitUntil(
       writeAuditLog(c.env.DB, {
         actorType: 'admin',

@@ -717,7 +717,7 @@ export async function getEmails(db: D1Database, mailboxId: string): Promise<Emai
  * @param id 邮件ID
  * @returns 邮件详情
  */
-export async function getEmail(db: D1Database, id: string): Promise<Email | null> {
+export async function getEmail(db: D1Database, id: string, markRead = true): Promise<Email | null> {
   const result = await db.prepare(
     `SELECT e.id, e.mailbox_id, e.from_address, e.from_name, e.to_address, e.subject,
             e.text_content, e.html_content, e.received_at, e.has_attachments, e.is_read,
@@ -729,9 +729,11 @@ export async function getEmail(db: D1Database, id: string): Promise<Email | null
   ).bind(id).first();
   
   if (!result) return null;
-  
-  // 标记为已读
-  await db.prepare(`UPDATE emails SET is_read = 1 WHERE id = ?`).bind(id).run();
+
+  const wasRead = !!result.is_read;
+  if (markRead && !wasRead) {
+    await db.prepare(`UPDATE emails SET is_read = 1 WHERE id = ?`).bind(id).run();
+  }
   
   return {
     id: result.id as string,
@@ -744,13 +746,98 @@ export async function getEmail(db: D1Database, id: string): Promise<Email | null
     htmlContent: result.html_content as string,
     receivedAt: result.received_at as number,
     hasAttachments: !!result.has_attachments,
-    isRead: true,
+    isRead: markRead || wasRead,
     extractedCode: (result.extracted_code as string | null) ?? null,
     matchedRuleId: (result.matched_rule_id as number | null) ?? null,
     matchedRuleDomain: (result.matched_rule_domain as string | null) ?? null,
     matchedRuleRemark: (result.matched_rule_remark as string | null) ?? null,
     rawContent: (result.raw_content as string | null) ?? null,
   };
+}
+
+export interface EmailReExtractRow {
+  id: string;
+  fromAddress: string;
+  subject: string;
+  textContent: string;
+  htmlContent: string;
+  mailboxUserId: number | null;
+}
+
+export async function getEmailReExtractRow(
+  db: D1Database,
+  emailId: string
+): Promise<EmailReExtractRow | null> {
+  const result = await db
+    .prepare(
+      `SELECT e.id, e.from_address, e.subject, e.text_content, e.html_content, m.user_id AS mailbox_user_id
+       FROM emails e
+       JOIN mailboxes m ON e.mailbox_id = m.id
+       WHERE e.id = ?`
+    )
+    .bind(emailId)
+    .first();
+
+  if (!result) return null;
+
+  return {
+    id: result.id as string,
+    fromAddress: result.from_address as string,
+    subject: (result.subject as string) ?? '',
+    textContent: (result.text_content as string) ?? '',
+    htmlContent: (result.html_content as string) ?? '',
+    mailboxUserId: (result.mailbox_user_id as number | null) ?? null,
+  };
+}
+
+export async function listEmailsWithoutExtractedCode(
+  db: D1Database,
+  opts: { userId?: number; domain?: string; limit?: number }
+): Promise<EmailReExtractRow[]> {
+  const limit = opts.limit ?? 100;
+  let sql = `
+    SELECT e.id, e.from_address, e.subject, e.text_content, e.html_content, m.user_id AS mailbox_user_id
+    FROM emails e
+    JOIN mailboxes m ON e.mailbox_id = m.id
+    WHERE (e.extracted_code IS NULL OR e.extracted_code = '')`;
+  const binds: unknown[] = [];
+
+  if (opts.userId != null) {
+    sql += ` AND m.user_id = ?`;
+    binds.push(opts.userId);
+  }
+
+  if (opts.domain) {
+    sql += ` AND LOWER(e.from_address) LIKE ?`;
+    binds.push(`%@${opts.domain.toLowerCase()}`);
+  }
+
+  sql += ` ORDER BY e.received_at DESC LIMIT ?`;
+  binds.push(limit);
+
+  const results = await db.prepare(sql).bind(...binds).all();
+  if (!results.results) return [];
+
+  return results.results.map((row) => ({
+    id: row.id as string,
+    fromAddress: row.from_address as string,
+    subject: (row.subject as string) ?? '',
+    textContent: (row.text_content as string) ?? '',
+    htmlContent: (row.html_content as string) ?? '',
+    mailboxUserId: (row.mailbox_user_id as number | null) ?? null,
+  }));
+}
+
+export async function updateEmailExtractResult(
+  db: D1Database,
+  emailId: string,
+  extractedCode: string | null,
+  matchedRuleId: number | null
+): Promise<void> {
+  await db
+    .prepare(`UPDATE emails SET extracted_code = ?, matched_rule_id = ? WHERE id = ?`)
+    .bind(extractedCode, matchedRuleId, emailId)
+    .run();
 }
 
 export async function getEmailRawContent(db: D1Database, id: string): Promise<string | null> {
