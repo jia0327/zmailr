@@ -179,7 +179,7 @@ POST /api/send            （可选）以租用的地址发信
 
 | 层级 | 规则 |
 |------|------|
-| **按用户**（会话或用户 Bearer Token） | 滑动窗口 1 分钟；`rate_limit_per_min` + 可选 `rate_limit_burst` |
+| **按用户**（会话或用户 Bearer Token） | 固定 1 分钟窗口；`rate_limit_per_min` + 可选 `rate_limit_burst` |
 | **全局 IP 兜底** | 未识别为用户时（如 legacy Token）默认 **60 req/min** |
 | **管理预设** | Admin → 用户弹窗：Free 60/min、Pro 600/min + burst 30、Team 3000/min + burst 200、自定义 |
 

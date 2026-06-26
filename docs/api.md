@@ -106,12 +106,14 @@ Web Dashboard 专用路由（Session Cookie）见 [user-auth.md](./user-auth.md)
 
 ## 速率限制
 
-按**用户**分桶（1 分钟滑动窗口）。响应头：
+`/api/*` 对 **已登录用户**（Session 或用户 Bearer Token）**按用户限流**：固定 **1 分钟**计数窗口，配额为 `rate_limit_per_min`（每分钟 sustained 请求数），可选 `rate_limit_burst`（同一窗口内额外突发次数）。**Legacy** admin Token 与未识别为用户的请求走 **全局 IP 限流**（默认 60 req/min，按 `CF-Connecting-IP`）。
+
+响应头：
 
 | 头 | 说明 |
 |----|------|
-| `X-RateLimit-Limit` |  sustained 速率（req/min） |
-| `X-RateLimit-Remaining` | 剩余请求数 |
+| `X-RateLimit-Limit` | sustained 速率（req/min），不含 burst |
+| `X-RateLimit-Remaining` | 当前窗口剩余可用次数（含 burst 额度） |
 | `X-RateLimit-Reset` | 窗口重置 Unix 时间戳 |
 | `Retry-After` | 超限时建议等待秒数 |
 
@@ -124,7 +126,7 @@ Web Dashboard 专用路由（Session Cookie）见 [user-auth.md](./user-auth.md)
 | Team | 3000 | 200 |
 | 自定义 | 手动填写 | 可选 |
 
-Legacy admin Token 与未识别用户的请求回退到**全局 IP 限流**（默认 60 req/min）。管理员配置与 429 监控见 [admin-guide.md](./admin-guide.md)。
+管理员配置与 429 监控见 [admin-guide.md](./admin-guide.md)。
 
 ---
 

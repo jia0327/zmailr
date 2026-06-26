@@ -149,7 +149,7 @@ Authorization: Bearer <user-token>
 
 ## 按用户 API 速率限制
 
-每位用户可选 `rate_limit_per_min` 与 `rate_limit_burst`（D1 `users` 表）。Session 或**用户 Bearer Token** 请求消耗按用户分桶（1 分钟滑动窗口）：
+每位用户可选 `rate_limit_per_min` 与 `rate_limit_burst`（D1 `users` 表）。Session 或**用户 Bearer Token** 请求按用户限流（固定 1 分钟窗口）：
 
 | 方案（管理后台） |  sustained (req/min) | 突发 (burst) |
 |-----------------|---------------------|--------------|
@@ -158,7 +158,7 @@ Authorization: Bearer <user-token>
 | Team | 3000 | 200 |
 | 自定义 | 手动填写 | 可选 |
 
-`/api/*` 响应头：`X-RateLimit-Limit`（ sustained 速率）、`X-RateLimit-Remaining`、`X-RateLimit-Reset`、`Retry-After`。超限返回 `429` + `{ "error": "rate_limit" }`。
+`/api/*` 响应头：`X-RateLimit-Limit`（sustained 速率，不含 burst）、`X-RateLimit-Remaining`（含 burst 剩余额度）、`X-RateLimit-Reset`、`Retry-After`。超限返回 `429` + `{ "error": "rate_limit" }`。
 
 **Legacy** admin API Token 与未识别为用户的请求回退到**全局 IP 限流**（默认 60 req/min）。
 

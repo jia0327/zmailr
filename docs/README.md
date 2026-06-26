@@ -93,7 +93,7 @@ Authorization: Bearer YOUR_TOKEN
 
 ### 速率限制
 
-按用户分桶（1 分钟滑动窗口），响应头 `X-RateLimit-*`；超限 `429`。
+已登录用户按用户限流（固定 1 分钟窗口）；未识别用户按 IP 限流（默认 60 req/min）。响应头 `X-RateLimit-*`；超限 `429`。
 
 | 方案 | sustained (req/min) | 突发 (burst) |
 |------|---------------------|--------------|

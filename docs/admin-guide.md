@@ -38,7 +38,7 @@ Legacy **无配额 API Token** 仍可通过管理 API（`GET/POST/DELETE /{ADMIN
 
 ## 用户与速率限制
 
-每位用户除 **日发信配额**（`daily_send_quota`，`-1` 为无限）外，还有 **API 速率限制**（按用户 ID 分桶，滑动窗口 1 分钟）：
+每位用户除 **日发信配额**（`daily_send_quota`，`-1` 为无限）外，还有 **API 速率限制**（按用户 ID 计数，固定 1 分钟窗口）：
 
 | 方案 |  sustained (req/min) | 突发 (burst) | 说明 |
 |------|---------------------|--------------|------|
@@ -47,7 +47,7 @@ Legacy **无配额 API Token** 仍可通过管理 API（`GET/POST/DELETE /{ADMIN
 | **Team** | 3000 | 200 | 高并发脚本 |
 | **自定义** | 手动填写 | 可选 | 覆盖上述预设 |
 
-- 响应头：`X-RateLimit-Limit`（ sustained 速率）、`X-RateLimit-Remaining`、`X-RateLimit-Reset`、`Retry-After`
+- 响应头：`X-RateLimit-Limit`（sustained 速率，不含 burst）、`X-RateLimit-Remaining`（含 burst 剩余额度）、`X-RateLimit-Reset`、`Retry-After`
 - 未识别为登录用户/用户 Token 的请求（如 legacy Token）走 **全局 IP 限流**（默认 60 req/min）
 - 在用户弹窗中选择方案会自动填充数值；保存后写入 D1 `users.rate_limit_per_min` / `rate_limit_burst`
 
