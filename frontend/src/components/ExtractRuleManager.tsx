@@ -18,7 +18,11 @@ const emptyForm = {
   remark: '',
 };
 
-const ExtractRuleManager: React.FC = () => {
+interface ExtractRuleManagerProps {
+  prefillDomain?: string | null;
+}
+
+const ExtractRuleManager: React.FC<ExtractRuleManagerProps> = ({ prefillDomain }) => {
   const { t } = useTranslation();
   const [rules, setRules] = useState<ExtractRuleItem[]>([]);
   const [globalRules, setGlobalRules] = useState<GlobalExtractRuleItem[]>([]);
@@ -44,6 +48,14 @@ const ExtractRuleManager: React.FC = () => {
   useEffect(() => {
     loadRules();
   }, [loadRules]);
+
+  useEffect(() => {
+    if (!prefillDomain) return;
+    setForm((f) => ({ ...f, domain: prefillDomain }));
+    setEditingId(null);
+    setShowForm(true);
+    setError('');
+  }, [prefillDomain]);
 
   const resetForm = () => {
     setForm(emptyForm);

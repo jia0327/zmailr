@@ -1,10 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import DashboardPageHeader from '../components/DashboardPageHeader';
 import ExtractRuleManager from '../components/ExtractRuleManager';
 
 const ExtractRulesPage: React.FC = () => {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const prefillDomain = searchParams.get('domain')?.trim() || null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -17,7 +20,7 @@ const ExtractRulesPage: React.FC = () => {
         <p className="font-medium text-foreground mb-1">{t('extractRules.priorityHintTitle')}</p>
         <p>{t('extractRules.priorityHintBody')}</p>
       </div>
-      <ExtractRuleManager />
+      <ExtractRuleManager prefillDomain={prefillDomain} />
     </div>
   );
 };

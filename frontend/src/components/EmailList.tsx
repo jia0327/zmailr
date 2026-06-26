@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { MailboxContext } from '../contexts/MailboxContext';
 import EmailDetail from './EmailDetail';
 import OtpBox from './OtpBox';
+import NoOtpHint from './NoOtpHint';
 import { deleteUserEmails } from '../utils/api';
 
 interface EmailListProps {
@@ -242,7 +243,7 @@ const EmailList: React.FC<EmailListProps> = ({
                         aria-hidden
                       />
                     )}
-                    {email.extractedCode && (
+                    {email.extractedCode ? (
                       <OtpBox
                         code={email.extractedCode}
                         size="sm"
@@ -250,6 +251,12 @@ const EmailList: React.FC<EmailListProps> = ({
                         matchedRuleId={email.matchedRuleId}
                         matchedRuleDomain={email.matchedRuleDomain}
                         onCopy={() => showSuccessMessage(t('common.copied'))}
+                      />
+                    ) : (
+                      <NoOtpHint
+                        fromAddress={email.fromAddress}
+                        subject={email.subject}
+                        variant="inline"
                       />
                     )}
                   </div>

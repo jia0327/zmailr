@@ -307,7 +307,11 @@
     "verificationCode": "验证码",
     "otpLabel": "OTP",
     "clickToCopy": "点击复制",
-    "extractedByRule": "由规则 #{{id}} ({{domain}}) 提取"
+    "extractedByRule": "由规则 #{{id}} ({{domain}}) 提取",
+    "noExtractedCode": "未提取到验证码",
+    "noExtractedCodeBody": "请确认邮件正文是否包含验证码；若有，请前往「提取规则」添加该发件人域名的自定义规则。",
+    "noExtractedCodeStrong": "主题疑似验证码邮件，但未提取到验证码。请检查邮件正文，或立即添加自定义提取规则。",
+    "addExtractRule": "前往提取规则"
   },
   "settings": {
     "theme": "主题",
