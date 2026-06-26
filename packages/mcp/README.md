@@ -11,6 +11,12 @@ Chinese docs: [docs/mcp.md](../../docs/mcp.md) · [docs/README.md](../../docs/RE
 | `lease_mailbox` | `POST /api/lease` | Create a random 24h mailbox |
 | `wait_for_mail` | `GET /api/mail` | Long-poll for mail / OTP |
 | `get_latest_code` | `GET /api/mailboxes/:address/latest-code` | Instant latest OTP |
+| `get_latest_link` | `GET /api/mailboxes/:address/latest-link` | Instant latest verification link |
+| `list_mailboxes` | `GET /api/mailboxes` | List user mailboxes |
+| `list_emails` | `GET /api/mailboxes/:address/emails` | List emails in a mailbox |
+| `delete_mailbox` | `DELETE /api/mailboxes/:address` | Delete mailbox and its emails |
+| `get_email` | `GET /api/emails/:id` | Single email details |
+| `delete_email` | `DELETE /api/emails/:id` | Delete a single email |
 | `send_email` | `POST /api/send` | Outbound send (Brevo) |
 | `get_quota` | `GET /api/user/quota` | Daily send quota |
 
@@ -21,15 +27,11 @@ Chinese docs: [docs/mcp.md](../../docs/mcp.md) · [docs/README.md](../../docs/RE
 | `ZMAILR_BASE_URL` | Yes | Deployment base URL (e.g. `https://zmailr.example.com`) |
 | `ZMAILR_TOKEN` | Yes | Bearer API token from Dashboard → API Keys |
 
-## npm publish status
-
-As of 2026-06, **`@zmailr/mcp` is not published** to the npm registry. Use the [local monorepo configuration](#local-monorepo-development) below until it is published.
-
 Demo site `ZMAILR_BASE_URL`: `https://zmailr.itool.eu.cc`
 
 ## Cursor MCP configuration
 
-Add to `.cursor/mcp.json` (or Cursor Settings → MCP). The `npx` example below applies **after npm publish**; until then use local monorepo development.
+Add to `.cursor/mcp.json` (or Cursor Settings → MCP). Copy [`.cursor/mcp.json.example`](../../.cursor/mcp.json.example) as a starting point.
 
 ```json
 {
@@ -65,12 +67,26 @@ Add to `.cursor/mcp.json` (or Cursor Settings → MCP). The `npx` example below 
 
 Build first: `pnpm --filter @zmailr/mcp run build`
 
+## Claude Desktop
+
+Same `mcpServers` structure as Cursor. Config file locations:
+
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
 ## Token scopes
 
 - `lease_mailbox` → `lease`
-- `wait_for_mail`, `get_latest_code` → `mail`
+- `wait_for_mail`, `get_latest_code`, `get_latest_link`, `list_mailboxes`, `list_emails`, `delete_mailbox`, `get_email`, `delete_email` → `mail`
 - `send_email` → `send`
 - `get_quota` → any user token scope
+
+## Development
+
+```bash
+pnpm --filter @zmailr/mcp run build
+pnpm --filter @zmailr/mcp run test
+```
 
 ## Install
 

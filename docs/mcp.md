@@ -5,7 +5,7 @@
 [zMailR](https://github.com/jia0327/zmailr) 提供 npm 包 **`@zmailr/mcp`**，作为 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) 服务器，供 Cursor、Claude Desktop 等 AI 助手调用临时邮箱与 OTP 自动化能力。
 源码与英文 README 见 [packages/mcp README](https://github.com/jia0327/zmailr/blob/main/packages/mcp/README.md)。
 
-> **npm 发布状态**：截至 2026-06，`@zmailr/mcp` **尚未发布**到 [npm registry](https://www.npmjs.com/package/@zmailr/mcp)。发布前请使用下方「[本地 monorepo 开发](#本地-monorepo-开发)」配置；`npx @zmailr/mcp` 与 `npm install -g @zmailr/mcp` 暂不可用。
+> **npm 发布状态**：`@zmailr/mcp` 可通过 `npx @zmailr/mcp` 使用（发布后）；发布前请使用下方「[本地 monorepo 开发](#本地-monorepo-开发)」或仓库根目录 [`.cursor/mcp.json.example`](../.cursor/mcp.json.example)。
 
 ---
 
@@ -16,6 +16,12 @@
 | `lease_mailbox` | `POST /api/lease` | 创建随机 24 小时临时邮箱 |
 | `wait_for_mail` | `GET /api/mail` | 长轮询等待收信 / OTP |
 | `get_latest_code` | `GET /api/mailboxes/:address/latest-code` | 即时查询最新验证码 |
+| `get_latest_link` | `GET /api/mailboxes/:address/latest-link` | 即时查询最新验证链接 |
+| `list_mailboxes` | `GET /api/mailboxes` | 列出当前用户的邮箱 |
+| `list_emails` | `GET /api/mailboxes/:address/emails` | 列出邮箱内邮件 |
+| `delete_mailbox` | `DELETE /api/mailboxes/:address` | 删除邮箱及其中邮件 |
+| `get_email` | `GET /api/emails/:id` | 单封邮件详情 |
+| `delete_email` | `DELETE /api/emails/:id` | 删除单封邮件 |
 | `send_email` | `POST /api/send` | Brevo 出站发信 |
 | `get_quota` | `GET /api/user/quota` | 查询日发信配额与用量 |
 
@@ -37,7 +43,7 @@
 | MCP 工具 | 所需 scope |
 |----------|------------|
 | `lease_mailbox` | `lease` |
-| `wait_for_mail`、`get_latest_code` | `mail` |
+| `wait_for_mail`、`get_latest_code`、`get_latest_link`、`list_mailboxes`、`list_emails`、`delete_mailbox`、`get_email`、`delete_email` | `mail` |
 | `send_email` | `send` |
 | `get_quota` | 任意用户 Token scope 均可 |
 
@@ -47,7 +53,9 @@
 
 ## Cursor 配置
 
-在 `.cursor/mcp.json` 或 **Cursor Settings → MCP** 中添加。`ZMAILR_BASE_URL` 填你的实例地址；使用 [演示站](https://zmailr.itool.eu.cc/) 时可填 `https://zmailr.itool.eu.cc`：
+在 `.cursor/mcp.json` 或 **Cursor Settings → MCP** 中添加。可复制仓库根目录 [`.cursor/mcp.json.example`](../.cursor/mcp.json.example) 为 `.cursor/mcp.json` 并填入 Token（该文件已 gitignore，勿提交）。
+
+`ZMAILR_BASE_URL` 填你的实例地址；使用 [演示站](https://zmailr.itool.eu.cc/) 时可填 `https://zmailr.itool.eu.cc`：
 
 ```json
 {
@@ -89,6 +97,36 @@
 
 ---
 
+## Claude Desktop 配置
+
+Claude Desktop 使用与 Cursor 相同的 `mcpServers` 结构。编辑配置文件：
+
+| 平台 | 路径 |
+|------|------|
+| **Windows** | `%APPDATA%\Claude\claude_desktop_config.json` |
+| **macOS** | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+
+示例（npm 发布后）：
+
+```json
+{
+  "mcpServers": {
+    "zmailr": {
+      "command": "npx",
+      "args": ["-y", "@zmailr/mcp"],
+      "env": {
+        "ZMAILR_BASE_URL": "https://zmailr.itool.eu.cc",
+        "ZMAILR_TOKEN": "your-bearer-token"
+      }
+    }
+  }
+}
+```
+
+本地 monorepo 开发时将 `command` 改为 `node`，`args` 改为 monorepo 内 `packages/mcp/dist/index.js` 的绝对路径。修改后需重启 Claude Desktop。
+
+---
+
 ## 安装方式
 
 npm 包发布后可用：
@@ -105,7 +143,7 @@ npm install -g @zmailr/mcp
 1. 在 Dashboard 创建含 `lease`、`mail` scope 的 Bearer Token。
 2. 配置 MCP 环境变量后，在 AI 助手中调用 `lease_mailbox` 获取临时地址。
 3. 在目标站点使用该地址注册或验证。
-4. 调用 `wait_for_mail` 或 `get_latest_code` 获取 OTP。
+4. 调用 `wait_for_mail`、`get_latest_code` 或 `get_latest_link` 获取 OTP 或验证链接。
 
 ---
 

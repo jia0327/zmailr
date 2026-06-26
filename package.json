@@ -7,8 +7,8 @@
     "dev:frontend": "pnpm --filter frontend run dev",
     "dev:backend": "wrangler dev",
     "dev:docs": "pnpm --filter @zmail/docs-site run dev",
-    "build": "tsx scripts/generate-openapi.ts && pnpm --filter @zmail/docs-site run build && pnpm --filter frontend run build && node scripts/finalize-docs-build.mjs",
-    "test": "pnpm --filter @zmail/worker run test",
+    "build": "tsx scripts/generate-openapi.ts && pnpm --filter @zmail/docs-site run build && pnpm --filter frontend run build && pnpm --filter @zmailr/mcp run build && node scripts/finalize-docs-build.mjs",
+    "test": "pnpm --filter @zmail/worker run test && pnpm --filter @zmailr/mcp run test",
     "deploy": "wrangler deploy"
   },
   "keywords": [],

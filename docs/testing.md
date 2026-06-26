@@ -39,7 +39,7 @@
 | | `/docs/testing` | 本测试报告 |
 | | `/docs/api-interactive` | 交互式 API 文档 |
 | | `/openapi.json` | 机器可读 OpenAPI |
-| **MCP** | `@zmailr/mcp` | npm **尚未发布**；见 [mcp.md](./mcp.md) 本地 monorepo 配置 |
+| **MCP** | `@zmailr/mcp` | 单元测试（工具注册、env 校验、mock API）；见 [mcp.md](./mcp.md) |
 | **Ops** | `GET /api/health` | 静态 `{ status: "ok" }` |
 | | `GET /api/public/status` | D1/R2/Brevo 依赖探测 + 维护模式 |
 | | D1 备份 | [backup.md](./backup.md) — `scripts/backup-d1-to-r2.mjs` |
@@ -74,7 +74,7 @@
 | 22 | 管理后台 · 请求监控图表 | Pass | ![请求监控](./screenshots/admin-request-monitor.png) |
 | 23 | 管理后台 · 用户 / 规则 / 设置 / 审计 | Pass | ![用户](./screenshots/admin-users.png) · ![规则](./screenshots/admin-rules.png) · ![系统设置](./screenshots/admin-settings.png) · ![审计](./screenshots/admin-audit.png) |
 | 24 | Ops · `GET /api/health` | Pass | `{"status":"ok"}` |
-| 25 | MCP · `@zmailr/mcp` | 文档就绪 | npm 未发布；见 [mcp.md](./mcp.md) |
+| 25 | MCP · `@zmailr/mcp` | Pass | `pnpm --filter @zmailr/mcp test` — 11 工具注册、env 校验、mock fetch |
 | 26 | Ops · D1 备份脚本 | 文档就绪 | 见 [backup.md](./backup.md) |
 
 ## API 脚本验证

@@ -4,12 +4,19 @@
   "description": "MCP server for zMailR temporary email API",
   "type": "module",
   "bin": {
-    "zmailr-mcp": "./dist/index.js"
+    "zmailr-mcp": "dist/index.js"
   },
   "main": "./dist/index.js",
   "files": ["dist", "README.md"],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
+    "test": "tsx --test src/lib.test.ts",
     "prepublishOnly": "pnpm run build"
   },
   "keywords": ["mcp", "zmailr", "temporary-email", "otp"],
