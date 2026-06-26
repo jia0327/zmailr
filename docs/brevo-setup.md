@@ -1,7 +1,8 @@
 # Brevo 发信配置指南
 
-`/api/send` 默认通过 [Brevo](https://www.brevo.com/)（原 Sendinblue）Transactional Email API 发信。默认发件地址为 `no-reply@你的域名`，发件人显示名 `zMailR`。传入 JSON 字段 `from`（须为 D1 中已租用且未过期的临时邮箱完整地址，如 `abc123@你的域名`）时，将以该地址发信，显示名为 local-part。
+> **文档导航** → [README.md](./README.md) · **API 发信端点** → [api.md](./api.md)
 
+`/api/send` 默认通过 [Brevo](https://www.brevo.com/)（原 Sendinblue）Transactional Email API 发信。默认发件地址为 `no-reply@你的域名`，发件人显示名 `zMailR`。传入 JSON 字段 `from`（须为 D1 中已租用且未过期的临时邮箱完整地址，如 `abc123@你的域名`）时，将以该地址发信，显示名为 local-part。
 > 免费计划约 **300 封/天**。`/api/send` 发信需配置 `BREVO_API_KEY`。
 
 ---

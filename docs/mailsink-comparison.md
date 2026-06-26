@@ -1,5 +1,7 @@
 # zMailR 与 MailSink 功能对照
 
+> **文档导航** → [README.md](./README.md) · **API 端点速查** → [api.md](./api.md)
+
 > 参考：[MailSink 官方文档](https://mailsink.dev/docs/)  
 > zMailR 愿景：实现 MailSink 类「收信 + 验证码提取」能力，但以**开源可自托管**为目标，并以**出站发信**作为差异化能力。
 
@@ -181,12 +183,14 @@ POST /api/send            （可选）以租用的地址发信
 | **全局 IP 兜底** | 未识别为用户时（如 legacy Token）默认 **60 req/min** |
 | **管理预设** | Admin → 用户弹窗：Free 60/min、Pro 600/min + burst 30、Team 3000/min + burst 200、自定义 |
 
-响应头：`X-RateLimit-Limit`、`X-RateLimit-Remaining`、`X-RateLimit-Reset`、`Retry-After`；超限返回 `429` + `{ "error": "rate_limit" }`。详见 [user-auth.md](./user-auth.md) 与 [admin-guide.md](./admin-guide.md)。
+响应头：`X-RateLimit-Limit`、`X-RateLimit-Remaining`、`X-RateLimit-Reset`、`Retry-After`；超限返回 `429` + `{ "error": "rate_limit" }`。详见 [api.md](./api.md)、[user-auth.md](./user-auth.md) 与 [admin-guide.md](./admin-guide.md)。
 
 ---
 
 ## 相关文档
 
+- [文档首页](./README.md)
+- [API 快速参考](./api.md)
 - [管理后台指南](./admin-guide.md)
 - [部署指南](./deploy.md)
 - [Brevo 发信配置](./brevo-setup.md)

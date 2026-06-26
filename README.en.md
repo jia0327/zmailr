@@ -10,7 +10,7 @@
   <p>
     <a href="https://zmailr.itool.eu.cc/" target="_blank"><strong>Live Demo</strong></a>
     ·
-    <a href="docs/deploy.md"><strong>Deployment Guide</strong></a>
+    <a href="docs/README.md"><strong>Documentation</strong></a>
   </p>
 </div>
 
@@ -50,7 +50,7 @@
 - **MCP**: [`@zmailr/mcp`](packages/mcp) — see [docs/mcp.md](docs/mcp.md)
 - Rate limit headers: `x-ratelimit-limit` / `remaining` / `reset`
 
-See [docs/user-auth.md](docs/user-auth.md) for scopes, per-user rate plans (Free / Pro / Team), and token UX.
+See [docs/api.md](docs/api.md) for endpoint tables and curl examples; [docs/user-auth.md](docs/user-auth.md) for scopes, per-user rate plans (Free / Pro / Team), and token UX.
 
 ### Admin console
 
@@ -79,16 +79,20 @@ Secret URL `https://your-domain/{ADMIN_PATH}` with `ADMIN_PASSWORD`. See [docs/a
 
 ## Documentation
 
-| Doc | Description |
-|-----|-------------|
-| [docs/deploy.md](docs/deploy.md) | Deployment (D1, Secrets, R2, Email Routing) |
-| [docs/admin-guide.md](docs/admin-guide.md) | Admin console |
-| [docs/user-auth.md](docs/user-auth.md) | Auth, API tokens, rate limits, OpenAPI |
-| [docs/mcp.md](docs/mcp.md) | MCP integration (`@zmailr/mcp`) |
-| [docs/brevo-setup.md](docs/brevo-setup.md) | Brevo + DNS |
-| [docs/mailsink-comparison.md](docs/mailsink-comparison.md) | vs MailSink |
-| [docs/testing.md](docs/testing.md) | Production E2E report |
-| [README.md](README.md) | Full Chinese README with screenshots |
+Full categorized index: **[docs/README.md](docs/README.md)** (Chinese hub).
+
+| Category | Doc | Description |
+|----------|-----|-------------|
+| Quickstart | [docs/README.md](docs/README.md) | Demo → deploy → verify API |
+| API | [docs/api.md](docs/api.md) | Endpoints, auth, rate limits, curl examples |
+| | [docs/user-auth.md](docs/user-auth.md) | Session / Bearer, scopes, extract rules, OpenAPI |
+| MCP | [docs/mcp.md](docs/mcp.md) | `@zmailr/mcp`, Cursor config |
+| Deploy | [docs/deploy.md](docs/deploy.md) | D1, Secrets, R2, Email Routing |
+| Admin | [docs/admin-guide.md](docs/admin-guide.md) | Admin console |
+| Integration | [docs/brevo-setup.md](docs/brevo-setup.md) | Brevo + DNS |
+| Testing | [docs/testing.md](docs/testing.md) | Production E2E report |
+| Comparison | [docs/mailsink-comparison.md](docs/mailsink-comparison.md) | vs MailSink |
+| Other | [README.md](README.md) | Full Chinese README with screenshots |
 
 ---
 

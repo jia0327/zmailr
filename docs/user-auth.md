@@ -1,5 +1,7 @@
 # 用户认证与 API Token
 
+> **API 端点速查** → [api.md](./api.md) · **文档导航** → [README.md](./README.md)
+
 zMailR 以**用户账户**为基础：Web Dashboard、scoped API Token、邮箱所有权均绑定用户。**不支持匿名 API**——创建邮箱须在 Dashboard 操作，或通过 `POST /api/lease` 携带 Bearer Token。
 
 ---
@@ -218,7 +220,9 @@ API：`GET/POST/PUT/DELETE /{ADMIN_PATH}/api/users`
 
 ## 相关文档
 
+- [api.md](./api.md) — API 端点速查与 curl 示例
 - [admin-guide.md](./admin-guide.md) — 维护模式、限流监控、审计日志
 - [brevo-setup.md](./brevo-setup.md) — 出站发信配置
 - [mcp.md](./mcp.md) — MCP 集成
 - [deploy.md](./deploy.md) — 部署指南
+- [README.md](./README.md) — 文档分类导航

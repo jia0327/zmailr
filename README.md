@@ -14,7 +14,7 @@
     ·
     <a href="./README.en.md">English</a>
     ·
-    <a href="docs/deploy.md"><strong>部署指南</strong></a>
+    <a href="docs/README.md"><strong>文档</strong></a>
   </p>
 </div>
 
@@ -61,7 +61,7 @@
 - **Bearer Token 认证**（`Authorization: Bearer <token>`）；**不支持匿名 API**
 - **速率限制响应头**：`x-ratelimit-limit` / `remaining` / `reset`
 
-完整 API 列表与限流说明见部署后的 [`/api-docs`](https://zmailr.itool.eu.cc/api-docs)（含 [`/openapi.json`](https://zmailr.itool.eu.cc/openapi.json) OpenAPI 规范）或 [user-auth.md](docs/user-auth.md)。
+完整 API 列表与限流说明见 [docs/api.md](docs/api.md)、部署后的 [`/api-docs`](https://zmailr.itool.eu.cc/api-docs)（含 [`/openapi.json`](https://zmailr.itool.eu.cc/openapi.json)）或 [user-auth.md](docs/user-auth.md)。
 
 ### OTP 提取规则
 
@@ -219,16 +219,20 @@
 
 ## 文档导航
 
-| 文档 | 说明 |
-|------|------|
-| [docs/deploy.md](docs/deploy.md) | **部署指南**（D1、GitHub Secrets、Email Routing、本地开发） |
-| [docs/admin-guide.md](docs/admin-guide.md) | 管理后台（`ADMIN_PATH`、用户、维护模式、审计日志） |
-| [docs/brevo-setup.md](docs/brevo-setup.md) | Brevo 出站发信与 DNS（SPF/DKIM/DMARC） |
-| [docs/user-auth.md](docs/user-auth.md) | 用户认证、API Token scope、per-user 速率限制、OpenAPI |
-| [docs/mcp.md](docs/mcp.md) | **MCP 集成**（`@zmailr/mcp`、Cursor 配置） |
-| [docs/testing.md](docs/testing.md) | **生产 E2E 测试报告**（Pass/Fail 与截图索引） |
-| [docs/mailsink-comparison.md](docs/mailsink-comparison.md) | 与 MailSink 功能对照与端点映射 |
-| [README.en.md](README.en.md) | English README |
+完整分类索引见 **[docs/README.md](docs/README.md)**。
+
+| 分类 | 文档 | 说明 |
+|------|------|------|
+| 快速开始 | [docs/README.md](docs/README.md) | 体验演示 → 部署 → 验证 API |
+| API 参考 | [docs/api.md](docs/api.md) | 端点一览、认证、速率限制、curl 示例 |
+| | [docs/user-auth.md](docs/user-auth.md) | Session / Bearer、Token scope、提取规则、OpenAPI |
+| MCP | [docs/mcp.md](docs/mcp.md) | `@zmailr/mcp`、Cursor 配置 |
+| 部署 | [docs/deploy.md](docs/deploy.md) | D1、GitHub Secrets、Email Routing、R2、本地开发 |
+| 管理后台 | [docs/admin-guide.md](docs/admin-guide.md) | `ADMIN_PATH`、用户、维护模式、审计日志 |
+| 集成 | [docs/brevo-setup.md](docs/brevo-setup.md) | Brevo 出站发信与 DNS |
+| 测试 | [docs/testing.md](docs/testing.md) | 生产 E2E 测试报告 |
+| 对比 | [docs/mailsink-comparison.md](docs/mailsink-comparison.md) | 与 MailSink 功能对照 |
+| 其他 | [README.en.md](README.en.md) | English README |
 
 ---
 

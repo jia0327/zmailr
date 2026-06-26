@@ -1,7 +1,8 @@
 # MCP 集成指南
 
-[zMailR](https://github.com/jia0327/zmailr) 提供 npm 包 **`@zmailr/mcp`**，作为 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) 服务器，供 Cursor、Claude Desktop 等 AI 助手调用临时邮箱与 OTP 自动化能力。
+> **文档导航** → [README.md](./README.md) · **API 参考** → [api.md](./api.md)
 
+[zMailR](https://github.com/jia0327/zmailr) 提供 npm 包 **`@zmailr/mcp`**，作为 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) 服务器，供 Cursor、Claude Desktop 等 AI 助手调用临时邮箱与 OTP 自动化能力。
 源码与英文 README 见 [`packages/mcp`](../packages/mcp/README.md)。
 
 ---
@@ -104,7 +105,10 @@ npm install -g @zmailr/mcp
 
 | 文档 | 说明 |
 |------|------|
+| [README.md](./README.md) | 文档分类导航 |
+| [api.md](./api.md) | API 端点速查 |
 | [user-auth.md](./user-auth.md) | 用户认证、Token scope、速率限制 |
 | [deploy.md](./deploy.md) | 自托管部署 |
+| [mailsink-comparison.md](./mailsink-comparison.md) | 与 MailSink MCP 对照 |
 | [../README.md](../README.md) | 项目简介 |
 | [../packages/mcp/README.md](../packages/mcp/README.md) | 包 README（英文） |

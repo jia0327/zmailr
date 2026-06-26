@@ -1,5 +1,7 @@
 # zMailR 生产环境 E2E 测试报告
 
+> **文档导航** → [README.md](./README.md)
+
 **测试站点**：https://zmailr.itool.eu.cc/  
 **测试日期**：2026-06-26  
 **测试方式**：YSbrowser MCP 浏览器自动化 + `scripts/verify_api.py`
@@ -64,6 +66,8 @@ docs/screenshots/outbox.png
 
 ## 相关文档
 
+- [文档首页](./README.md)
+- [API 快速参考](./api.md)
 - [部署指南](./deploy.md)
 - [用户认证与 API Token](./user-auth.md)
 - [MCP 集成](./mcp.md)

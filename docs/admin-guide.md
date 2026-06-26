@@ -1,5 +1,7 @@
 # 管理后台指南
 
+> **文档导航** → [README.md](./README.md)
+
 zMailR 管理后台用于运维与用户治理，**不在前端 bundle 中暴露入口**，仅通过环境变量 `ADMIN_PATH` 配置的密钥路径访问。
 
 ---
@@ -111,6 +113,8 @@ Legacy **无配额 API Token** 仍可通过管理 API（`GET/POST/DELETE /{ADMIN
 
 ## 相关文档
 
+- [README.md](./README.md) — 文档分类导航
+- [api.md](./api.md) — API 端点速查与速率限制
 - [用户认证与 API Token](./user-auth.md)
 - [MCP 集成](./mcp.md)
 - [Brevo 发信配置](./brevo-setup.md)

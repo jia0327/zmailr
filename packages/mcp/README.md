@@ -2,6 +2,8 @@
 
 MCP (Model Context Protocol) server for [zMailR](https://github.com/jia0327/zmailr) temporary email automation.
 
+Chinese docs: [docs/mcp.md](../../docs/mcp.md) · [docs/README.md](../../docs/README.md)
+
 ## Tools
 
 | Tool | API | Description |
