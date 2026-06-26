@@ -6,7 +6,8 @@
     "prepare": "node scripts/setup-git-hooks.js",
     "dev:frontend": "pnpm --filter frontend run dev",
     "dev:backend": "wrangler dev",
-    "build": "tsx scripts/generate-openapi.ts && pnpm --filter frontend run build",
+    "dev:docs": "pnpm --filter @zmail/docs-site run dev",
+    "build": "tsx scripts/generate-openapi.ts && pnpm --filter @zmail/docs-site run build && pnpm --filter frontend run build",
     "test": "pnpm --filter @zmail/worker run test",
     "deploy": "wrangler deploy"
   },
@@ -15,6 +16,8 @@
   "packageManager": "pnpm@10.12.1",
   "devDependencies": {
     "tsx": "^4.19.3",
+    "vitepress": "^1.6.3",
+    "vue": "^3.5.13",
     "wrangler": "^4.20.5"
   },
   "repository": {

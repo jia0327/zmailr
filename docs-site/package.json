@@ -1,0 +1,15 @@
+{
+  "name": "@zmail/docs-site",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev ../docs",
+    "build": "pnpm -w exec vitepress build docs && node ../scripts/finalize-docs-build.mjs",
+    "preview": "vitepress preview ../docs"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.3",
+    "vue": "^3.5.13"
+  }
+}

@@ -3,7 +3,8 @@
     "title": "zMailR · 24小时临时邮箱"
   },
   "nav": {
-    "api": "API"
+    "api": "API",
+    "docs": "文档"
   },
   "auth": {
     "login": "登录",

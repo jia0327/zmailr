@@ -71,6 +71,11 @@ coverage/
 # Vite
 .vite/
 
+# VitePress docs build output (copied to frontend dist on build)
+frontend/public/docs/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
 # Cloudflare Workers
 worker-configuration.json
 .dev.vars

@@ -20,6 +20,9 @@ const PublicLayout: React.FC = () => {
               {t('app.title')}
             </Link>
             <div className="flex items-center gap-2">
+              <a href="/docs/" className="text-sm text-muted-foreground hover:text-foreground">
+                {t('nav.docs')}
+              </a>
               {isAuthenticated ? (
                 <Link to="/dashboard/usage" className="text-sm text-muted-foreground hover:text-foreground">
                   {t('dashboard.usage')}

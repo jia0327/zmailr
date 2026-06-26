@@ -1,5 +1,7 @@
 # zMailR 文档
 
+> **文档站点**：本目录 Markdown 同时作为 [VitePress](https://vitepress.dev/) 源文件，构建后静态发布于 `/docs/`（配置见 `docs/.vitepress/`，构建脚本 `@zmail/docs-site`）。不重复维护正文，仅通过侧边栏与导航组织阅读路径。
+
 开源、可自托管的 24 小时临时邮箱与 OTP 自动化平台。Web 控制台 + Bearer API + MCP，部署在 Cloudflare Workers。
 
 **在线演示**：[zmailr.itool.eu.cc](https://zmailr.itool.eu.cc/) · 账号 `guest` / `guest`

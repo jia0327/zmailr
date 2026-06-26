@@ -45,7 +45,13 @@ const Header: React.FC<HeaderProps> = ({
     <header className="border-b">
       <Container>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 py-3">
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
+            <a
+              href="/docs/"
+              className="text-sm transition-colors hover:text-foreground text-muted-foreground"
+            >
+              {t('nav.docs')}
+            </a>
             <Link
               to="/api-docs"
               className={`text-sm transition-colors hover:text-foreground ${

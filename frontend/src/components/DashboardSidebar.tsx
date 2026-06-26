@@ -143,10 +143,17 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           <ThemeSwitcher />
         </div>
         <div className={`flex flex-col gap-1 text-sm ${collapsed ? 'md:items-center' : ''}`}>
-          <NavLink to="/api-docs" className={navLinkClass} title={t('dashboard.docs')} onClick={handleNavClick}>
+          <a
+            href="/docs/"
+            title={t('dashboard.docs')}
+            onClick={handleNavClick}
+            className={`flex items-center rounded-md text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors min-h-10 ${
+              collapsed ? 'md:justify-center md:px-2 md:py-2.5 gap-3 px-3 py-2' : 'gap-3 px-3 py-2'
+            }`}
+          >
             <i className="fas fa-book w-4 text-center shrink-0" />
             {linkLabel(t('dashboard.docs'))}
-          </NavLink>
+          </a>
           <a
             href="https://github.com/jia0327/zmailr"
             target="_blank"
