@@ -74,4 +74,57 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+}
+
+/* Quill rich text editor — theme-aware */
+.rich-text-editor .ql-toolbar.ql-snow,
+.rich-text-editor .ql-container.ql-snow {
+  @apply border-border rounded-md;
+}
+
+.rich-text-editor .ql-toolbar.ql-snow {
+  @apply bg-muted rounded-t-md border-b-border;
+}
+
+.rich-text-editor .ql-container.ql-snow {
+  @apply bg-background rounded-b-md text-sm;
+  min-height: 8rem;
+}
+
+.rich-text-editor .ql-editor {
+  min-height: 8rem;
+}
+
+.rich-text-editor .ql-editor img {
+  max-width: 100%;
+  height: auto;
+}
+
+.dark .rich-text-editor .ql-snow .ql-stroke {
+  stroke: hsl(var(--foreground));
+}
+
+.dark .rich-text-editor .ql-snow .ql-fill {
+  fill: hsl(var(--foreground));
+}
+
+.dark .rich-text-editor .ql-snow .ql-picker {
+  color: hsl(var(--foreground));
+}
+
+.dark .rich-text-editor .ql-snow .ql-picker-options {
+  background: hsl(var(--popover));
+  border-color: hsl(var(--border));
+}
+
+.dark .rich-text-editor .ql-snow .ql-tooltip {
+  background: hsl(var(--popover));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.dark .rich-text-editor .ql-snow .ql-tooltip input[type='text'] {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
 } 

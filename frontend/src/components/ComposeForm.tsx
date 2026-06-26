@@ -1,6 +1,13 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { sendUserEmail, SendAttachmentItem } from '../utils/api';
+import {
+  getInlineDataUrlBytes,
+  isQuillEmpty,
+  MAX_INLINE_IMAGES_TOTAL,
+  stripHtmlToText,
+} from '../utils/htmlBody';
+import RichTextEditor from './RichTextEditor';
 
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 
@@ -28,7 +35,7 @@ const ComposeForm: React.FC<ComposeFormProps> = ({ defaultFrom, onSent, classNam
   const [subject, setSubject] = useState('');
   const [text, setText] = useState('');
   const [html, setHtml] = useState('');
-  const [bodyMode, setBodyMode] = useState<'text' | 'html'>('text');
+  const [bodyMode, setBodyMode] = useState<'text' | 'rich'>('rich');
   const [from, setFrom] = useState(defaultFrom || '');
   const [attachments, setAttachments] = useState<SendAttachmentItem[]>([]);
   const [attachmentBytes, setAttachmentBytes] = useState(0);
@@ -39,6 +46,10 @@ const ComposeForm: React.FC<ComposeFormProps> = ({ defaultFrom, onSent, classNam
   React.useEffect(() => {
     if (defaultFrom) setFrom(defaultFrom);
   }, [defaultFrom]);
+
+  const handleInlineImageTooLarge = useCallback(() => {
+    setError(t('send.inlineImageTooLarge'));
+  }, [t]);
 
   const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -75,11 +86,27 @@ const ComposeForm: React.FC<ComposeFormProps> = ({ defaultFrom, onSent, classNam
     setError('');
     setSuccess(false);
 
-    const bodyText = bodyMode === 'text' ? text : undefined;
-    const bodyHtml = bodyMode === 'html' ? html : undefined;
-    if (!bodyText && !bodyHtml) {
-      setError(t('send.bodyRequired'));
-      return;
+    let bodyText: string | undefined;
+    let bodyHtml: string | undefined;
+
+    if (bodyMode === 'text') {
+      if (!text.trim()) {
+        setError(t('send.bodyRequired'));
+        return;
+      }
+      bodyText = text;
+    } else {
+      if (isQuillEmpty(html)) {
+        setError(t('send.bodyRequired'));
+        return;
+      }
+      const inlineBytes = getInlineDataUrlBytes(html);
+      if (inlineBytes > MAX_INLINE_IMAGES_TOTAL) {
+        setError(t('send.inlineImagesTotalLimit'));
+        return;
+      }
+      bodyHtml = html;
+      bodyText = stripHtmlToText(html) || undefined;
     }
 
     setLoading(true);
@@ -105,6 +132,9 @@ const ComposeForm: React.FC<ComposeFormProps> = ({ defaultFrom, onSent, classNam
       setError(result.error || t('send.failed'));
     }
   };
+
+  const inlineBytes = bodyMode === 'rich' ? getInlineDataUrlBytes(html) : 0;
+  const showInlineSizeWarning = inlineBytes > MAX_INLINE_IMAGES_TOTAL * 0.8;
 
   return (
     <form onSubmit={handleSubmit} className={`space-y-3 ${className}`}>
@@ -153,10 +183,10 @@ const ComposeForm: React.FC<ComposeFormProps> = ({ defaultFrom, onSent, classNam
             </button>
             <button
               type="button"
-              onClick={() => setBodyMode('html')}
-              className={`px-3 py-1 ${bodyMode === 'html' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
+              onClick={() => setBodyMode('rich')}
+              className={`px-3 py-1 ${bodyMode === 'rich' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
             >
-              {t('send.bodyHtml')}
+              {t('send.bodyRich')}
             </button>
           </div>
         </div>
@@ -169,14 +199,18 @@ const ComposeForm: React.FC<ComposeFormProps> = ({ defaultFrom, onSent, classNam
             required
           />
         ) : (
-          <textarea
-            value={html}
-            onChange={(e) => setHtml(e.target.value)}
-            rows={5}
-            placeholder="<p>...</p>"
-            className="w-full px-3 py-2 min-h-10 border rounded-md bg-background text-sm font-mono"
-            required
-          />
+          <>
+            <RichTextEditor
+              value={html}
+              onChange={setHtml}
+              onImageTooLarge={handleInlineImageTooLarge}
+              placeholder={t('send.bodyRichPlaceholder')}
+            />
+            <p className="text-xs text-muted-foreground mt-1">{t('send.bodyRichHint')}</p>
+            {showInlineSizeWarning && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{t('send.bodySizeWarning')}</p>
+            )}
+          </>
         )}
       </div>
       <div>
