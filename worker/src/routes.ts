@@ -1264,12 +1264,33 @@ app.get('/openapi.json', (c) => {
   });
 });
 
-// SPA fallback: serve static assets or index.html for frontend routes (/login, /account, etc.)
+// Static assets; explicit /docs/ → index.html for CF directory index; strip stray .html on React routes
 app.all('*', async (c) => {
-  if (c.env.ASSETS) {
-    return c.env.ASSETS.fetch(c.req.raw);
+  if (!c.env.ASSETS) {
+    return c.notFound();
   }
-  return c.notFound();
+
+  const url = new URL(c.req.url);
+  const { pathname } = url;
+
+  if (pathname === '/docs' || pathname === '/docs/') {
+    url.pathname = '/docs/index.html';
+    const docHome = await c.env.ASSETS.fetch(new Request(url, c.req.raw));
+    if (docHome.status !== 404) {
+      return docHome;
+    }
+  }
+
+  if (
+    pathname.endsWith('.html') &&
+    !pathname.startsWith('/docs/') &&
+    pathname !== '/index.html'
+  ) {
+    url.pathname = pathname.slice(0, -'.html'.length);
+    return c.redirect(url.toString(), 301);
+  }
+
+  return c.env.ASSETS.fetch(c.req.raw);
 });
 
 export default app;

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vitepress dev ../docs",
-    "build": "pnpm -w exec vitepress build docs && node ../scripts/finalize-docs-build.mjs",
+    "build": "pnpm -w exec vitepress build docs",
     "preview": "vitepress preview ../docs"
   },
   "devDependencies": {

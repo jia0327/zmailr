@@ -7,6 +7,10 @@ export default defineConfig({
   base: '/docs/',
   outDir: '../frontend/public/docs',
   cleanUrls: false,
+  // README.md is the doc hub; map it to index so /docs/ gets index.html + correct client route
+  rewrites: {
+    'README.md': 'index.md',
+  },
   lastUpdated: true,
   appearance: true,
   // Links to repo root (README, packages/mcp) are intentional in source markdown
@@ -16,8 +20,9 @@ export default defineConfig({
     siteTitle: 'zMailR',
 
     nav: [
-      { text: '控制台', link: '/dashboard/usage', target: '_self', rel: undefined },
-      { text: 'API 交互文档', link: '/api-docs', target: '_self', rel: undefined },
+      // Paths outside /docs/ base — use relative escape so VitePress does not prefix base + .html
+      { text: '控制台', link: '../../dashboard/usage', target: '_self', rel: undefined },
+      { text: 'API 交互文档', link: '../../api-docs', target: '_self', rel: undefined },
       { text: 'GitHub', link: 'https://github.com/jia0327/zmailr' },
     ],
 
@@ -36,7 +41,7 @@ export default defineConfig({
         items: [
           { text: '端点一览', link: '/api' },
           { text: '用户认证与 Token', link: '/user-auth' },
-          { text: 'API 交互文档', link: '/api-docs', target: '_self', rel: undefined },
+          { text: 'API 交互文档', link: '../../api-docs', target: '_self', rel: undefined },
           { text: 'OpenAPI', link: '/openapi.json', target: '_blank', rel: 'noopener noreferrer' },
         ],
       },
