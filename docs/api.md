@@ -62,6 +62,46 @@ Authorization: Bearer <your-token>
 
 Web Dashboard 专用路由（Session Cookie）见 [user-auth.md](./user-auth.md)。
 
+### 公开状态 `GET /api/public/status` {#public-status}
+
+无需认证。返回**维护模式**与**依赖连通性**；Dashboard 用于顶部维护横幅，运维可用于部署后探活。
+
+**聚合状态 `status`**：
+
+| 值 | 含义 |
+|----|------|
+| `ok` | D1 与 R2 正常；Brevo 未配置或 API 可用 |
+| `degraded` | D1/R2 正常，但已配置 Brevo 且账户 API 调用失败 |
+| `error` | D1 或 R2 不可用 |
+
+**响应示例**：
+
+```json
+{
+  "success": true,
+  "status": "ok",
+  "maintenance": {
+    "enabled": false,
+    "message": null
+  },
+  "checks": {
+    "d1": { "ok": true },
+    "r2": { "ok": true, "optional": false },
+    "brevo": { "ok": true, "configured": false, "optional": true }
+  }
+}
+```
+
+**`checks` 对象**（各检查项均为 `{ ok: boolean, ... }`）：
+
+| 键 | 探测方式 | 附加字段 |
+|----|----------|----------|
+| `d1` | `SELECT 1` | 失败时 `message` |
+| `r2` | 附件 bucket `list({ limit: 1 })` | `optional: false`；失败时 `message` |
+| `brevo` | 已配置时调用 Brevo 账户 API | `configured`（是否设置 `BREVO_API_KEY`）、`optional: true`；未配置时 `ok: true, configured: false` |
+
+`GET /api/health` 仅返回静态 `{ "status": "ok" }`，**不含**依赖探测。部署验证与备份前检查见 [deploy.md §9](./deploy.md#9-部署后验证)、[backup.md](./backup.md)。
+
 ---
 
 ## 速率限制
@@ -156,8 +196,9 @@ curl "https://你的域名/api/user/quota" \
 
 | 文档 | 说明 |
 |------|------|
-| [user-auth.md](./user-auth.md) | Session 登录、Token 创建、提取规则、安全说明 |
+| [user-auth.md](./user-auth.md) | Session 登录、Token 创建、附件访问、提取规则、安全说明 |
 | [mcp.md](./mcp.md) | `@zmailr/mcp` 工具与 Cursor 配置 |
 | [deploy.md](./deploy.md) | 部署与部署后验证 |
+| [backup.md](./backup.md) | D1 备份脚本与恢复 |
 | [mailsink-comparison.md](./mailsink-comparison.md) | 与 MailSink 端点对照 |
 | [文档首页](./README.md) | 全部文档分类导航 |

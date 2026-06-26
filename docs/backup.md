@@ -126,6 +126,5 @@ jobs:
 | 文档 | 说明 |
 |------|------|
 | [deploy.md](./deploy.md) | 部署、R2 附件 bucket、Secrets |
-| [backup.md](./backup.md) | D1 备份脚本与恢复 |
 | [api.md](./api.md) | `/api/public/status` 健康检查 |
 | [admin-guide.md](./admin-guide.md) | 管理后台与维护模式 |

@@ -51,6 +51,22 @@ Content-Type: application/json
 
 ---
 
+## 附件访问
+
+收件箱 **邮件详情** 可列出、预览与下载入站附件（图片/视频/音频/PDF 等）。Dashboard 请求携带 Session Cookie（`credentials: 'include'`），无需 Bearer Token。
+
+程序化访问同一组端点，需 **`mail` scope** Bearer Token，且须对附件所属邮箱有所有权；Bearer 无法访问**已过期**邮箱下的附件（403）。
+
+| 端点 | 鉴权 | 说明 |
+|------|------|------|
+| `GET /api/emails/:id/attachments` | Session 或 Bearer（`mail`） | 附件元数据列表（文件名、MIME、大小） |
+| `GET /api/attachments/:id` | Session 或 Bearer（`mail`） | 附件详情 JSON |
+| `GET /api/attachments/:id?download=true` | Session 或 Bearer（`mail`） | 下载二进制；R2 优先，历史 D1 Base64/分块回退 |
+
+邮件列表中带 📎 图标表示 `hasAttachments: true`。R2 存储配置见 [deploy.md §6](./deploy.md#6-r2-附件存储推荐)。
+
+---
+
 ## 用户 API Token
 
 登录用户在 **Dashboard → API 密钥**（`/dashboard/api-keys`）或通过 API 创建 Token：

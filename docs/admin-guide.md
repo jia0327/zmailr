@@ -83,6 +83,18 @@ Legacy **无配额 API Token** 仍可通过管理 API（`GET/POST/DELETE /{ADMIN
 
 ---
 
+## 依赖健康检查
+
+公开端点 `GET /api/public/status`（无需认证）同时返回 **D1 / R2 / Brevo** 连通性与聚合 `status`（`ok` / `degraded` / `error`）。管理员可用于：
+
+- 部署后确认 D1 与 R2 附件 bucket 可用（见 [deploy.md §9](./deploy.md#9-部署后验证)）
+- 执行 [D1 备份](./backup.md) 前确认 `checks.d1`、`checks.r2` 均为 `ok`
+- 排查 Brevo 发信异常：已配置但 `checks.brevo.ok: false` 时整体为 `degraded`
+
+响应字段与示例见 [api.md § 公开状态](./api.md#public-status)。
+
+---
+
 ## Brevo 发信监控（仪表盘）
 
 仪表盘 **Brevo / 发信** 区域包含：
@@ -119,3 +131,4 @@ Legacy **无配额 API Token** 仍可通过管理 API（`GET/POST/DELETE /{ADMIN
 - [MCP 集成](./mcp.md)
 - [Brevo 发信配置](./brevo-setup.md)
 - [部署指南](./deploy.md)
+- [D1 备份](./backup.md)

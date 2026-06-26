@@ -127,8 +127,9 @@ npx -y @zmailr/mcp
 1. **Fork 并部署** — 配置 GitHub Secrets 与 D1，推送 `main` 自动部署。详见 [部署指南](./deploy.md)。
 2. **配置收信** — Cloudflare Email Routing Catch-all → Worker。见 [部署指南 §4](./deploy.md#4-入站邮件email-routing)。
 3. **（可选）配置发信** — Brevo Transactional API + DNS。见 [Brevo 集成](./brevo-setup.md)。
-4. **验证 API** — `python scripts/verify_api.py --base-url https://你的域名 --token <token>`。
-5. **（可选）MCP** — 配置 `@zmailr/mcp`。见 [MCP 集成](./mcp.md)。
+4. **验证 API** — `python scripts/verify_api.py --base-url https://你的域名 --token <token>`；可选 `GET /api/public/status` 确认 D1/R2 依赖（见 [api.md § 公开状态](./api.md#public-status)）。
+5. **（可选）D1 备份** — `node scripts/backup-d1-to-r2.mjs`，见 [D1 备份](./backup.md)。
+6. **（可选）MCP** — 配置 `@zmailr/mcp`。见 [MCP 集成](./mcp.md)。
 
 ---
 

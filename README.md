@@ -40,7 +40,7 @@
 
 - **登录与会话**：用户名密码登录，受保护的路由与登出
 - **仪表板**：API Token 状态与提醒（无 Token / 即将过期横幅）、收件/发件用量、今日发信配额
-- **收件箱 / 发件箱**：新建 24 小时临时地址、收信列表、OTP 高亮（OtpBox）、Brevo 出站撰写与发信记录
+- **收件箱 / 发件箱**：新建 24 小时临时地址、收信列表、OTP 高亮（OtpBox）、**附件列表/预览/下载**（Session 鉴权）、Brevo 出站撰写与发信记录
 - **邮箱历史**：已过期/历史邮箱列表，支持批量删除
 - **邮件批量删除**：收件箱与发件箱多选删除
 - **API 密钥**：每位用户 1 个 Bearer Token，可选 `lease` / `mail` / `send` scope，含 curl 示例；明文仅创建时展示一次，浏览器可本地保存脱敏预览
@@ -88,6 +88,8 @@
 - **GitHub Actions**：推送 `main` 自动构建并部署至 Cloudflare Workers
 - **Cloudflare D1**：用户、邮箱、邮件、规则、审计等持久化
 - **R2 附件**：入站附件存 `zmailr-attachments` bucket（`ATTACHMENTS` 绑定）；D1 存元数据，历史 D1 附件可回退读取
+- **依赖健康检查**：公开 `GET /api/public/status` 探测 D1/R2/Brevo，聚合 `ok` / `degraded` / `error`
+- **D1 备份**：`scripts/backup-d1-to-r2.mjs` 导出 SQL 至 R2 `backups/d1/`，见 [backup.md](docs/backup.md)
 - **Brevo 出站**：Transactional API 发信，SPF/DKIM/DMARC 见 [brevo-setup.md](docs/brevo-setup.md)
 
 ---
@@ -228,6 +230,7 @@
 | | [docs/user-auth.md](docs/user-auth.md) | Session / Bearer、Token scope、提取规则、OpenAPI |
 | MCP | [docs/mcp.md](docs/mcp.md) | `@zmailr/mcp`、Cursor 配置 |
 | 部署 | [docs/deploy.md](docs/deploy.md) | D1、GitHub Secrets、Email Routing、R2、本地开发 |
+| | [docs/backup.md](docs/backup.md) | D1 导出至 R2、恢复与定时备份 |
 | 管理后台 | [docs/admin-guide.md](docs/admin-guide.md) | `ADMIN_PATH`、用户、维护模式、审计日志 |
 | 集成 | [docs/brevo-setup.md](docs/brevo-setup.md) | Brevo 出站发信与 DNS |
 | 测试 | [docs/testing.md](docs/testing.md) | 生产 E2E 测试报告 |
