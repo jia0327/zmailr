@@ -45,6 +45,7 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
 .badge-ok{background:#166534;color:#86efac}
 .badge-off{background:#7f1d1d;color:#fca5a5}
 .badge-builtin{background:#1e3a5f;color:#93c5fd}
+.badge-warn{background:#713f12;color:#fcd34d}
 .section-title{font-size:1rem;color:#f8fafc;margin-bottom:8px}
 .section-desc{font-size:.75rem;color:#64748b;margin-bottom:12px}
 .section-title+.section-desc{margin-top:-4px}
@@ -92,6 +93,15 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
     <div class="tab" data-tab="audit" onclick="switchTab('audit')">审计日志</div>
   </div>
   <div id="panel-dashboard" class="panel active">
+    <div id="maintBanner" class="banner-warn" style="display:none"></div>
+    <h3 class="section-title">系统健康</h3>
+    <p class="section-desc">D1 / R2 / Brevo 依赖探测（GET /api/public/status）</p>
+    <div class="toolbar" style="margin-bottom:12px">
+      <button class="btn btn-sm" onclick="loadHealthStatus()">刷新状态</button>
+    </div>
+    <div class="stats" id="healthGrid"></div>
+    <p class="hint" id="healthHint"></p>
+    <h3 class="section-title" style="margin-top:24px">运营统计</h3>
     <div class="stats" id="statsGrid"></div>
     <h3 class="section-title" style="margin-top:8px">Brevo / 发信</h3>
     <p class="section-desc">本地 sent_emails 统计；若配置了 BREVO_API_KEY 则尝试 GET /v3/account 获取套餐信息</p>
@@ -212,7 +222,11 @@ function switchTab(name){document.querySelectorAll('.tab').forEach(t=>t.classLis
 function hideModal(id){document.getElementById(id).classList.remove('show')}
 function showModal(id){document.getElementById(id).classList.add('show')}
 function fmtTime(ts){if(!ts)return'-';const d=new Date(ts>1e12?ts:ts*1000);return d.toLocaleString('zh-CN')}
-async function loadAll(){await Promise.all([loadStats(),loadBrevoStats()])}
+async function loadAll(){await Promise.all([loadHealthStatus(),loadStats(),loadBrevoStats()])}
+function statusLabel(s){if(s==='ok')return'正常';if(s==='degraded')return'降级';return'故障'}
+function statusBadgeClass(s){if(s==='ok')return'badge-ok';if(s==='degraded')return'badge-warn';return'badge-off'}
+function checkDisplay(check){if(check&&check.configured===false)return{icon:'',text:'未配置',cls:'badge-builtin'};if(check&&check.ok)return{icon:'✅',text:'正常',cls:'badge-ok'};return{icon:'❌',text:'异常',cls:'badge-off'}}
+async function loadHealthStatus(){const hint=document.getElementById('healthHint');hint.style.color='#64748b';try{const r=await fetch('/api/public/status',{credentials:'include'});const d=await r.json();if(!r.ok||!d.success){throw new Error(d.message||d.error||'请求失败')}const mb=document.getElementById('maintBanner');if(d.maintenance&&d.maintenance.enabled){mb.style.display='block';mb.textContent='⚠ 维护模式已启用：'+(d.maintenance.message||'系统维护中，部分功能暂不可用')}else{mb.style.display='none'}const checks=d.checks||{};const overallCls=statusBadgeClass(d.status);const rows=[['D1 数据库',checks.d1],['R2 存储',checks.r2],['Brevo API',checks.brevo]];document.getElementById('healthGrid').innerHTML='<div class="stat"><div class="label">整体状态</div><div class="value" style="font-size:1.25rem"><span class="badge '+overallCls+'">'+statusLabel(d.status)+'</span></div></div>'+rows.map(([lbl,chk])=>{const disp=checkDisplay(chk);return'<div class="stat"><div class="label">'+lbl+'</div><div class="value" style="font-size:1.25rem"><span class="badge '+disp.cls+'">'+(disp.icon?disp.icon+' ':'')+disp.text+'</span></div></div>'}).join('');const hints=[];if(checks.d1&&!checks.d1.ok&&checks.d1.message)hints.push('D1: '+checks.d1.message);if(checks.r2&&!checks.r2.ok&&checks.r2.message)hints.push('R2: '+checks.r2.message);if(checks.brevo&&checks.brevo.configured&&!checks.brevo.ok&&checks.brevo.message)hints.push('Brevo: '+checks.brevo.message);hint.textContent=hints.length?hints.join(' · '):'上次刷新：'+new Date().toLocaleString('zh-CN')}catch(e){hint.textContent='无法获取健康状态：'+(e.message||'网络错误');hint.style.color='#f87171'}}
 async function loadStats(){const d=await api('/stats');const s=d.stats;document.getElementById('statsGrid').innerHTML=[
   ['用户总数',s.totalUsers],['启用用户',s.activeUsers],['有效邮箱',s.activeMailboxes],['邮箱总数',s.totalMailboxes],
   ['今日收信',s.receivedToday],['今日发信',s.sentToday],['今日活跃用户',s.activeUsersToday],['有效用户 Token',s.activeUserTokens]
