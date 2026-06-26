@@ -53,7 +53,7 @@ Content-Type: application/json
 
 ## 附件访问
 
-收件箱 **邮件详情** 可列出、预览与下载入站附件（图片/视频/音频/PDF 等）。Dashboard 请求携带 Session Cookie（`credentials: 'include'`），无需 Bearer Token。
+收件箱 **邮件详情** 可下载原始 `.eml`、复制纯文本正文（便于编写提取规则），以及列出、预览与下载入站附件（图片/视频/音频/PDF 等）。Dashboard 请求携带 Session Cookie（`credentials: 'include'`），无需 Bearer Token。
 
 程序化访问同一组端点，需 **`mail` scope** Bearer Token，且须对附件所属邮箱有所有权；Bearer 无法访问**已过期**邮箱下的附件（403）。
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { MailboxContext } from '../contexts/MailboxContext';
+import { stripHtmlToText } from '../utils/htmlBody';
 import OtpBox from './OtpBox';
 import NoOtpHint from './NoOtpHint';
 
@@ -37,6 +38,7 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
   const [isReExtracting, setIsReExtracting] = useState(false);
+  const [isDownloadingRaw, setIsDownloadingRaw] = useState(false);
 
   useEffect(() => {
     const fetchEmail = async () => {
@@ -220,6 +222,62 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
     return `${API_BASE_URL}/api/attachments/${attachmentId}${download ? '?download=true' : ''}`;
   };
 
+  const getPlainText = (emailData: Email): string => {
+    if (emailData.textContent?.trim()) return emailData.textContent.trim();
+    if (emailData.htmlContent) return stripHtmlToText(emailData.htmlContent);
+    return '';
+  };
+
+  const handleDownloadRaw = async () => {
+    try {
+      setIsDownloadingRaw(true);
+      const response = await fetch(`${API_BASE_URL}/api/emails/${emailId}/raw`, {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        if (response.status === 404) {
+          await handleMailboxNotFound();
+          onClose();
+          return;
+        }
+        throw new Error('Failed to download raw email');
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get('Content-Disposition');
+      let filename = `${emailId}.eml`;
+      const match = disposition?.match(/filename="?([^";\n]+)"?/);
+      if (match?.[1]) filename = match[1];
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename;
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      showErrorMessage(t('email.downloadRawFailed'));
+    } finally {
+      setIsDownloadingRaw(false);
+    }
+  };
+
+  const handleCopyPlainText = async () => {
+    if (!email) return;
+    const text = getPlainText(email);
+    if (!text) {
+      showErrorMessage(t('email.copyPlainTextEmpty'));
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      showSuccessMessage(t('email.copyPlainTextSuccess'));
+    } catch {
+      showErrorMessage(t('email.copyPlainTextFailed'));
+    }
+  };
+
   const handleDownloadAttachment = async (attachment: Attachment) => {
     try {
       const response = await fetch(getAttachmentUrl(attachment.id, true), {
@@ -321,6 +379,26 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
                 <i className="fas fa-trash-alt"></i>
               </button>
             </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleDownloadRaw}
+              disabled={isDownloadingRaw}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              <i className={`fas fa-download ${isDownloadingRaw ? 'animate-pulse' : ''}`}></i>
+              {t('email.downloadRaw')}
+            </button>
+            <button
+              type="button"
+              onClick={handleCopyPlainText}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border hover:bg-muted transition-colors"
+            >
+              <i className="fas fa-copy"></i>
+              {t('email.copyPlainText')}
+            </button>
           </div>
 
           {email.extractedCode ? (
