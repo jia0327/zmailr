@@ -36,7 +36,7 @@ Authorization: Bearer <your-token>
 |------|------|------|
 | `GET` | `/openapi.json` | OpenAPI 3.1 规范 |
 | `GET` | `/api/health` | 健康检查 |
-| `GET` | `/api/public/status` | 维护模式状态 |
+| `GET` | `/api/public/status` | 维护模式状态与依赖连通性（D1、R2、Brevo） |
 | `GET` | `/api/config` | 前端公开配置（域名等） |
 
 ### Bearer API（程序化）

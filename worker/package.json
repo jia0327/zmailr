@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "tsx --test src/extractor.test.ts src/utils.test.ts src/crypto.test.ts src/rate-limit.test.ts src/auth.test.ts src/admin-path.test.ts src/maintenance.test.ts src/openapi.test.ts src/r2-attachments.test.ts"
+    "test": "tsx --test src/extractor.test.ts src/utils.test.ts src/crypto.test.ts src/rate-limit.test.ts src/auth.test.ts src/admin-path.test.ts src/maintenance.test.ts src/health.test.ts src/openapi.test.ts src/r2-attachments.test.ts"
   },
   "dependencies": {
     "@types/node": "^22.13.10",

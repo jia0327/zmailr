@@ -235,6 +235,13 @@ const EmailList: React.FC<EmailListProps> = ({
                     <span className="text-sm truncate font-normal">
                       {email.subject || t('email.noSubject')}
                     </span>
+                    {email.hasAttachments && (
+                      <i
+                        className="fas fa-paperclip text-xs text-muted-foreground shrink-0"
+                        title={t('email.attachments')}
+                        aria-hidden
+                      />
+                    )}
                     {email.extractedCode && (
                       <OtpBox
                         code={email.extractedCode}

@@ -75,6 +75,7 @@ import { checkMaintenanceBlock, maintenanceBlockedBody } from './maintenance';
 import { logRateLimitHit } from './monitoring';
 import { getOpenApiJson } from './openapi';
 import { resolveAttachmentBytes } from './r2-attachments';
+import { runHealthChecks } from './health';
 
 type AppVariables = {
   auth?: ApiAuthContext;
@@ -141,15 +142,20 @@ app.get('/api/health', (c) => {
   return c.json({ status: 'ok', message: '临时邮箱系统API正常运行' });
 });
 
-// 公开状态（维护模式横幅等，无需鉴权）
+// 公开状态（维护模式横幅、依赖连通性探测，无需鉴权）
 app.get('/api/public/status', async (c) => {
-  const maintenance = await getMaintenanceMode(c.env.DB);
+  const [maintenance, health] = await Promise.all([
+    getMaintenanceMode(c.env.DB),
+    runHealthChecks(c.env),
+  ]);
   return c.json({
     success: true,
+    status: health.status,
     maintenance: {
       enabled: maintenance.enabled,
       message: maintenance.message,
     },
+    checks: health.checks,
   });
 });
 

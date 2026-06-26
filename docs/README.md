@@ -158,6 +158,7 @@ npx -y @zmailr/mcp
 | 文档 | 说明 |
 |------|------|
 | [部署指南](./deploy.md) | D1、GitHub Secrets、Email Routing、R2 附件、本地开发 |
+| [D1 备份](./backup.md) | D1 导出至 R2、恢复与定时备份 |
 | [管理后台指南](./admin-guide.md) | `ADMIN_PATH`、用户、速率方案、维护模式、审计日志 |
 
 ---
@@ -195,6 +196,7 @@ docs/
 ├── README.md                 ← 本页（文档导航）
 ├── api.md                    API 快速参考
 ├── deploy.md                 部署指南
+├── backup.md                 D1 备份与恢复
 ├── user-auth.md              用户认证与 API Token
 ├── mcp.md                    MCP 集成
 ├── admin-guide.md            管理后台

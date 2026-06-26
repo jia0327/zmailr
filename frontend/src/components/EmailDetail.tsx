@@ -171,6 +171,34 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
     return `${API_BASE_URL}/api/attachments/${attachmentId}${download ? '?download=true' : ''}`;
   };
 
+  const handleDownloadAttachment = async (attachment: Attachment) => {
+    try {
+      const response = await fetch(getAttachmentUrl(attachment.id, true), {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        if (response.status === 404) {
+          await handleMailboxNotFound();
+          onClose();
+          return;
+        }
+        throw new Error('Failed to download attachment');
+      }
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = attachment.filename;
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      showErrorMessage(t('email.downloadFailed'));
+    }
+  };
+
   const renderAttachmentPreview = (attachment: Attachment) => {
     const fileType = getFileType(attachment.mimeType);
     const attachmentUrl = getAttachmentUrl(attachment.id, true);
@@ -290,15 +318,13 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
                             <p className="text-xs text-muted-foreground">{formatFileSize(attachment.size)}</p>
                           </div>
                         </div>
-                        <a
-                          href={getAttachmentUrl(attachment.id, true)}
-                          download={attachment.filename}
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadAttachment(attachment)}
                           className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90 shrink-0"
-                          target="_blank"
-                          rel="noopener noreferrer"
                         >
                           {t('email.download')}
-                        </a>
+                        </button>
                       </div>
                       {renderAttachmentPreview(attachment)}
                     </div>

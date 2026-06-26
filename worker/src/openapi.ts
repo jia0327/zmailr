@@ -133,7 +133,7 @@ export const OPENAPI_SPEC = {
     '/api/public/status': {
       get: {
         tags: ['Public'],
-        summary: 'Public status (maintenance banner)',
+        summary: 'Public status (maintenance banner and dependency checks)',
         operationId: 'getPublicStatus',
         responses: {
           '200': {
@@ -144,11 +144,41 @@ export const OPENAPI_SPEC = {
                   type: 'object',
                   properties: {
                     success: { type: 'boolean' },
+                    status: { type: 'string', enum: ['ok', 'degraded', 'error'] },
                     maintenance: {
                       type: 'object',
                       properties: {
                         enabled: { type: 'boolean' },
                         message: { type: 'string', nullable: true },
+                      },
+                    },
+                    checks: {
+                      type: 'object',
+                      properties: {
+                        d1: {
+                          type: 'object',
+                          properties: {
+                            ok: { type: 'boolean' },
+                            message: { type: 'string' },
+                          },
+                        },
+                        r2: {
+                          type: 'object',
+                          properties: {
+                            ok: { type: 'boolean' },
+                            optional: { type: 'boolean' },
+                            message: { type: 'string' },
+                          },
+                        },
+                        brevo: {
+                          type: 'object',
+                          properties: {
+                            ok: { type: 'boolean' },
+                            configured: { type: 'boolean' },
+                            optional: { type: 'boolean' },
+                            message: { type: 'string' },
+                          },
+                        },
                       },
                     },
                   },
