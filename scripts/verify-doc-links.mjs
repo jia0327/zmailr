@@ -34,8 +34,9 @@ async function checkOne({ path, name }) {
     let bodyHint = '';
     if (path.startsWith('/api-docs')) {
       const text = await res.text();
-      bodyHint = text.includes('apiDocs') || text.includes('API') ? ' (api docs content)' : ' (missing api docs UI)';
-      if (!text.includes('GET /api/') && !text.includes('apiDocs')) {
+      const spaOk = text.includes('id="root"') && text.includes('/assets/');
+      bodyHint = spaOk ? ' (SPA shell)' : ' (invalid SPA response)';
+      if (!spaOk) {
         return { name, path, status: res.status, ok: false, finalUrl, bodyHint };
       }
     }
