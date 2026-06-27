@@ -161,12 +161,6 @@
 
 ![文档首页 — VitePress `/docs/`](docs/screenshots/docs-home.png)
 
-![文档产品概述](docs/screenshots/docs-overview.png)
-
-![文档 5 分钟体验](docs/screenshots/docs-quickstart.png)
-
-![文档 MCP 接入](docs/screenshots/docs-mcp.png)
-
 ![交互式 API 文档 — `/api-docs`](docs/screenshots/api-interactive.png)
 
 ---

@@ -75,24 +75,20 @@
 | 18 | 匿名 API · 无 Token 拒绝 | Pass | `POST /api/lease`、`GET /api/mail` → HTTP 401 |
 | 19 | OpenAPI · `GET /openapi.json` | Pass | HTTP 200 |
 | 20 | 文档 · `/docs/` 首页 | Pass | ![文档首页](./screenshots/docs-home.png) |
-| 21 | 文档 · 产品概述 | Pass | ![文档概述](./screenshots/docs-overview.png) |
-| 22 | 文档 · 5 分钟体验 | Pass | ![文档快速入门](./screenshots/docs-quickstart.png) |
-| 23 | 文档 · MCP | Pass | ![文档 MCP](./screenshots/docs-mcp.png) |
-| 24 | 文档 · `/docs/testing` | Pass | ![测试报告页](./screenshots/docs-testing.png) |
-| 25 | 文档 · `/api-docs` | Pass | ![API 交互文档](./screenshots/api-interactive.png) |
-| 26 | 管理后台 · 登录 | Pass | ![管理后台登录](./screenshots/admin-login.png) |
-| 27 | 管理后台 · 仪表盘 | Pass | ![管理后台仪表盘](./screenshots/admin-dashboard.png) |
-| 28 | 管理后台 · 创建公告 | Pass | ![创建公告表单](./screenshots/admin-announcement-create.png) |
-| 29 | 管理后台 · 公告列表 | Pass | ![公告列表](./screenshots/admin-announcements-list.png) |
-| 30 | 管理后台 · 用户管理 | Pass | ![用户](./screenshots/admin-users.png) |
-| 31 | 管理后台 · 提取规则 | Pass | ![规则](./screenshots/admin-rules.png) |
-| 32 | 管理后台 · 请求监控 | Pass | ![请求监控](./screenshots/admin-request-monitor.png) |
-| 33 | 管理后台 · 邮箱域名 | Pass | ![域名管理](./screenshots/admin-domains.png) |
-| 34 | 管理后台 · 系统设置 | Pass | ![系统设置](./screenshots/admin-settings.png) |
-| 35 | 管理后台 · 审计日志 | Pass | ![审计](./screenshots/admin-audit.png) |
-| 36 | Ops · `GET /api/health` | Pass | `{"status":"ok"}` |
-| 37 | MCP · `@zmailr/mcp` | Pass | `pnpm --filter @zmailr/mcp test` — 11 工具注册、env 校验、mock fetch |
-| 38 | Ops · D1 备份脚本 | 文档就绪 | 见 [backup.md](./backup.md) |
+| 21 | 文档 · `/api-docs` | Pass | ![API 交互文档](./screenshots/api-interactive.png) |
+| 22 | 管理后台 · 登录 | Pass | ![管理后台登录](./screenshots/admin-login.png) |
+| 23 | 管理后台 · 仪表盘 | Pass | ![管理后台仪表盘](./screenshots/admin-dashboard.png) |
+| 24 | 管理后台 · 创建公告 | Pass | ![创建公告表单](./screenshots/admin-announcement-create.png) |
+| 25 | 管理后台 · 公告列表 | Pass | ![公告列表](./screenshots/admin-announcements-list.png) |
+| 26 | 管理后台 · 用户管理 | Pass | ![用户](./screenshots/admin-users.png) |
+| 27 | 管理后台 · 提取规则 | Pass | ![规则](./screenshots/admin-rules.png) |
+| 28 | 管理后台 · 请求监控 | Pass | ![请求监控](./screenshots/admin-request-monitor.png) |
+| 29 | 管理后台 · 邮箱域名 | Pass | ![域名管理](./screenshots/admin-domains.png) |
+| 30 | 管理后台 · 系统设置 | Pass | ![系统设置](./screenshots/admin-settings.png) |
+| 31 | 管理后台 · 审计日志 | Pass | ![审计](./screenshots/admin-audit.png) |
+| 32 | Ops · `GET /api/health` | Pass | `{"status":"ok"}` |
+| 33 | MCP · `@zmailr/mcp` | Pass | `pnpm --filter @zmailr/mcp test` — 11 工具注册、env 校验、mock fetch |
+| 34 | Ops · D1 备份脚本 | 文档就绪 | 见 [backup.md](./backup.md) |
 
 ## API 脚本验证
 
@@ -130,10 +126,6 @@ docs/screenshots/outbox-sent-detail.png
 docs/screenshots/api-debug-response.png
 docs/screenshots/extract-rules-custom.png
 docs/screenshots/docs-home.png
-docs/screenshots/docs-overview.png
-docs/screenshots/docs-quickstart.png
-docs/screenshots/docs-mcp.png
-docs/screenshots/docs-testing.png
 docs/screenshots/api-interactive.png
 docs/screenshots/admin-login-empty.png
 docs/screenshots/admin-login.png

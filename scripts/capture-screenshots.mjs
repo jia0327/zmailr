@@ -25,6 +25,7 @@ const USER_PASSWORD = process.env.USER_PASSWORD || 'guest';
 const VIEWPORT = { width: 1280, height: 900 };
 const OTP_CODE = '847291';
 const BROWSER_EXE = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || null;
+const SHOT_DELAY_MS = Number(process.env.SHOT_DELAY_MS || 2000);
 
 const results = [];
 const skipped = [];
@@ -49,6 +50,8 @@ async function clearScreenshots() {
 }
 
 async function shot(page, filename, note, opts = {}) {
+  await page.waitForLoadState('domcontentloaded').catch(() => {});
+  await wait(SHOT_DELAY_MS);
   const filePath = path.join(OUT_DIR, filename);
   await page.screenshot({ path: filePath, fullPage: true, ...opts });
   log(filename, note);
@@ -56,7 +59,6 @@ async function shot(page, filename, note, opts = {}) {
 
 async function gotoReady(page, url) {
   await page.goto(url, { waitUntil: 'networkidle', timeout: 120000 });
-  await wait(800);
 }
 
 async function setTheme(page, theme) {
@@ -96,7 +98,7 @@ async function login(page) {
   await page.locator('input[autocomplete="current-password"]').fill(USER_PASSWORD);
   await page.locator('button[type="submit"]').click();
   await page.waitForURL('**/dashboard/**', { timeout: 60000 });
-  await wait(1000);
+  await wait(SHOT_DELAY_MS);
 }
 
 async function readStoredApiToken(page) {
@@ -390,7 +392,6 @@ async function captureApiDebug(page) {
   await page.locator('#endpoint-select').selectOption('user-quota');
   await wait(400);
   await page.getByRole('button', { name: /发送请求/i }).click();
-  await wait(2000);
   await shot(page, 'api-debug-response.png', 'API debug with GET /api/user/quota response');
 }
 
@@ -398,18 +399,8 @@ async function captureDocs(context) {
   const docsPage = await context.newPage();
   await docsPage.setViewportSize(VIEWPORT);
 
-  const docPages = [
-    { url: '/docs/', file: 'docs-home.png', note: 'Docs home' },
-    { url: '/docs/overview.html', file: 'docs-overview.png', note: 'Docs overview' },
-    { url: '/docs/quickstart-5min.html', file: 'docs-quickstart.png', note: 'Docs quickstart' },
-    { url: '/docs/mcp.html', file: 'docs-mcp.png', note: 'Docs MCP page' },
-    { url: '/docs/testing.html', file: 'docs-testing.png', note: 'Docs testing report' },
-  ];
-
-  for (const { url, file, note } of docPages) {
-    await gotoReady(docsPage, `${BASE}${url}`);
-    await shot(docsPage, file, note);
-  }
+  await gotoReady(docsPage, `${BASE}/docs/`);
+  await shot(docsPage, 'docs-home.png', 'VitePress docs home at /docs/');
 
   await gotoReady(docsPage, `${BASE}/api-docs`);
   await shot(docsPage, 'api-interactive.png', 'Interactive API docs at /api-docs');
@@ -420,7 +411,7 @@ async function captureDocs(context) {
 async function adminSwitchTab(page, tabName) {
   await page.locator(`.tab[data-tab="${tabName}"]`).click();
   await page.locator(`#panel-${tabName}.active`).waitFor({ state: 'visible', timeout: 15000 });
-  await wait(800);
+  await wait(SHOT_DELAY_MS);
 }
 
 async function captureAdmin(context) {
@@ -433,14 +424,14 @@ async function captureAdmin(context) {
   await adminPage.setViewportSize(VIEWPORT);
 
   const adminUrl = `${BASE}${ADMIN_PATH.startsWith('/') ? ADMIN_PATH : `/${ADMIN_PATH}`}`;
-  const res = await adminPage.goto(adminUrl, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  const res = await adminPage.goto(adminUrl, { waitUntil: 'networkidle', timeout: 120000 });
   if (!res || res.status() !== 200) {
     skipped.push(`All admin screenshots — ${adminUrl} returned HTTP ${res?.status() ?? 'error'}`);
     await adminPage.close();
     return;
   }
 
-  await wait(1000);
+  await wait(SHOT_DELAY_MS);
   await shot(adminPage, 'admin-login-empty.png', 'Admin login before password');
 
   await adminPage.locator('#passwordInput').fill(ADMIN_PASSWORD);
@@ -453,7 +444,7 @@ async function captureAdmin(context) {
   } else {
     await adminPage.locator('#appView').waitFor({ state: 'visible', timeout: 5000 });
   }
-  await wait(1200);
+  await wait(SHOT_DELAY_MS);
 
   const adminTabs = [
     { tab: 'dashboard', file: 'admin-dashboard.png', note: 'Admin dashboard tab' },
