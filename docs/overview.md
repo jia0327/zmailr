@@ -33,22 +33,26 @@
 ## 典型工作流
 
 ```mermaid
-sequenceDiagram
-  participant Script as 脚本 / Agent
-  participant API as zMailR API
-  participant Site as 目标网站
-
-  Script->>API: POST /api/lease
-  API-->>Script: email (24h)
-  Script->>Site: 注册 / 登录填 email
-  Site->>API: 发送验证邮件
-  Script->>API: GET /api/mail (长轮询)
-  API-->>Script: OTP code
+flowchart LR
+  A[1 租用随机邮箱] --> B[2 获取验证码]
+  B --> C{有 OTP?}
+  C -->|是| F[6 自动化]
+  C -->|否| D[3 有信无码?]
+  D -->|是| E[4 自定义规则]
+  E --> G[5 重新提取]
+  G --> B
+  D -->|否| B
+  B --> F
 ```
 
 1. **租用邮箱** — `POST /api/lease` 获得随机地址
 2. **触发验证** — 在目标站点填写该邮箱
-3. **收取 OTP** — 长轮询 `GET /api/mail` 或轮询 `latest-code`
+3. **收取 OTP** — 长轮询 `GET /api/mail` 或 `latest-code`
+4. **规则不匹配** — 收件箱有信但无 OTP → [自定义提取规则](./extract-rules.md)
+5. **重新提取 / 重发** — 保存规则后自动重跑，或目标站点重发验证邮件
+6. **自动化** — 脚本 / MCP 稳定跑通
+
+完整图文教程 → [验证码完整流程](./otp-workflow.md)
 
 ---
 
@@ -94,4 +98,5 @@ sequenceDiagram
 | 5 分钟在控制台跑通 lease → OTP | [5 分钟体验](./quickstart-5min.md) |
 | 创建 Bearer Token | [创建 API 密钥](./create-api-key.md) |
 | 写 Python / curl 脚本 | [第一个脚本](./first-script.md) |
+| 收信但提取不到 OTP | [验证码完整流程](./otp-workflow.md) |
 | 配置 Cursor MCP | [MCP 快速接入](./mcp.md) |

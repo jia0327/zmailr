@@ -58,6 +58,8 @@ export default defineConfig({
           { text: '5 分钟体验', link: '/quickstart-5min' },
           { text: '创建 API 密钥', link: '/create-api-key' },
           { text: '第一个脚本', link: '/first-script' },
+          { text: '验证码完整流程', link: '/otp-workflow' },
+          { text: '自定义提取规则', link: '/extract-rules' },
         ],
       },
       {

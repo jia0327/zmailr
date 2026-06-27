@@ -79,6 +79,10 @@ curl -s -X POST "<SiteOrigin />/api/lease" \
 控制台适合人工确认；自动化请用 `GET /api/mail` 长轮询或 `latest-code` 轮询 → [第一个脚本](./first-script.md)
 :::
 
+::: warning 能看到邮件但没有 OTP 高亮？
+说明 **提取规则未匹配**该站点模板，不是邮件延迟。按 [验证码完整流程 · 步骤 3–5](./otp-workflow.md#步骤-3收到邮件但未获取到验证码) 配置 [自定义提取规则](./extract-rules.md)。
+:::
+
 ---
 
 ## 步骤 5：用 API 调试页验证（可选）
@@ -103,5 +107,6 @@ curl -s -X POST "<SiteOrigin />/api/lease" \
 |------|------|
 | 系统学习 Token / Scope | [认证说明](./user-auth.md) |
 | 写 Python / curl 自动化 | [第一个脚本](./first-script.md) |
+| 有信但无 OTP / 接 CI | [验证码完整流程](./otp-workflow.md) |
 | 查全部 REST 端点 | [API 概览](./api-overview.md) |
 | Cursor Agent 接入 | [MCP 快速接入](./mcp.md) |

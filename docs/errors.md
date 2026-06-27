@@ -19,7 +19,7 @@ zMailR 使用 **HTTP 状态码 + `error` 字符串**（非数字业务码）。
 | `403` | `无权访问该邮箱` | 邮箱不属于当前用户 |
 | `403` | `邮箱已过期` | Bearer 访问已过期邮箱 |
 | `404` | `邮箱不存在或已过期` | 邮箱不存在或 TTL 已过 |
-| `404` | `no_code` | 尚无 OTP（`latest-code`）；继续轮询或改用长轮询 |
+| `404` | `no_code` | **尚无已提取 OTP**（`latest-code`）；可能是邮件未到，也可能是 **有信但规则未匹配** |
 | `404` | `no_email` / `no_link` | 无邮件 / 无验证链接 |
 | `408` | `timeout` | 长轮询超时（`GET /api/mail`） |
 | `429` | `rate_limit` | 速率或发信配额超限 |
@@ -32,12 +32,22 @@ zMailR 使用 **HTTP 状态码 + `error` 字符串**（非数字业务码）。
 | `401` | 未授权… | 检查 Header、Token 是否过期 |
 | `403` | `缺少 mail 权限` 等 | 重建 Token，勾选对应 scope |
 | `403` | `无权访问该邮箱` | 使用本 Token `lease` 得到的地址 |
-| `404` | `no_code` | 继续轮询或改用 `GET /api/mail` |
+| `404` | `no_code` | 先 `GET .../emails`：无邮件则继续轮询；**有邮件但 `extractedCode` 为空** → [自定义提取规则](./extract-rules.md) |
+| `408` | `timeout` | 长轮询超时；若收件箱已有邮件无 OTP，同样是规则问题 → [验证码完整流程](./otp-workflow.md) |
 | `404` | `邮箱不存在或已过期` | 重新 `POST /api/lease` |
-| `408` | `timeout` | 增大 `timeout` 或重试 |
 | `429` | `rate_limit` | 读 `Retry-After`，降频后重试 |
 
 错误处理代码示例 → [脚本接入 · 错误处理](./scripting.md#错误处理)。
+
+### `no_code` vs `no_email` vs `timeout`
+
+| 现象 | 含义 | 处理 |
+|------|------|------|
+| `404 no_email` | 邮箱内 **没有任何邮件** | 继续轮询 / 确认目标站点已发信 |
+| `404 no_code` + 列表 **有邮件** | 邮件已到，**提取规则未匹配** | [自定义提取规则](./extract-rules.md) → `re-extract` |
+| `408 timeout` + 列表 **有邮件无 OTP** | 长轮询只认 **已提取 OTP** 的信 | 同上；或目标站点 **重发验证邮件** |
+
+完整排查路径 → [验证码完整流程](./otp-workflow.md)
 
 ### MCP 视角
 

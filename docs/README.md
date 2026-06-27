@@ -18,6 +18,8 @@
 | 2 | [5 分钟体验](./quickstart-5min.md) | 控制台登录 → Token → 收 OTP（**含截图**） |
 | 3 | [创建 API 密钥](./create-api-key.md) | Dashboard 创建 Bearer Token（**含截图**） |
 | 4 | [第一个脚本](./first-script.md) | curl / Python 租邮箱等 OTP |
+| 5 | [验证码完整流程](./otp-workflow.md) | 六步：租邮箱 → 收 OTP → 规则 → 自动化 |
+| 6 | [自定义提取规则](./extract-rules.md) | 收到信但无 OTP 时配置正则 |
 
 ---
 
@@ -31,6 +33,8 @@
 | [5 分钟体验](./quickstart-5min.md) | 控制台图文教程 |
 | [创建 API 密钥](./create-api-key.md) | Token 与 Scope |
 | [第一个脚本](./first-script.md) | 最小可运行脚本 |
+| [验证码完整流程](./otp-workflow.md) | 含「有信无码」排查与自动化 |
+| [自定义提取规则](./extract-rules.md) | 按发件人域名配置 OTP 正则 |
 
 ### API 文档
 
@@ -64,7 +68,8 @@
 | 你是… | 推荐路径 |
 |-------|----------|
 | 第一次接触 | [产品概述](./overview.md) → [5 分钟体验](./quickstart-5min.md) |
-| 写 Python/CI | [创建 API 密钥](./create-api-key.md) → [第一个脚本](./first-script.md) |
+| 写 Python/CI | [创建 API 密钥](./create-api-key.md) → [验证码完整流程](./otp-workflow.md) |
+| 收信但无 OTP | [验证码完整流程 · 步骤 3–5](./otp-workflow.md#步骤-3收到邮件但未获取到验证码) → [自定义提取规则](./extract-rules.md) |
 | Cursor 用户 | [创建 API 密钥](./create-api-key.md) → [MCP 快速接入](./mcp.md) |
 | 查某个接口 | [API 参考](./api.md) 或 <SiteLink to="/api-docs">/api-docs</SiteLink> |
 
