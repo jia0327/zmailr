@@ -1,6 +1,6 @@
-# MCP 集成指南
+# MCP 详解
 
-> **文档导航** → [文档首页](./) · **API 参考** → [API 速通](./api.md)
+> [快速开始](./) · [API 详解](./api.md)
 
 [zMailR](https://github.com/jia0327/zmailr) 提供 npm 包 **`@zmailr/mcp`**，作为 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) 服务器，供 Cursor、Claude Desktop 等 AI 助手调用临时邮箱与 OTP 自动化能力。
 源码与英文 README 见 [packages/mcp README](https://github.com/jia0327/zmailr/blob/main/packages/mcp/README.md)。
@@ -49,7 +49,7 @@
 | `send_email` | `send` |
 | `get_quota` | 任意用户 Token scope 均可 |
 
-所有 API 均需认证，**不支持匿名调用**。详见 [用户认证与 Token](./user-auth.md)。
+所有 API 均需 Bearer Token，**不支持匿名调用**。Scope 说明见 [API 详解 · Token Scope](./api.md#token-scope)。
 
 ---
 
@@ -147,16 +147,3 @@ npx -y @zmailr/mcp
 2. 配置 MCP 环境变量后，在 AI 助手中调用 `lease_mailbox` 获取临时地址。
 3. 在目标站点使用该地址注册或验证。
 4. 调用 `wait_for_mail`、`get_latest_code` 或 `get_latest_link` 获取 OTP 或验证链接。
-
----
-
-## 相关文档
-
-| 文档 | 说明 |
-|------|------|
-| [文档首页](./) | 文档分类导航 |
-| [API 速通](./api.md) | API 端点速查 |
-| [用户认证与 Token](./user-auth.md) | 用户认证、Token scope、速率限制 |
-| [自托管部署](./deploy.md) | 自托管部署 |
-| [项目 README](https://github.com/jia0327/zmailr/blob/main/README.md) | 项目简介 |
-| [packages/mcp README](https://github.com/jia0327/zmailr/blob/main/packages/mcp/README.md) | 包 README（英文） |

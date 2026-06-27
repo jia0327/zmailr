@@ -1,13 +1,13 @@
-# API 参考
+# API 详解
 
-> 目标：**不看代码就能调通**。本文档按「概述 → 请求 → 参数 → 返回 → 错误码 → 完整示例」组织；Web Session 路由见 [user-auth.md](./user-auth.md)，MCP 见 [mcp.md](./mcp.md)。
+> **不看代码就能调通** — 按「概述 → 请求 → 参数 → 返回 → 错误码 → curl 示例」组织。MCP 工具对照见文末；Agent 集成见 [MCP 详解](./mcp.md)。
 
 ## 通用约定
 
 | 项 | 说明 |
 |----|------|
 | **Base URL** | <SiteOrigin />（无尾部 `/`） |
-| **鉴权** | 程序化接口使用 `Authorization: Bearer <token>`；Token 在 Dashboard → [API 密钥](/dashboard/api-keys) 创建 |
+| **鉴权** | 程序化接口使用 `Authorization: Bearer <token>`；Token 在 Dashboard → <SiteLink to="/dashboard/api-keys">API 密钥</SiteLink> 创建 |
 | **Content-Type** | 带 Body 的请求使用 `application/json` |
 | **响应包络** | 成功：`{ "success": true, ... }`；失败：`{ "success": false, "error": "<code>", "message?": "<human>" }` |
 
@@ -911,7 +911,7 @@ curl -X POST '{baseUrl}/api/send' \
   }'
 ```
 
-Brevo 与 DNS 配置见 [brevo-setup.md](./brevo-setup.md)。
+Brevo 出站发信需在 Worker 环境配置 `BREVO_API_KEY`。
 
 ---
 
@@ -1269,19 +1269,7 @@ curl -G '{baseUrl}/api/mail' \
 
 | 资源 | URL |
 |------|-----|
-| OpenAPI JSON | [`GET /openapi.json`](/openapi.json) |
-| 交互式文档 | [`/api-docs`](/api-docs) |
+| OpenAPI JSON | <SiteLink to="/openapi.json">GET /openapi.json</SiteLink> |
+| 交互式文档 | <SiteLink to="/api-docs">/api-docs</SiteLink> |
 
 构建时由 `scripts/generate-openapi.ts` 生成；字段 Schema 以 OpenAPI 为准。
-
----
-
-## 相关文档
-
-| 文档 | 说明 |
-|------|------|
-| [user-auth.md](./user-auth.md) | Session 登录、Token 创建、Web 路由 |
-| [mcp.md](./mcp.md) | `@zmailr/mcp` 工具与 Cursor 配置 |
-| [security.md](./security.md) | 鉴权模型、部署检查清单 |
-| [deploy.md](./deploy.md) | 部署与部署后验证 |
-| [文档首页](./) | 全部文档分类导航 |

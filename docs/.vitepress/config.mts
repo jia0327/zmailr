@@ -1,13 +1,26 @@
 import { defineConfig } from 'vitepress';
 
+/** Published on /docs/ — only quick start, API, and MCP. Other *.md files remain in repo for GitHub. */
+const unpublished = [
+  'admin-guide.md',
+  'api-interactive.md',
+  'backup.md',
+  'brevo-setup.md',
+  'deploy.md',
+  'mailsink-comparison.md',
+  'security.md',
+  'testing.md',
+  'user-auth.md',
+];
+
 export default defineConfig({
   lang: 'zh-CN',
   title: 'zMailR 文档',
-  description: '开源、可自托管的 24 小时临时邮箱与 OTP 自动化平台',
+  description: '临时邮箱与 OTP 自动化 — 快速开始、API、MCP',
   base: '/docs/',
   outDir: '../frontend/public/docs',
-  // Match Cloudflare Workers html_handling (drops .html); false breaks VitePress client hydration/search
   cleanUrls: true,
+  srcExclude: unpublished.map((f) => `**/${f}`),
   ignoreDeadLinks: [
     /^\/mcp\.json\.example$/,
     /^\.\/mcp\.json\.example$/,
@@ -15,9 +28,7 @@ export default defineConfig({
     /^\/dashboard\//,
     /^\/api-docs$/,
     /^\/openapi\.json$/,
-    /^\/docs\/api-interactive$/,
   ],
-  // README.md is the doc hub; map it to index so /docs/ gets index.html + correct client route
   rewrites: {
     'README.md': 'index.md',
   },
@@ -34,55 +45,14 @@ export default defineConfig({
     siteTitle: 'zMailR',
 
     nav: [
-      // Paths outside /docs/ base — use relative escape so VitePress does not prefix base + .html
       { text: '控制台', link: '../../dashboard/usage', target: '_self', rel: undefined },
-      { text: 'API 交互文档', link: '/api-interactive' },
       { text: 'GitHub', link: 'https://github.com/jia0327/zmailr' },
     ],
 
     sidebar: [
-      {
-        text: '入门',
-        items: [
-          { text: '快速开始', link: '/' },
-          { text: 'API 速通', link: '/#api-速通' },
-          { text: '自托管部署', link: '/deploy' },
-          { text: '部署指南', link: '/deploy' },
-          { text: '认证', link: '/user-auth' },
-          { text: '速率限制', link: '/api#速率限制' },
-        ],
-      },
-      {
-        text: 'API 参考',
-        items: [
-          { text: 'API 参考', link: '/api' },
-          { text: '用户认证与 Token', link: '/user-auth' },
-          { text: 'API 交互文档', link: '/api-interactive' },
-          { text: 'OpenAPI', link: '/openapi.json', target: '_blank', rel: 'noopener noreferrer' },
-        ],
-      },
-      {
-        text: 'MCP',
-        items: [{ text: 'MCP 集成', link: '/mcp' }],
-      },
-      {
-        text: '部署与运维',
-        items: [
-          { text: '部署指南', link: '/deploy' },
-          { text: '管理后台', link: '/admin-guide' },
-        ],
-      },
-      {
-        text: '集成',
-        items: [{ text: 'Brevo 发信', link: '/brevo-setup' }],
-      },
-      {
-        text: '参考',
-        items: [
-          { text: 'OpenAPI 规范', link: '/openapi.json', target: '_blank', rel: 'noopener noreferrer' },
-          { text: 'E2E 测试报告', link: '/testing' },
-        ],
-      },
+      { text: '快速开始', link: '/' },
+      { text: 'API 详解', link: '/api' },
+      { text: 'MCP 详解', link: '/mcp' },
     ],
 
     socialLinks: [{ icon: 'github', link: 'https://github.com/jia0327/zmailr' }],
