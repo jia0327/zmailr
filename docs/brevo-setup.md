@@ -23,7 +23,7 @@
 ## 2. 添加发信域名
 
 1. 登录 [Brevo 控制台](https://app.brevo.com/) → **Settings** → **Senders, domains & dedicated IPs** → **Domains**。
-2. 点击 **Add a domain**，输入你的域名（例如 `itool.eu.cc`，需与 `VITE_EMAIL_DOMAIN` / `MAIL_DOMAIN` 一致）。
+2. 点击 **Add a domain**，输入你的域名（例如 `itool.eu.cc`）。多域名时在 Brevo **逐个添加**每个发信后缀，并与管理后台 **域名** 页已启用列表一致。
 3. Brevo 会给出 **SPF**、**DKIM**、**DMARC** 三条 DNS 记录。
 
 ---

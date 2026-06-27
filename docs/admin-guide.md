@@ -136,6 +136,18 @@ zMailR 管理后台用于运维与用户治理，**不在前端 bundle 中暴露
 
 管理 API：`GET/POST {ADMIN_PATH}/api/domains`、`PUT/DELETE {ADMIN_PATH}/api/domains/:id`
 
+### 收信、发信与界面切换域名
+
+邮箱在 D1 中保存 **local part**（如 `oilg5toc0`）。界面域名下拉会改变显示/复制的完整地址后缀，并写入 `mailboxes.mail_domain`（用于**发信**时校验 `from`）。
+
+| 场景 | 说明 |
+|------|------|
+| **收信** | 邮件须发到 **完整地址**（含域名）。Worker 按 local part 匹配邮箱；收件域名须在后台 **已启用**，且该域名已在 Cloudflare 单独配置 **Email Routing → Worker**。 |
+| **界面切域名** | 仅改变复制/展示的后缀（如 `oilg5toc0@rando.cc.cd` → `oilg5toc0@onlyme.qzz.io`）。若目标域名未配 Email Routing，发往新地址的验证码**不会到达**。 |
+| **发信** | `from` 域名须与邮箱绑定的 `mail_domain` 一致，且该域名已在 Brevo 完成认证。出站**仅支持 Brevo**（`BREVO_API_KEY`）。 |
+
+同一 local part 可在多个已配置入站的域名下收信（邮件进同一收件箱）。注册或收验证码时，请使用界面**当前显示**的完整地址，并确认该域名已在 Cloudflare 与后台均就绪。
+
 ---
 
 ## 依赖健康检查

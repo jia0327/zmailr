@@ -118,6 +118,9 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
   const actionBtnClass =
     'inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md border bg-background hover:bg-muted transition-colors disabled:opacity-50';
 
+  const domainSelectClass =
+    'appearance-none bg-transparent border-none focus:outline-none text-foreground font-mono';
+
   if (isCustomMode) {
     return (
       <form onSubmit={handleCreateCustom} className="space-y-2">
@@ -143,7 +146,7 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
                 <select
                   value={selectedDomain}
                   onChange={handleDomainChange}
-                  className="appearance-none bg-transparent border-none focus:outline-none pl-1 pr-5"
+                  className={`${domainSelectClass} pl-1 pr-5`}
                   disabled={isActionLoading}
                 >
                   {domains.map(d => (
@@ -174,6 +177,7 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
 
   return (
     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+      <div className="flex flex-1 flex-col min-w-0 gap-1">
       <div className="flex flex-1 min-w-0 items-stretch border rounded-md bg-background overflow-hidden">
         <div className="flex-1 min-w-0 flex items-center px-3 py-2.5 overflow-hidden">
           <span className="font-mono text-base sm:text-lg font-medium truncate select-all">
@@ -182,7 +186,7 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
               <select
                 value={selectedDomain}
                 onChange={handleDomainChange}
-                className="appearance-none bg-transparent border-none focus:outline-none font-mono font-medium pr-4 cursor-pointer"
+                className={`${domainSelectClass} font-medium pr-4 cursor-pointer`}
                 disabled={isActionLoading}
               >
                 {domains.map(d => (
@@ -225,6 +229,12 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
             <i className="fas fa-edit text-sm"></i>
           </button>
         </div>
+      </div>
+      {domains.length > 1 && (
+        <p className="text-xs text-muted-foreground px-1 leading-relaxed">
+          {t('mailbox.domainSwitchHint')}
+        </p>
+      )}
       </div>
     </div>
   );

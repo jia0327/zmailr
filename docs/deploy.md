@@ -34,7 +34,7 @@
 | `CF_ACCOUNT_ID` | 是 | Cloudflare 账户 ID（Workers 页面右侧） |
 | `D1_DATABASE_ID` | 是 | D1 数据库 ID |
 | `D1_DATABASE_NAME` | 是 | D1 数据库名称 |
-| `VITE_EMAIL_DOMAIN` | 是 | 邮箱域名，多个用逗号分隔（如 `example.com,mail.example.com`） |
+| `VITE_EMAIL_DOMAIN` | 是 | 邮箱域名（逗号分隔多个）。**首次部署**时导入 D1；日常增删改请在管理后台 **域名** 标签操作 |
 | `ADMIN_PASSWORD` | 是 | 管理后台登录密码（勿写入代码仓库） |
 | `ADMIN_PATH` | 是 | 管理后台 URL 路径段，**推荐 UUID**，无 `/` 前缀（如 `a1b2c3d4-e5f6-7890-abcd-ef1234567890`） |
 | `BREVO_API_KEY` | 否 | Brevo Transactional API Key（`xkeysib-...`），未配置时出站发信不可用 |
@@ -81,15 +81,26 @@ zMailR 通过 Cloudflare **Email Routing** 接收邮件：
 
 1. Cloudflare Dashboard → 你的域名 → **Email** → **Email Routing** → 启用。
 2. 添加 **Catch-all** 规则，操作选 **Send to a Worker**，指向已部署的 Worker（`zmailr`）。
-3. 若 `VITE_EMAIL_DOMAIN` 配置了多个域名，每个域名需分别启用 Email Routing 并绑定同一 Worker。
+3. **每个收信域名须单独完成上述步骤**（Catch-all → 同一 Worker），不能只配一个域名指望其它后缀也能收信。
 
-Worker 使用 `postal-mime` 解析 MIME，写入 D1，并按提取规则自动识别验证码。
+Worker 使用 `postal-mime` 解析 MIME，按收件地址的 **local part** 匹配 D1 邮箱，并校验收件域名是否在管理后台 **已启用** 列表中；写入 D1 后按提取规则自动识别验证码。
+
+### 多域名与后台配置
+
+| 配置方式 | 说明 |
+|----------|------|
+| **管理后台 → 域名**（推荐） | 生产环境在 `{ADMIN_PATH}` 的 **域名** 标签添加、启用后缀；须勾选 Cloudflare Email Routing 与 Brevo 认证已完成。详见 [admin-guide.md § 邮箱域名管理](./admin-guide.md#邮箱域名管理)。 |
+| **`VITE_EMAIL_DOMAIN`** | 首次部署时作为 **种子** 写入 D1；之后以前台 `GET /api/config` → `emailDomains`（来自 D1 已启用域名）为准。 |
+
+用户在前端切换域名下拉时，复制的是 `前缀@所选域名`。验证码/通知邮件必须发往该 **完整地址**，且对应域名须已完成 Cloudflare Email Routing；否则邮件到不了 Worker。
 
 ---
 
 ## 5. 出站发信（Brevo）
 
-`/api/send` 与 Dashboard 发件箱依赖 Brevo。完整步骤（注册、SPF/DKIM/DMARC、API Key、GitHub Secret）见 **[brevo-setup.md](./brevo-setup.md)**。
+`/api/send` 与 Dashboard 发件箱**仅**通过 [Brevo](https://www.brevo.com/) Transactional API 发信（需 `BREVO_API_KEY`，无其它回退通道）。完整步骤（注册、SPF/DKIM/DMARC、API Key、GitHub Secret）见 **[brevo-setup.md](./brevo-setup.md)**。
+
+多域名时，**每个发信后缀**须在 Brevo 单独完成域名认证，并在管理后台 **域名** 页添加启用。
 
 ---
 

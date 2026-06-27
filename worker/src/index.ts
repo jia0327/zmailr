@@ -41,6 +41,8 @@ export default {
   // 处理邮件
   async email(message: any, env: Env, _ctx: ExecutionContext): Promise<void> {
     try {
+      await ensureDatabaseInitialized(env.DB, env.ADMIN_PASSWORD);
+      await ensureMailDomainsSeeded(env.DB, env);
       await handleEmail(message, env);
     } catch (error) {
       console.error('处理邮件失败:', error);

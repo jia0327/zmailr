@@ -40,7 +40,7 @@
 
 - **登录与会话**：用户名密码登录，受保护的路由与登出
 - **仪表板**：API Token 状态与提醒（无 Token / 即将过期横幅）、收件/发件用量、今日发信配额
-- **收件箱 / 发件箱**：新建 24 小时临时地址、收信列表、OTP 高亮（OtpBox）、**下载原始 .eml / 复制纯文本**、**附件列表/预览/下载**（Session 鉴权）、Brevo 出站撰写（**纯文本 / 富文本** Tab）、出站附件、发信记录与**详情弹窗**（含失败重发）
+- **收件箱 / 发件箱**：新建 24 小时临时地址、**多域名后缀切换**（每域名须单独配置 Cloudflare 入站 + Brevo 发信）、收信列表、OTP 高亮（OtpBox）、**下载原始 .eml / 复制纯文本**、**附件列表/预览/下载**（Session 鉴权）、Brevo 出站撰写（**纯文本 / 富文本** Tab）、出站附件、发信记录与**详情弹窗**（含失败重发）
 - **邮箱历史**：已过期/历史邮箱列表，支持批量删除
 - **邮件批量删除**：收件箱与发件箱多选删除
 - **API 密钥**：每位用户最多 3 个 Bearer Token（zmr_ + 64 位 hex；旧版无前缀仍可用），可选 `lease` / `mail` / `send` scope，含 curl 示例；明文仅创建时展示一次，浏览器可本地保存脱敏预览
@@ -78,6 +78,7 @@
 - **速率方案**：每用户 Free / Pro / Team 档位（独立 RPM 与 burst）
 - **公告管理**：创建/启用/停用面向用户的系统公告
 - **提取规则**：全局内置规则 + 所有用户自定义规则汇总
+- **域名管理**：多邮箱后缀添加/启用/禁用；须先完成 Cloudflare Email Routing 与 Brevo 认证
 - **系统健康**：D1 / R2 / Brevo 依赖探测（`GET /api/public/status`）
 - **请求监控**：近 7 日请求趋势图、状态码分布、Top 路由、今日 429 与 Top IP / 用户排行
 - **维护模式**：可选阻断 lease、发信、创建邮箱等 API
@@ -91,7 +92,7 @@
 - **R2 附件**：入站附件存 `zmailr-attachments` bucket（`ATTACHMENTS` 绑定）；D1 存元数据，历史 D1 附件可回退读取
 - **依赖健康检查**：公开 `GET /api/public/status` 探测 D1/R2/Brevo，聚合 `ok` / `degraded` / `error`；**D1 备份**见 [docs/backup.md](docs/backup.md)
 - **文档站**：[`/docs/`](https://zmailr.itool.eu.cc/docs/)（VitePress）、[`/docs/api-interactive`](https://zmailr.itool.eu.cc/docs/api-interactive) 交互式 API 文档
-- **Brevo 出站**：Transactional API 发信，SPF/DKIM/DMARC 见 [brevo-setup.md](docs/brevo-setup.md)
+- **Brevo 出站**：Transactional API 发信（唯一出站通道），SPF/DKIM/DMARC 见 [brevo-setup.md](docs/brevo-setup.md)
 
 ---
 

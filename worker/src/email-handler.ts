@@ -2,6 +2,8 @@ import * as PostalMimeModule from 'postal-mime';
 import { Env, ParsedEmail } from './types';
 import { getMailbox, saveEmail, saveAttachment } from './database';
 import { extractCode } from './extractor';
+import { resolveEnabledMailDomainNames } from './mail-domains';
+import { extractEmailDomain } from './utils';
 
 const PostalMime = PostalMimeModule.default;
 
@@ -24,10 +26,18 @@ export async function handleEmail(message: any, env: Env): Promise<void> {
       attachmentsCount: email.attachments?.length || 0
     });
 
-    // 提取邮箱地址部分（从email.to获取 ）
-    const mailboxAddress = email.to[0].address.split('@')[0];
+    // 提取收件地址（local part + 域名）
+    const toFullAddress = email.to[0].address.trim().toLowerCase();
+    const mailboxAddress = toFullAddress.split('@')[0];
+    const toDomain = extractEmailDomain(toFullAddress);
+
+    const enabledDomains = await resolveEnabledMailDomainNames(env.DB, env);
+    if (!enabledDomains.includes(toDomain)) {
+      console.log('收件域名未在后台启用或未配置 Email Routing:', toFullAddress, enabledDomains);
+      throw new Error(`收件域名未启用: ${toDomain}`);
+    }
     
-    // 查找对应的邮箱
+    // 查找对应的邮箱（按 local part，任意已启用域名后缀均可收信）
     const mailbox = await getMailbox(env.DB, mailboxAddress);
     
     if (!mailbox) {
@@ -56,7 +66,7 @@ export async function handleEmail(message: any, env: Env): Promise<void> {
       mailboxId: mailbox.id,
       fromAddress: email.from.address,
       fromName: email.from.name || '',
-      toAddress: mailboxAddress,
+      toAddress: toFullAddress,
       subject: email.subject || '',
       textContent: email.text || '',
       htmlContent: email.html || '',
