@@ -7,11 +7,14 @@ import {
   getUserByUsername,
   updateUserLastLogin,
   getMailbox,
+  getMailboxRaw,
+  getLatestLeasedMailbox,
   isMailboxOwnedByUser,
 } from './database';
 import { verifyPassword } from './crypto';
 import { adminPathPrefix } from './admin-path';
-import { validateSendFromAddress, extractEmailDomain } from './utils';
+import { validateSendFromAddress, extractEmailDomain, parseMailboxAddress, getCurrentTimestamp } from './utils';
+import { resolveDefaultMailDomain, resolveMailboxEmailDomain } from './mail-domains';
 
 const ADMIN_SESSION_COOKIE = 'zmail_admin_session';
 const USER_SESSION_COOKIE = 'zmail_user_session';
@@ -242,6 +245,94 @@ export async function resolveSendFromAddress(
   }
 
   return { ok: true, fromEmail: validated.fromEmail };
+}
+
+export function canSendFromMailbox(
+  mailbox: Mailbox,
+  mode: SendFromAuthMode,
+  userId?: number | null
+): { ok: true } | { ok: false; error: string } {
+  if (mailbox.userId != null) {
+    if (mode !== 'user' || userId == null || mailbox.userId !== userId) {
+      return { ok: false, error: '无权使用该发件地址' };
+    }
+  } else if (mode !== 'legacy') {
+    return { ok: false, error: '无权使用该发件地址' };
+  }
+  return { ok: true };
+}
+
+function isFromDomainAllowed(fromEmail: string, allowedDomains: string | string[]): boolean {
+  const domain = extractEmailDomain(fromEmail);
+  const allowed = (Array.isArray(allowedDomains) ? allowedDomains : [allowedDomains]).map((d) =>
+    d.toLowerCase()
+  );
+  return allowed.includes(domain);
+}
+
+/**
+ * Resolve outbound from: explicit from, else no-reply@leased domain, else no-reply@default.
+ */
+export async function resolveOutboundFrom(
+  db: D1Database,
+  env: Pick<Env, 'MAIL_DOMAIN' | 'VITE_EMAIL_DOMAIN'>,
+  params: {
+    from?: string | null;
+    mailboxHint?: string | null;
+    allowedDomains: string | string[];
+    mode: SendFromAuthMode;
+    userId?: number | null;
+    ipAddress?: string | null;
+  }
+): Promise<{ ok: true; fromEmail: string } | { ok: false; error: string }> {
+  const defaultDomain = await resolveDefaultMailDomain(db, env);
+
+  if (params.from != null && String(params.from).trim() !== '') {
+    const result = await resolveSendFromAddress(
+      db,
+      String(params.from),
+      params.allowedDomains,
+      params.mode,
+      params.userId
+    );
+    if (!result.ok) return result;
+    return { ok: true, fromEmail: result.fromEmail ?? `no-reply@${defaultDomain}` };
+  }
+
+  let mailbox: Mailbox | null = null;
+  const hint = params.mailboxHint?.trim();
+  if (hint) {
+    const localPart = parseMailboxAddress(hint);
+    const found = await getMailboxRaw(db, localPart);
+    if (found && found.expiresAt > getCurrentTimestamp()) {
+      mailbox = found;
+    }
+  } else {
+    mailbox = await getLatestLeasedMailbox(db, {
+      userId: params.mode === 'user' ? params.userId : undefined,
+      ipAddress: params.mode === 'legacy' ? params.ipAddress : undefined,
+      legacyOnly: params.mode === 'legacy',
+    });
+  }
+
+  if (mailbox) {
+    const access = canSendFromMailbox(mailbox, params.mode, params.userId);
+    if (!access.ok) return access;
+    if (params.mode === 'user' && params.userId != null) {
+      const owned = await isMailboxOwnedByUser(db, mailbox.address, params.userId);
+      if (!owned) {
+        return { ok: false, error: '无权使用该发件地址' };
+      }
+    }
+    const sendDomain = resolveMailboxEmailDomain(mailbox, defaultDomain);
+    const fromEmail = `no-reply@${sendDomain}`;
+    if (!isFromDomainAllowed(fromEmail, params.allowedDomains)) {
+      return { ok: false, error: 'from 域名与系统允许的域名不匹配' };
+    }
+    return { ok: true, fromEmail };
+  }
+
+  return { ok: true, fromEmail: `no-reply@${defaultDomain}` };
 }
 
 export async function authenticateUserLogin(

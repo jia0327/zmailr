@@ -310,6 +310,36 @@ export async function getMailboxRaw(db: D1Database, address: string): Promise<Ma
   return rowToMailbox(result as Record<string, unknown>);
 }
 
+/** 最近租用的未过期邮箱（用户按 created_at，Legacy 按同 IP + 无 user_id） */
+export async function getLatestLeasedMailbox(
+  db: D1Database,
+  opts: { userId?: number | null; ipAddress?: string | null; legacyOnly?: boolean }
+): Promise<Mailbox | null> {
+  const now = getCurrentTimestamp();
+  if (opts.legacyOnly) {
+    if (!opts.ipAddress?.trim()) return null;
+    const row = await db
+      .prepare(
+        `SELECT ${MAILBOX_COLUMNS} FROM mailboxes
+         WHERE user_id IS NULL AND ip_address = ? AND expires_at > ?
+         ORDER BY created_at DESC LIMIT 1`
+      )
+      .bind(opts.ipAddress.trim(), now)
+      .first();
+    return row ? rowToMailbox(row as Record<string, unknown>) : null;
+  }
+  if (opts.userId == null) return null;
+  const row = await db
+    .prepare(
+      `SELECT ${MAILBOX_COLUMNS} FROM mailboxes
+       WHERE user_id = ? AND expires_at > ?
+       ORDER BY created_at DESC LIMIT 1`
+    )
+    .bind(opts.userId, now)
+    .first();
+  return row ? rowToMailbox(row as Record<string, unknown>) : null;
+}
+
 export async function getMailboxById(db: D1Database, id: string): Promise<Mailbox | null> {
   const now = getCurrentTimestamp();
   const result = await db
@@ -790,18 +820,55 @@ function mapEmailListItem(result: Record<string, unknown>): EmailListItem {
  * 获取邮件列表
  * @param db 数据库实例
  * @param mailboxId 邮箱ID
- * @returns 邮件列表
+ * @param opts.domain 若指定，仅返回发往 localPart@domain 的邮件（多域名同前缀隔离展示）
  */
-export async function getEmails(db: D1Database, mailboxId: string): Promise<EmailListItem[]> {
-  const results = await db.prepare(
-    `SELECT e.id, e.mailbox_id, e.from_address, e.from_name, e.to_address, e.subject,
-            e.received_at, e.has_attachments, e.is_read, e.extracted_code, e.matched_rule_id,
-            er.domain AS matched_rule_domain, er.remark AS matched_rule_remark
-     FROM emails e
-     LEFT JOIN extract_rules er ON e.matched_rule_id = er.id
+export async function getEmails(
+  db: D1Database,
+  mailboxId: string,
+  opts?: { localPart?: string; domain?: string }
+): Promise<EmailListItem[]> {
+  const domain = opts?.domain?.trim().toLowerCase();
+  const localPart = opts?.localPart?.trim().toLowerCase();
+  const filterByDomain = !!(domain && localPart);
+
+  const baseSelect = `
+    SELECT e.id, e.mailbox_id, e.from_address, e.from_name, e.to_address, e.subject,
+           e.received_at, e.has_attachments, e.is_read, e.extracted_code, e.matched_rule_id,
+           er.domain AS matched_rule_domain, er.remark AS matched_rule_remark
+    FROM emails e
+    LEFT JOIN extract_rules er ON e.matched_rule_id = er.id`;
+
+  const results = filterByDomain
+    ? await db
+        .prepare(
+          `${baseSelect}
+     LEFT JOIN mailboxes m ON m.id = e.mailbox_id
+     WHERE e.mailbox_id = ?
+       AND (
+         LOWER(e.to_address) = ?
+         OR (
+           INSTR(LOWER(e.to_address), '@') > 0
+           AND LOWER(SUBSTR(e.to_address, 1, INSTR(e.to_address, '@') - 1)) = ?
+           AND LOWER(SUBSTR(e.to_address, INSTR(e.to_address, '@') + 1)) = ?
+         )
+         OR (
+           INSTR(e.to_address, '@') = 0
+           AND LOWER(e.to_address) = ?
+           AND LOWER(COALESCE(m.mail_domain, '')) = ?
+         )
+       )
+     ORDER BY e.received_at DESC`
+        )
+        .bind(mailboxId, `${localPart}@${domain}`, localPart, domain, localPart, domain)
+        .all()
+    : await db
+        .prepare(
+          `${baseSelect}
      WHERE e.mailbox_id = ?
      ORDER BY e.received_at DESC`
-  ).bind(mailboxId).all();
+        )
+        .bind(mailboxId)
+        .all();
   
   if (!results.results) return [];
   

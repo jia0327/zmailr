@@ -47,6 +47,25 @@ export async function resolveDefaultMailDomain(
   return enabled[0] || 'example.com';
 }
 
+/** 从非空列表均匀随机取一项（便于单测注入 random） */
+export function pickRandomFromList<T>(items: readonly T[], randomFn: () => number = Math.random): T | undefined {
+  if (!items.length) return undefined;
+  const index = Math.floor(randomFn() * items.length);
+  return items[Math.min(index, items.length - 1)];
+}
+
+/** 从已启用域名中随机选一个（/api/lease 未传 domain 时使用） */
+export async function resolveRandomMailDomain(
+  db: D1Database,
+  env: Pick<Env, 'MAIL_DOMAIN' | 'VITE_EMAIL_DOMAIN'>,
+  randomFn: () => number = Math.random
+): Promise<string> {
+  const enabled = await resolveEnabledMailDomainNames(db, env);
+  if (!enabled.length) return 'example.com';
+  if (enabled.length === 1) return enabled[0];
+  return pickRandomFromList(enabled, randomFn) ?? enabled[0];
+}
+
 /** 校验域名在已启用列表中，返回规范化域名 */
 export async function assertEnabledMailDomain(
   db: D1Database,

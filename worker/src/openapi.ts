@@ -674,7 +674,7 @@ export const OPENAPI_SPEC = {
         tags: ['Bearer'],
         summary: 'Lease random temporary mailbox',
         operationId: 'leaseMailbox',
-        description: 'Requires lease scope. 24h TTL.',
+        description: 'Requires lease scope. 24h TTL. Random local-part; domain is picked at random from enabled domains unless `domain` is specified in the JSON body.',
         security: [{ bearerAuth: [] }],
         responses: {
           '200': {

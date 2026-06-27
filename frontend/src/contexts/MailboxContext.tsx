@@ -10,7 +10,7 @@ import {
   UserMailboxItem,
 } from '../utils/api';
 import { useAuth } from './AuthContext';
-import { DEFAULT_AUTO_REFRESH, AUTO_REFRESH_INTERVAL } from '../config';
+import { DEFAULT_AUTO_REFRESH, AUTO_REFRESH_INTERVAL, getDefaultEmailDomain, DEFAULT_EMAIL_DOMAIN } from '../config';
 
 // 邮件详情缓存接口
 interface EmailCache {
@@ -229,10 +229,21 @@ export const MailboxProvider: React.FC<MailboxProviderProps> = ({ children }) =>
     setIsEmailsLoading(true);
 
     try {
-      const result = await getEmails(mailbox.address);
+      let domain = mailbox.mailDomain?.trim() || '';
+      if (!domain) {
+        try {
+          domain = await getDefaultEmailDomain();
+        } catch {
+          domain = DEFAULT_EMAIL_DOMAIN;
+        }
+      }
+      const result = await getEmails(mailbox.address, domain);
 
       if (result.success) {
         setEmails(result.emails);
+        setSelectedEmail((prev) =>
+          prev && result.emails.some((e: Email) => e.id === prev) ? prev : null
+        );
         // feat: 手动刷新成功时显示Toast
         if (isManual) {
           showSuccessMessage(t('email.refreshSuccess'));

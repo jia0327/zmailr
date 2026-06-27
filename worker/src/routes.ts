@@ -62,13 +62,13 @@ import {
   authenticateUserLogin,
   createUserSessionCookie,
   clearUserSessionCookie,
-  resolveSendFromAddress,
+  resolveOutboundFrom,
 } from './auth';
 import { sendMail, validateSendAttachments } from './sender';
 import { extractLink } from './extractor';
 import { isAdminRequest, isLegacyAdminRequest, stripAdminPrefix } from './admin-path';
 import { createAdminApp } from './admin-routes';
-import { resolveDefaultMailDomain, resolveEnabledMailDomainNames, assertEnabledMailDomain, formatMailboxEmail } from './mail-domains';
+import { resolveDefaultMailDomain, resolveEnabledMailDomainNames, assertEnabledMailDomain, formatMailboxEmail, resolveRandomMailDomain } from './mail-domains';
 import {
   consumeRequestRateLimit,
   consumeRateLimit,
@@ -394,8 +394,14 @@ app.get('/api/mailboxes/:address/emails', async (c) => {
 
     const accessErr = await requireMailboxAuth(c, resolved.mailbox!, 'mail');
     if (accessErr) return accessErr;
-    
-    const emails = await getEmails(c.env.DB, resolved.mailbox!.id);
+
+    const domainFilter = c.req.query('domain')?.trim();
+    const emails = domainFilter
+      ? await getEmails(c.env.DB, resolved.mailbox!.id, {
+          localPart: resolved.mailbox!.address,
+          domain: domainFilter,
+        })
+      : await getEmails(c.env.DB, resolved.mailbox!.id);
     
     return c.json({ success: true, emails });
   } catch (error) {
@@ -1113,10 +1119,17 @@ app.post('/api/user/send', async (c) => {
     }
 
     const allowedDomains = c.get('enabledMailDomains') ?? (await resolveEnabledMailDomainNames(c.env.DB, c.env));
-    const fromResult = await resolveSendFromAddress(c.env.DB, body.from, allowedDomains, 'user', user.id);
+    const fromResult = await resolveOutboundFrom(c.env.DB, c.env, {
+      from: body.from,
+      mailboxHint: body.address ?? body.mailbox,
+      allowedDomains,
+      mode: 'user',
+      userId: user.id,
+    });
     if (!fromResult.ok) {
       return c.json({ success: false, error: fromResult.error }, 400);
     }
+    const fromEmail = fromResult.fromEmail;
 
     const attachmentResult = validateSendAttachments(body.attachments);
     if (!attachmentResult.ok) {
@@ -1128,7 +1141,7 @@ app.post('/api/user/send', async (c) => {
       subject: body.subject,
       text: body.text,
       html: body.html,
-      from: fromResult.fromEmail,
+      from: fromEmail,
       userId: user.id,
       attachments: attachmentResult.attachments,
     });
@@ -1238,13 +1251,15 @@ app.post('/api/lease', async (c) => {
   try {
     const body = await c.req.json().catch(() => ({}));
     const defaultDomain = await resolveDefaultMailDomain(c.env.DB, c.env);
-    let mailDomain = defaultDomain;
+    let mailDomain: string;
     if (body.domain != null && String(body.domain).trim()) {
       const domainCheck = await assertEnabledMailDomain(c.env.DB, c.env, String(body.domain));
       if (!domainCheck.ok) {
         return c.json({ success: false, error: domainCheck.error }, 400);
       }
       mailDomain = domainCheck.domain;
+    } else {
+      mailDomain = await resolveRandomMailDomain(c.env.DB, c.env);
     }
 
     const address = generateRandomAddress();
@@ -1379,13 +1394,14 @@ app.post('/api/send', async (c) => {
 
     const allowedDomains = c.get('enabledMailDomains') ?? (await resolveEnabledMailDomainNames(c.env.DB, c.env));
     const fromMode = auth.type === 'legacy' ? 'legacy' : 'user';
-    const fromResult = await resolveSendFromAddress(
-      c.env.DB,
-      body.from,
+    const fromResult = await resolveOutboundFrom(c.env.DB, c.env, {
+      from: body.from,
+      mailboxHint: body.address ?? body.mailbox,
       allowedDomains,
-      fromMode,
-      auth.userId
-    );
+      mode: fromMode,
+      userId: auth.userId,
+      ipAddress: getClientIp(c.req.raw),
+    });
     if (!fromResult.ok) {
       return c.json({ success: false, error: fromResult.error }, 400);
     }

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { assertMailboxAccess } from './auth';
+import { assertMailboxAccess, canSendFromMailbox } from './auth';
 import type { ApiAuthContext, Mailbox, User } from './types';
 import { DEFAULT_LEGACY_SEND_DAILY_QUOTA } from './types';
 
@@ -92,6 +92,20 @@ describe('assertMailboxAccess', () => {
 
   it('denies unauthenticated access', () => {
     assert.equal(assertMailboxAccess(ownedMailbox, {}), false);
+  });
+});
+
+describe('canSendFromMailbox', () => {
+  it('allows user token on owned mailbox', () => {
+    assert.equal(canSendFromMailbox(ownedMailbox, 'user', 42).ok, true);
+  });
+
+  it('denies user token on legacy mailbox', () => {
+    assert.equal(canSendFromMailbox(legacyMailbox, 'user', 42).ok, false);
+  });
+
+  it('allows legacy token on unowned mailbox', () => {
+    assert.equal(canSendFromMailbox(legacyMailbox, 'legacy', null).ok, true);
   });
 });
 

@@ -187,13 +187,15 @@ export const getMailbox = async (address: string) => {
 };
 
 // 获取邮件列表
-export const getEmails = async (address: string) => {
+export const getEmails = async (address: string, domain?: string | null) => {
   try {
     if (!address) {
       return { success: false, error: 'Address is empty', emails: [] };
     }
-    
-    const response = await fetch(apiUrl(`/api/mailboxes/${address}/emails`), fetchOpts);
+
+    const domainQuery =
+      domain && domain.trim() ? `?domain=${encodeURIComponent(domain.trim())}` : '';
+    const response = await fetch(apiUrl(`/api/mailboxes/${address}/emails${domainQuery}`), fetchOpts);
     
     if (response.status === 404) {
       return { success: false, error: 'Mailbox not found', notFound: true };
