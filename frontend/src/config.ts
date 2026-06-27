@@ -103,6 +103,18 @@ export function formatMailboxEmail(mailbox: Mailbox, fallbackDomain: string = DE
   return `${localPart}@${domain}`;
 }
 
+/** 解析发件地址为前缀与域名（用于发件表单） */
+export function parseSendFromEmail(
+  email: string,
+  fallbackDomain: string = DEFAULT_EMAIL_DOMAIN
+): { prefix: string; domain: string } {
+  const trimmed = email.trim();
+  if (!trimmed) return { prefix: '', domain: fallbackDomain };
+  const at = trimmed.lastIndexOf('@');
+  if (at < 0) return { prefix: trimmed, domain: fallbackDomain };
+  return { prefix: trimmed.slice(0, at), domain: trimmed.slice(at + 1) };
+}
+
 // API地址配置
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 

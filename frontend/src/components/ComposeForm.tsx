@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { sendUserEmail, SendAttachmentItem } from '../utils/api';
 import {
@@ -8,6 +8,13 @@ import {
   stripHtmlToText,
 } from '../utils/htmlBody';
 import RichTextEditor from './RichTextEditor';
+import RegistrationEmailDomainPicker from './RegistrationEmailDomainPicker';
+import {
+  DEFAULT_EMAIL_DOMAIN,
+  getDefaultEmailDomain,
+  getEmailDomains,
+  parseSendFromEmail,
+} from '../config';
 
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 
@@ -36,16 +43,42 @@ const ComposeForm: React.FC<ComposeFormProps> = ({ defaultFrom, onSent, classNam
   const [text, setText] = useState('');
   const [html, setHtml] = useState('');
   const [bodyMode, setBodyMode] = useState<'text' | 'rich'>('rich');
-  const [from, setFrom] = useState(defaultFrom || '');
+  const [fromPrefix, setFromPrefix] = useState('');
+  const [fromDomain, setFromDomain] = useState(DEFAULT_EMAIL_DOMAIN);
+  const [emailDomains, setEmailDomains] = useState<string[]>([DEFAULT_EMAIL_DOMAIN]);
   const [attachments, setAttachments] = useState<SendAttachmentItem[]>([]);
   const [attachmentBytes, setAttachmentBytes] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  React.useEffect(() => {
-    if (defaultFrom) setFrom(defaultFrom);
-  }, [defaultFrom]);
+  useEffect(() => {
+    Promise.all([getEmailDomains(), getDefaultEmailDomain()])
+      .then(([domains, defaultDom]) => {
+        setEmailDomains(domains.length > 0 ? domains : [defaultDom]);
+        setFromDomain((prev) => (domains.includes(prev) ? prev : defaultDom));
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!defaultFrom) return;
+    const fallback = emailDomains[0] ?? DEFAULT_EMAIL_DOMAIN;
+    const parsed = parseSendFromEmail(defaultFrom, fallback);
+    setFromPrefix(parsed.prefix);
+    setFromDomain(emailDomains.includes(parsed.domain) ? parsed.domain : fallback);
+  }, [defaultFrom, emailDomains]);
+
+  const domainGroups = useMemo(
+    () => [{ label: t('send.fromDomainGroup'), domains: emailDomains }],
+    [emailDomains, t]
+  );
+
+  const buildFromAddress = useCallback((): string | undefined => {
+    const prefix = fromPrefix.trim();
+    if (!prefix) return undefined;
+    return `${prefix}@${fromDomain}`;
+  }, [fromPrefix, fromDomain]);
 
   const handleInlineImageTooLarge = useCallback(() => {
     setError(t('send.inlineImageTooLarge'));
@@ -115,7 +148,7 @@ const ComposeForm: React.FC<ComposeFormProps> = ({ defaultFrom, onSent, classNam
       subject,
       text: bodyText,
       html: bodyHtml,
-      from: from || undefined,
+      from: buildFromAddress(),
       attachments: attachments.length > 0 ? attachments : undefined,
     });
     setLoading(false);
@@ -152,13 +185,24 @@ const ComposeForm: React.FC<ComposeFormProps> = ({ defaultFrom, onSent, classNam
       </div>
       <div>
         <label className="text-sm font-medium">{t('send.from')}</label>
-        <input
-          type="text"
-          value={from}
-          onChange={(e) => setFrom(e.target.value)}
-          placeholder={t('send.fromPlaceholder')}
-          className="w-full px-3 py-2 min-h-10 border rounded-md bg-background text-sm mt-1"
-        />
+        <div className="mt-1 flex items-center gap-1 min-w-0 border rounded-md bg-background px-3 py-2 min-h-10 focus-within:ring-2 focus-within:ring-sky-500/40">
+          <input
+            type="text"
+            value={fromPrefix}
+            onChange={(e) => setFromPrefix(e.target.value.replace(/@/g, ''))}
+            placeholder={t('send.fromPrefixPlaceholder')}
+            className="flex-1 min-w-0 bg-transparent text-sm focus:outline-none font-mono"
+            autoComplete="off"
+          />
+          <span className="text-muted-foreground shrink-0">@</span>
+          <RegistrationEmailDomainPicker
+            value={fromDomain}
+            onChange={setFromDomain}
+            domainGroups={domainGroups}
+            className="shrink-0"
+          />
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">{t('send.fromHint')}</p>
       </div>
       <div>
         <label className="text-sm font-medium">{t('send.subject')}</label>

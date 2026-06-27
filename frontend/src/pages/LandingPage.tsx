@@ -17,23 +17,10 @@ import {
   type ApiShowcaseGroup,
   type ApiShowcaseItem,
 } from '../utils/landingApiShowcase';
+import { PRODUCT_FEATURES } from '../constants/productFeatures';
 import { copyTextToClipboard } from '../utils/clipboard';
 
 type QuickstartTab = 'curl' | 'mcp';
-
-const WORKS_WITH = ['CI / 脚本', 'Playwright', 'Cursor', 'Claude', 'MCP', 'OpenAPI'] as const;
-
-const FEATURES = [
-  { icon: 'fas fa-envelope', titleKey: 'landing.primitiveReceiveTitle', descKey: 'landing.primitiveReceiveDesc' },
-  { icon: 'fas fa-clock', titleKey: 'landing.primitivePollTitle', descKey: 'landing.primitivePollDesc' },
-  { icon: 'fas fa-robot', titleKey: 'landing.primitiveAgentTitle', descKey: 'landing.primitiveAgentDesc' },
-  { icon: 'fas fa-inbox', titleKey: 'landing.consoleInbox', descKey: 'landing.consoleInboxDesc' },
-  { icon: 'fas fa-paper-plane', titleKey: 'landing.consoleOutbox', descKey: 'landing.consoleOutboxDesc' },
-  { icon: 'fas fa-filter', titleKey: 'landing.consoleRules', descKey: 'landing.consoleRulesDesc' },
-  { icon: 'fas fa-key', titleKey: 'landing.consoleApiKeys', descKey: 'landing.consoleApiKeysDesc' },
-  { icon: 'fas fa-terminal', titleKey: 'landing.consoleDebug', descKey: 'landing.consoleDebugDesc' },
-  { icon: 'fas fa-chart-bar', titleKey: 'landing.consoleUsage', descKey: 'landing.consoleUsageDesc' },
-] as const;
 
 const SHOWCASE_PANEL_H = 'min-h-[420px] lg:h-[440px]';
 
@@ -97,6 +84,10 @@ const LandingPage: React.FC = () => {
   const { t } = useTranslation();
   const { isAuthenticated, isLoading } = useAuth();
   const baseUrl = useMemo(getApiBaseUrl, []);
+  const worksWithExamples = useMemo(() => {
+    const items = t('landing.worksWithExamples', { returnObjects: true });
+    return Array.isArray(items) ? items : [];
+  }, [t]);
   const [quickstartTab, setQuickstartTab] = useState<QuickstartTab>('mcp');
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -183,15 +174,22 @@ const LandingPage: React.FC = () => {
                 </a>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">{t('landing.tryDemoHint')}</p>
-              <div className="mt-8 flex flex-wrap gap-2">
-                {WORKS_WITH.map((label) => (
-                  <span
-                    key={label}
-                    className="text-xs px-2.5 py-1 rounded-full border border-border bg-card/60 text-muted-foreground"
-                  >
-                    {label}
-                  </span>
-                ))}
+              <div className="mt-8">
+                <p className="text-xs text-muted-foreground mb-2.5">
+                  <span className="font-medium text-foreground">{t('landing.worksWith')}</span>
+                  {' · '}
+                  {t('landing.worksWithHint')}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {worksWithExamples.map((label) => (
+                    <span
+                      key={label}
+                      className="text-xs px-2.5 py-1 rounded-full border border-border bg-card/60 text-muted-foreground"
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -401,7 +399,7 @@ const LandingPage: React.FC = () => {
               <p className="mt-2 text-muted-foreground">{t('landing.featuresSubtitle')}</p>
             </div>
             <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {FEATURES.map(({ icon, titleKey, descKey }) => (
+              {PRODUCT_FEATURES.map(({ icon, titleKey, descKey }) => (
                 <div
                   key={titleKey}
                   className="rounded-xl border border-border p-4 sm:p-5 bg-card hover:border-sky-300/50 dark:hover:border-sky-500/30 transition-colors"

@@ -6,13 +6,7 @@ import ThemeSwitcher from '../components/ThemeSwitcher';
 import TurnstileWidget from '../components/TurnstileWidget';
 import { getRegistrationConfig } from '../config';
 
-const LOGIN_FEATURES = [
-  { icon: 'fas fa-inbox', titleKey: 'auth.loginFeatureInbox', descKey: 'auth.loginFeatureInboxDesc' },
-  { icon: 'fas fa-code', titleKey: 'auth.loginFeatureApi', descKey: 'auth.loginFeatureApiDesc' },
-  { icon: 'fas fa-filter', titleKey: 'auth.loginFeatureExtract', descKey: 'auth.loginFeatureExtractDesc' },
-  { icon: 'fas fa-clock', titleKey: 'auth.loginFeatureExpire', descKey: 'auth.loginFeatureExpireDesc' },
-  { icon: 'fas fa-paper-plane', titleKey: 'auth.loginFeatureSend', descKey: 'auth.loginFeatureSendDesc' },
-] as const;
+import { PRODUCT_FEATURES } from '../constants/productFeatures';
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
@@ -65,12 +59,20 @@ const LoginPage: React.FC = () => {
 
       <div className="relative flex-1 flex items-center justify-center px-4 py-6 lg:p-6">
         <div className="w-full max-w-md lg:max-w-4xl flex flex-col lg:flex-row rounded-2xl border border-sky-200/70 dark:border-border bg-card shadow-xl shadow-sky-500/10 dark:shadow-black/20 overflow-hidden">
-          <div className="login-hero relative hidden lg:block lg:w-[44%] p-8 lg:p-10">
-            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">{t('auth.loginTitle')}</h1>
-            <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{t('auth.loginTagline')}</p>
+          <div className="login-hero relative hidden lg:flex lg:flex-col lg:w-[44%] p-8 lg:p-10 min-h-0">
+            <div className="shrink-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+                {t('landing.badge')}
+              </p>
+              <h1 className="text-2xl lg:text-3xl font-bold tracking-tight mt-3 leading-tight">
+                {t('landing.heroTitle')}
+                <span className="text-sky-600 dark:text-sky-400"> {t('landing.heroTitleHighlight')}</span>
+              </h1>
+              <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{t('landing.heroSubtitle')}</p>
+            </div>
 
-            <ul className="mt-8 space-y-4">
-              {LOGIN_FEATURES.map(({ icon, titleKey, descKey }) => (
+            <ul className="mt-6 space-y-3 flex-1 overflow-y-auto min-h-0 pr-1">
+              {PRODUCT_FEATURES.map(({ icon, titleKey, descKey }) => (
                 <li key={titleKey} className="flex items-start gap-3">
                   <span className="w-8 h-8 rounded-lg bg-sky-500/15 flex items-center justify-center shrink-0 mt-0.5">
                     <i className={`${icon} text-sm text-sky-600 dark:text-sky-400`} />
@@ -82,6 +84,14 @@ const LoginPage: React.FC = () => {
                 </li>
               ))}
             </ul>
+
+            <Link
+              to="/"
+              className="mt-4 shrink-0 inline-flex items-center gap-1 text-sm text-sky-600 dark:text-sky-400 hover:underline"
+            >
+              {t('auth.backHome')}
+              <i className="fas fa-arrow-left text-xs" />
+            </Link>
           </div>
 
           <div className="flex-1 p-6 sm:p-8 lg:p-10 flex flex-col justify-center lg:border-l border-border">

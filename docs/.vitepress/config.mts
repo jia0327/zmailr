@@ -11,6 +11,11 @@ export default defineConfig({
   ignoreDeadLinks: [
     /^\/mcp\.json\.example$/,
     /^\.\/mcp\.json\.example$/,
+    /^\/login$/,
+    /^\/dashboard\//,
+    /^\/api-docs$/,
+    /^\/openapi\.json$/,
+    /^\/docs\/api-interactive$/,
   ],
   // README.md is the doc hub; map it to index so /docs/ gets index.html + correct client route
   rewrites: {
@@ -50,7 +55,7 @@ export default defineConfig({
       {
         text: 'API 参考',
         items: [
-          { text: '端点一览', link: '/api' },
+          { text: 'API 参考', link: '/api' },
           { text: '用户认证与 Token', link: '/user-auth' },
           { text: 'API 交互文档', link: '/api-interactive' },
           { text: 'OpenAPI', link: '/openapi.json', target: '_blank', rel: 'noopener noreferrer' },

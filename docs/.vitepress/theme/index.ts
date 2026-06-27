@@ -1,5 +1,7 @@
 import DefaultTheme from 'vitepress/theme';
 import { inBrowser } from 'vitepress';
+import SiteOrigin from './components/SiteOrigin.vue';
+import ExampleMailbox from './components/ExampleMailbox.vue';
 import './custom.css';
 
 const VP_THEME_KEY = 'vitepress-theme-appearance';
@@ -33,7 +35,9 @@ function syncThemeKeys() {
 
 export default {
   extends: DefaultTheme,
-  enhanceApp() {
+  enhanceApp({ app }) {
+    app.component('SiteOrigin', SiteOrigin);
+    app.component('ExampleMailbox', ExampleMailbox);
     if (inBrowser) {
       syncThemeKeys();
     }

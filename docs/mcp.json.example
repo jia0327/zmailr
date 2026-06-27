@@ -5,7 +5,7 @@
       "command": "npx",
       "args": ["-y", "@zmailr/mcp"],
       "env": {
-        "ZMAILR_BASE_URL": "https://zmailr.itool.eu.cc",
+        "ZMAILR_BASE_URL": "https://your-domain.example.com",
         "ZMAILR_TOKEN": "your-bearer-token"
       }
     },
@@ -14,7 +14,7 @@
       "command": "node",
       "args": ["packages/mcp/dist/index.js"],
       "env": {
-        "ZMAILR_BASE_URL": "https://zmailr.itool.eu.cc",
+        "ZMAILR_BASE_URL": "https://your-domain.example.com",
         "ZMAILR_TOKEN": "your-bearer-token"
       }
     }

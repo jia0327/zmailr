@@ -209,13 +209,14 @@ export async function resolveSendFromAddress(
   from: string | undefined,
   allowedDomains: string | string[],
   mode: SendFromAuthMode,
-  userId?: number | null
+  userId?: number | null,
+  defaultDomain?: string
 ): Promise<{ ok: true; fromEmail?: string } | { ok: false; error: string }> {
   if (from == null || from === '') {
     return { ok: true };
   }
 
-  const validated = validateSendFromAddress(String(from), allowedDomains);
+  const validated = validateSendFromAddress(String(from), allowedDomains, { defaultDomain });
   if (!validated.ok) {
     return validated;
   }
@@ -288,12 +289,21 @@ export async function resolveOutboundFrom(
   const defaultDomain = await resolveDefaultMailDomain(db, env);
 
   if (params.from != null && String(params.from).trim() !== '') {
+    const fromStr = String(params.from).trim();
+    let domainHint = defaultDomain;
+    if (!fromStr.includes('@')) {
+      const mailbox = await getMailbox(db, parseMailboxAddress(fromStr));
+      if (mailbox?.mailDomain) {
+        domainHint = mailbox.mailDomain;
+      }
+    }
     const result = await resolveSendFromAddress(
       db,
-      String(params.from),
+      fromStr,
       params.allowedDomains,
       params.mode,
-      params.userId
+      params.userId,
+      domainHint
     );
     if (!result.ok) return result;
     return { ok: true, fromEmail: result.fromEmail ?? `no-reply@${defaultDomain}` };

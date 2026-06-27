@@ -161,21 +161,35 @@ export function generateRandomString(length: number): string {
 
   export function validateSendFromAddress(
     from: string,
-    allowedDomains: string | string[]
+    allowedDomains: string | string[],
+    options?: { defaultDomain?: string }
   ): { ok: true; localPart: string; fromEmail: string } | { ok: false; error: string } {
     const trimmed = from.trim();
+    const domains = (Array.isArray(allowedDomains) ? allowedDomains : [allowedDomains]).map((d) =>
+      d.toLowerCase()
+    );
+
     if (!trimmed.includes('@')) {
-      return { ok: false, error: 'from 必须是完整邮箱地址' };
+      if (!trimmed) {
+        return { ok: false, error: '无效的 from 地址' };
+      }
+      const domain = (options?.defaultDomain ?? domains[0] ?? '').toLowerCase();
+      if (!domain || !domains.includes(domain)) {
+        return { ok: false, error: 'from 域名与系统允许的域名不匹配' };
+      }
+      const fromEmail = buildMailboxEmail(trimmed, domain);
+      if (!isValidEmailAddress(fromEmail)) {
+        return { ok: false, error: '无效的 from 地址' };
+      }
+      return { ok: true, localPart: trimmed, fromEmail };
     }
+
     if (!isValidEmailAddress(trimmed)) {
       return { ok: false, error: '无效的 from 地址' };
     }
     const at = trimmed.lastIndexOf('@');
     const localPart = trimmed.slice(0, at);
     const fromDomain = trimmed.slice(at + 1).toLowerCase();
-    const domains = (Array.isArray(allowedDomains) ? allowedDomains : [allowedDomains]).map((d) =>
-      d.toLowerCase()
-    );
     if (!domains.includes(fromDomain)) {
       return { ok: false, error: 'from 域名与系统允许的域名不匹配' };
     }
