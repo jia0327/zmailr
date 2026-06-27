@@ -260,6 +260,8 @@ html.light .chart-empty{color:#94a3b8}
     <h3 class="section-title">无感人机验证（Turnstile）</h3>
     <p class="section-desc">配置 Cloudflare Turnstile 后，登录、注册发码、忘记密码等操作前会进行无感验证，降低恶意刷接口风险</p>
     <div id="turnstilePanel">
+      <div class="form-group"><label><input type="checkbox" id="turnstileEnabled"> 启用 Turnstile 人机验证</label></div>
+      <p class="hint" style="margin-top:-8px;margin-bottom:12px">关闭后，即使已填写密钥，登录/注册/重置密码也不会要求 Turnstile 验证</p>
       <div class="form-group"><label>Turnstile Site Key（站点公钥）</label><input id="turnstileSiteKey" placeholder="0x4AAAAAAA..."></div>
       <div class="form-group"><label>Turnstile Secret Key（密钥）</label><input id="turnstileSecretKey" type="password" placeholder="0x4AAAAAAA..."><p class="hint" id="turnstileSecretHint"></p></div>
       <div class="card" style="margin-bottom:16px;font-size:.8125rem;line-height:1.65">
@@ -269,7 +271,7 @@ html.light .chart-empty{color:#94a3b8}
           <li>点击 <strong>Add widget</strong>，模式选 <strong>Managed</strong>（无感验证，多数用户无需点击）</li>
           <li><strong>Hostname</strong> 填写本站域名（如 <code>example.com</code>，不要带 <code>https://</code>）</li>
           <li>创建后复制 <strong>Site Key</strong> 与 <strong>Secret Key</strong> 填入上方</li>
-          <li>保存后，登录页与注册/重置密码发码前会出现 Turnstile 验证</li>
+          <li>保存后，勾选「启用 Turnstile 人机验证」，登录页与注册/重置密码发码前会出现 Turnstile 验证</li>
         </ol>
         <p class="hint" style="margin-top:10px">Secret Key 仅保存在服务器，不会回显；留空密钥输入框表示<strong>不修改</strong>已保存的 Secret。</p>
       </div>
@@ -397,8 +399,8 @@ const ipB=document.getElementById('topIpsBody');if(!s.topIps.length){ipB.innerHT
 const uB=document.getElementById('topUsersBody');if(!s.topUsers.length){uB.innerHTML='<tr><td colspan="2" class="empty">暂无</td></tr>'}else{uB.innerHTML=s.topUsers.map(r=>'<tr><td>'+r.username+' (#'+r.userId+')</td><td>'+r.count+'</td></tr>').join('')}}
 async function loadRegistration(){const d=await api('/registration');document.getElementById('regEnabled').checked=!!(d.registration&&d.registration.enabled)}
 async function saveRegistration(){await api('/registration',{method:'PUT',body:JSON.stringify({enabled:document.getElementById('regEnabled').checked})});alert('注册设置已保存')}
-async function loadMaintenance(){const d=await api('/maintenance');const m=d.maintenance;const t=d.turnstile||{};document.getElementById('turnstileSiteKey').value=t.siteKey||'';document.getElementById('turnstileSecretKey').value='';const hint=document.getElementById('turnstileSecretHint');if(t.hasSecret){hint.textContent='已保存 Secret Key（留空表示不修改）';hint.style.color='#86efac'}else{hint.textContent='尚未配置 Secret Key';hint.style.color='#94a3b8'}document.getElementById('maintEnabled').checked=!!m.enabled;document.getElementById('maintMessage').value=m.message||'';document.getElementById('maintBlockLease').checked=!!m.blockLease;document.getElementById('maintBlockSend').checked=!!m.blockSend;document.getElementById('maintBlockMailbox').checked=!!m.blockMailboxCreate;updateMaintenancePreview()}
-function readMaintenanceForm(){return{enabled:document.getElementById('maintEnabled').checked,message:document.getElementById('maintMessage').value,blockLease:document.getElementById('maintBlockLease').checked,blockSend:document.getElementById('maintBlockSend').checked,blockMailboxCreate:document.getElementById('maintBlockMailbox').checked,turnstile:{siteKey:document.getElementById('turnstileSiteKey').value.trim(),secretKey:document.getElementById('turnstileSecretKey').value}}}
+async function loadMaintenance(){const d=await api('/maintenance');const m=d.maintenance;const t=d.turnstile||{};document.getElementById('turnstileEnabled').checked=!!t.enabled;document.getElementById('turnstileSiteKey').value=t.siteKey||'';document.getElementById('turnstileSecretKey').value='';const hint=document.getElementById('turnstileSecretHint');if(t.hasSecret){hint.textContent='已保存 Secret Key（留空表示不修改）';hint.style.color='#86efac'}else{hint.textContent='尚未配置 Secret Key';hint.style.color='#94a3b8'}document.getElementById('maintEnabled').checked=!!m.enabled;document.getElementById('maintMessage').value=m.message||'';document.getElementById('maintBlockLease').checked=!!m.blockLease;document.getElementById('maintBlockSend').checked=!!m.blockSend;document.getElementById('maintBlockMailbox').checked=!!m.blockMailboxCreate;updateMaintenancePreview()}
+function readMaintenanceForm(){return{enabled:document.getElementById('maintEnabled').checked,message:document.getElementById('maintMessage').value,blockLease:document.getElementById('maintBlockLease').checked,blockSend:document.getElementById('maintBlockSend').checked,blockMailboxCreate:document.getElementById('maintBlockMailbox').checked,turnstile:{enabled:document.getElementById('turnstileEnabled').checked,siteKey:document.getElementById('turnstileSiteKey').value.trim(),secretKey:document.getElementById('turnstileSecretKey').value}}}
 function getMaintenanceBlockedLabelsClient(m){const labels=[];if(m.blockSend)labels.push('发送邮件');if(m.blockMailboxCreate)labels.push('创建新邮箱（含 API 租用）');else if(m.blockLease)labels.push('API 租用随机邮箱');return labels}
 function buildMaintenanceDisplayMessageClient(m){if(!m.enabled)return'';const custom=(m.message||'').trim();const blocked=getMaintenanceBlockedLabelsClient(m);if(!blocked.length)return custom||'系统维护中，请稍后再试';const blockedText='暂停服务：'+blocked.join('、')+'。';return custom?custom+' '+blockedText:'系统维护中。'+blockedText}
 function updateMaintenancePreview(){const m=readMaintenanceForm();const el=document.getElementById('maintPreview');if(!m.enabled){el.style.display='none';return}el.style.display='block';el.innerHTML='<strong>用户端将看到：</strong><br>'+esc(buildMaintenanceDisplayMessageClient(m))}

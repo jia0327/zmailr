@@ -22,10 +22,12 @@ export async function resolveTurnstileSettings(
   const stored = await getTurnstileSettings(db);
   const siteKey = (stored.siteKey?.trim() || env.TURNSTILE_SITE_KEY?.trim()) || null;
   const secretKey = (stored.secretKey?.trim() || env.TURNSTILE_SECRET_KEY?.trim()) || null;
+  const configured = isTurnstileConfigured(siteKey, secretKey);
+  const explicitlyEnabled = stored.enabled || (!stored.siteKey && !stored.secretKey && configured);
   return {
     siteKey,
     secretKey,
-    enabled: isTurnstileConfigured(siteKey, secretKey),
+    enabled: explicitlyEnabled && configured,
   };
 }
 

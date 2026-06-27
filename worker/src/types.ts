@@ -297,17 +297,20 @@ export interface RegistrationSettingsAdminView {
 }
 
 export interface TurnstileSettings {
+  enabled: boolean;
   siteKey: string;
   secretKey: string;
 }
 
 export const DEFAULT_TURNSTILE_SETTINGS: TurnstileSettings = {
+  enabled: false,
   siteKey: '',
   secretKey: '',
 };
 
 /** Admin API / UI — never expose secret key */
 export interface TurnstileSettingsAdminView {
+  enabled: boolean;
   siteKey: string;
   hasSecret: boolean;
 }

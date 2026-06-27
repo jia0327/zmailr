@@ -2442,9 +2442,13 @@ function parseTurnstileSettings(raw: string | null | undefined): TurnstileSettin
   if (!raw) return { ...DEFAULT_TURNSTILE_SETTINGS };
   try {
     const parsed = JSON.parse(raw) as Partial<TurnstileSettings & { turnstileSiteKey?: string; turnstileSecretKey?: string }>;
+    const siteKey = String(parsed.siteKey ?? parsed.turnstileSiteKey ?? '').trim();
+    const secretKey = String(parsed.secretKey ?? parsed.turnstileSecretKey ?? '').trim();
+    const hasKeys = !!(siteKey && secretKey);
     return {
-      siteKey: String(parsed.siteKey ?? parsed.turnstileSiteKey ?? '').trim(),
-      secretKey: String(parsed.secretKey ?? parsed.turnstileSecretKey ?? '').trim(),
+      siteKey,
+      secretKey,
+      enabled: parsed.enabled !== undefined ? !!parsed.enabled : hasKeys,
     };
   } catch {
     return { ...DEFAULT_TURNSTILE_SETTINGS };
@@ -2457,6 +2461,7 @@ export function toAdminRegistrationView(settings: RegistrationSettings): Registr
 
 export function toAdminTurnstileView(settings: TurnstileSettings): TurnstileSettingsAdminView {
   return {
+    enabled: !!settings.enabled,
     siteKey: settings.siteKey ?? '',
     hasSecret: !!(settings.secretKey?.trim()),
   };
@@ -2487,7 +2492,7 @@ async function migrateTurnstileFromRegistration(db: D1Database): Promise<Turnsti
     const siteKey = String(parsed.turnstileSiteKey ?? '').trim();
     const secretKey = String(parsed.turnstileSecretKey ?? '').trim();
     if (!siteKey && !secretKey) return null;
-    const migrated: TurnstileSettings = { siteKey, secretKey };
+    const migrated: TurnstileSettings = { enabled: true, siteKey, secretKey };
     await setSystemSetting(db, TURNSTILE_SETTINGS_KEY, JSON.stringify(migrated));
     return migrated;
   } catch {
@@ -2504,12 +2509,16 @@ export async function getTurnstileSettings(db: D1Database): Promise<TurnstileSet
 
 export async function setTurnstileSettings(
   db: D1Database,
-  settings: { siteKey?: string; secretKey?: string }
+  settings: { enabled?: boolean; siteKey?: string; secretKey?: string }
 ): Promise<TurnstileSettings> {
   const existing = await getTurnstileSettings(db);
+  let enabled = existing.enabled;
   let siteKey = existing.siteKey ?? '';
   let secretKey = existing.secretKey ?? '';
 
+  if (settings.enabled !== undefined) {
+    enabled = !!settings.enabled;
+  }
   if (settings.siteKey !== undefined) {
     siteKey = String(settings.siteKey).trim();
   }
@@ -2517,7 +2526,7 @@ export async function setTurnstileSettings(
     secretKey = String(settings.secretKey).trim();
   }
 
-  const normalized: TurnstileSettings = { siteKey, secretKey };
+  const normalized: TurnstileSettings = { enabled, siteKey, secretKey };
   await setSystemSetting(db, TURNSTILE_SETTINGS_KEY, JSON.stringify(normalized));
   return normalized;
 }

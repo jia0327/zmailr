@@ -224,6 +224,7 @@ export function createAdminApp(): Hono<{ Bindings: Env }> {
     if (body.turnstile && typeof body.turnstile === 'object') {
       const t = body.turnstile as Record<string, unknown>;
       turnstile = await setTurnstileSettings(c.env.DB, {
+        enabled: t.enabled !== undefined ? !!t.enabled : undefined,
         siteKey: t.siteKey != null ? String(t.siteKey) : undefined,
         secretKey: t.secretKey != null ? String(t.secretKey) : undefined,
       });

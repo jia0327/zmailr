@@ -11,12 +11,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = process.env.SCREENSHOT_DIR
   ? path.resolve(process.env.SCREENSHOT_DIR)
   : path.resolve(__dirname, '../docs/screenshots');
-const BASE = 'https://zmailr.itool.eu.cc';
+const BASE = process.env.ZMAILR_BASE_URL || 'https://zmailr.onlydev.ccwu.cc';
+const ADMIN_PATH = process.env.ADMIN_PATH || '';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const VIEWPORT = { width: 1280, height: 900 };
 const OTP_CODE = '847291';
-const BROWSER_EXE =
-  process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ||
-  'D:/系统工具/魔改浏览器/win/Chrome-bin/chrome.exe';
+const BROWSER_EXE = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || null;
 
 const results = [];
 const skipped = [];
@@ -395,10 +395,10 @@ async function captureDocs(page, context) {
   await docsPage.screenshot({ path: path.join(OUT_DIR, 'docs-home.png'), fullPage: true });
   log('docs-home.png', 'VitePress docs home at /docs/');
 
-  await docsPage.goto(`${BASE}/docs/api-interactive.html`, { waitUntil: 'networkidle' });
+  await docsPage.goto(`${BASE}/api-docs`, { waitUntil: 'networkidle' });
   await wait(1500);
   await docsPage.screenshot({ path: path.join(OUT_DIR, 'api-interactive.png'), fullPage: true });
-  log('api-interactive.png', 'Interactive API docs page');
+  log('api-interactive.png', 'Interactive API docs at /api-docs');
 
   await docsPage.goto(`${BASE}/docs/testing.html`, { waitUntil: 'networkidle' });
   await wait(1500);
@@ -408,39 +408,82 @@ async function captureDocs(page, context) {
   await docsPage.close();
 }
 
-async function tryAdmin(context) {
+async function adminSwitchTab(page, tabName) {
+  await page.locator(`.tab[data-tab="${tabName}"]`).click();
+  await page.locator(`#panel-${tabName}.active`).waitFor({ state: 'visible', timeout: 15000 });
+  await wait(800);
+}
+
+async function captureAdmin(context) {
+  if (!ADMIN_PATH || !ADMIN_PASSWORD) {
+    skipped.push('All admin screenshots — set ADMIN_PATH and ADMIN_PASSWORD env vars');
+    return;
+  }
+
   const adminPage = await context.newPage();
   await adminPage.setViewportSize(VIEWPORT);
 
-  const candidates = ['/admin', '/admin/'];
-  let found = false;
-
-  for (const p of candidates) {
-    const res = await adminPage.goto(`${BASE}${p}`, { waitUntil: 'domcontentloaded' });
-    if (res && res.status() === 200 && !(await adminPage.locator('text=/404|Not Found/i').count())) {
-      found = true;
-      break;
-    }
-  }
-
-  if (!found) {
-    skipped.push('All admin screenshots — ADMIN_PATH is secret UUID, not accessible on production demo');
+  const adminUrl = `${BASE}${ADMIN_PATH.startsWith('/') ? ADMIN_PATH : `/${ADMIN_PATH}`}`;
+  const res = await adminPage.goto(adminUrl, { waitUntil: 'domcontentloaded' });
+  if (!res || res.status() !== 200) {
+    skipped.push(`All admin screenshots — ${adminUrl} returned HTTP ${res?.status() ?? 'error'}`);
     await adminPage.close();
     return;
   }
 
+  await adminPage.locator('#passwordInput').fill(ADMIN_PASSWORD);
   await adminPage.screenshot({ path: path.join(OUT_DIR, 'admin-login.png'), fullPage: true });
-  log('admin-login.png', 'Admin login page');
+  log('admin-login.png', 'Admin login page with password filled');
+
+  await adminPage.locator('button:has-text("登录")').click();
+  await adminPage.locator('#appView').waitFor({ state: 'visible', timeout: 15000 });
+  await wait(1200);
+
+  await adminPage.screenshot({ path: path.join(OUT_DIR, 'admin-dashboard.png'), fullPage: true });
+  log('admin-dashboard.png', 'Dashboard tab with health + stats');
+
+  await adminSwitchTab(adminPage, 'announcements');
+  await adminPage.screenshot({ path: path.join(OUT_DIR, 'admin-announcements-list.png'), fullPage: true });
+  log('admin-announcements-list.png', 'Announcements list tab');
+
+  await adminPage.locator('button:has-text("新增公告")').click();
+  await adminPage.locator('#announcementModal').waitFor({ state: 'visible', timeout: 10000 });
+  await adminPage.locator('#announcementTitle').fill('文档截图示例公告');
+  await adminPage.locator('#announcementContent').fill('用于文档截图的示例公告内容。');
+  await adminPage.screenshot({ path: path.join(OUT_DIR, 'admin-announcement-create.png'), fullPage: true });
+  log('admin-announcement-create.png', 'Create announcement modal');
+  await adminPage.locator('#announcementModal button:has-text("取消")').click();
+  await wait(400);
+
+  await adminSwitchTab(adminPage, 'users');
+  await adminPage.screenshot({ path: path.join(OUT_DIR, 'admin-users.png'), fullPage: true });
+  log('admin-users.png', 'Users tab');
+
+  await adminSwitchTab(adminPage, 'rules');
+  await adminPage.screenshot({ path: path.join(OUT_DIR, 'admin-rules.png'), fullPage: true });
+  log('admin-rules.png', 'Extract rules tab');
+
+  await adminSwitchTab(adminPage, 'ratelimit');
+  await adminPage.screenshot({ path: path.join(OUT_DIR, 'admin-request-monitor.png'), fullPage: true });
+  log('admin-request-monitor.png', 'Rate limit / request monitor tab');
+
+  await adminSwitchTab(adminPage, 'settings');
+  await adminPage.screenshot({ path: path.join(OUT_DIR, 'admin-settings.png'), fullPage: true });
+  log('admin-settings.png', 'System settings tab');
+
+  await adminSwitchTab(adminPage, 'audit');
+  await adminPage.screenshot({ path: path.join(OUT_DIR, 'admin-audit.png'), fullPage: true });
+  log('admin-audit.png', 'Audit log tab');
+
   await adminPage.close();
 }
 
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
 
-  const browser = await chromium.launch({
-    headless: true,
-    executablePath: BROWSER_EXE,
-  });
+  const launchOpts = { headless: process.env.HEADLESS !== 'false' };
+  if (BROWSER_EXE) launchOpts.executablePath = BROWSER_EXE;
+  const browser = await chromium.launch(launchOpts);
   const context = await browser.newContext({ viewport: VIEWPORT });
   const page = await context.newPage();
 
@@ -456,7 +499,7 @@ async function main() {
     ['extract-rules', async () => captureExtractRules(page)],
     ['api-debug', async () => captureApiDebug(page)],
     ['docs', async () => captureDocs(page, context)],
-    ['admin', async () => tryAdmin(context)],
+    ['admin', async () => captureAdmin(context)],
   ];
 
   try {
