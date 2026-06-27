@@ -72,6 +72,7 @@ jobs:
           sed -i "s/\${VITE_EMAIL_DOMAIN}/${VITE_EMAIL_DOMAIN}/g" wrangler.toml
           sed -i "s/\${ADMIN_PASSWORD}/${ADMIN_PASSWORD}/g" wrangler.toml
           sed -i "s/\${ADMIN_PATH}/${ADMIN_PATH}/g" wrangler.toml
+          sed -i "s/\${TURNSTILE_SITE_KEY}/${TURNSTILE_SITE_KEY}/g" wrangler.toml
         env:
           # 从 GitHub Secrets 中读取 D1 数据库 ID 和名称，并将其作为环境变量注入到此步骤中
           D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
@@ -79,6 +80,7 @@ jobs:
           VITE_EMAIL_DOMAIN: ${{ secrets.VITE_EMAIL_DOMAIN }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           ADMIN_PATH: ${{ secrets.ADMIN_PATH }}
+          TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
 
       # 新增步骤：检查 Cloudflare 密钥是否存在
       - name: Check for Cloudflare credentials
@@ -128,6 +130,22 @@ jobs:
           fi
         env:
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CI: true
+
+      # 可选：上传 Turnstile 密钥（与 TURNSTILE_SITE_KEY 配对后启用注册人机验证）
+      - name: Upload TURNSTILE_SECRET_KEY
+        if: env.has_creds == 'true'
+        timeout-minutes: 2
+        run: |
+          if [ -n "$TURNSTILE_SECRET_KEY" ]; then
+            echo "$TURNSTILE_SECRET_KEY" | pnpm exec wrangler secret put TURNSTILE_SECRET_KEY --name zmailr
+          else
+            echo "TURNSTILE_SECRET_KEY not set; registration Turnstile stays disabled."
+          fi
+        env:
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CI: true

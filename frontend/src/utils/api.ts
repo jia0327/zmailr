@@ -334,30 +334,45 @@ export const authLogin = async (username: string, password: string) => {
   }
 };
 
-export const authRegisterSendCode = async (email: string, password: string) => {
+export const authRegisterSendCode = async (
+  params:
+    | { email: string; password: string; turnstileToken?: string }
+    | { localPart: string; domain: string; password: string; turnstileToken?: string }
+) => {
   try {
     const response = await fetch(apiUrl('/api/auth/register/send-code'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(params),
     });
     const data = await response.json();
-    if (data.success) return { success: true as const, email: data.email as string };
+    if (data.success) {
+      return {
+        success: true as const,
+        email: data.email as string,
+        deliveryHint: data.deliveryHint as string | undefined,
+      };
+    }
     return { success: false as const, error: data.error || 'Send failed' };
   } catch {
     return { success: false as const, error: 'Network error' };
   }
 };
 
-export const authRegisterResend = async (email: string) => {
+export const authRegisterResend = async (email: string, turnstileToken?: string) => {
   try {
     const response = await fetch(apiUrl('/api/auth/register/resend'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, turnstileToken }),
     });
     const data = await response.json();
-    if (data.success) return { success: true as const };
+    if (data.success) {
+      return {
+        success: true as const,
+        deliveryHint: data.deliveryHint as string | undefined,
+      };
+    }
     return { success: false as const, error: data.error || 'Resend failed' };
   } catch {
     return { success: false as const, error: 'Network error' };
@@ -367,6 +382,67 @@ export const authRegisterResend = async (email: string) => {
 export const authRegisterVerify = async (email: string, code: string) => {
   try {
     const response = await fetch(apiUrl('/api/auth/register/verify'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, code }),
+    });
+    const data = await response.json();
+    if (data.success) return { success: true as const };
+    return { success: false as const, error: data.error || 'Verify failed' };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export const authPasswordResetSendCode = async (
+  params:
+    | { email: string; password: string; turnstileToken?: string }
+    | { localPart: string; domain: string; password: string; turnstileToken?: string }
+) => {
+  try {
+    const response = await fetch(apiUrl('/api/auth/password-reset/send-code'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    const data = await response.json();
+    if (data.success) {
+      return {
+        success: true as const,
+        email: data.email as string,
+        deliveryHint: data.deliveryHint as string | undefined,
+      };
+    }
+    return { success: false as const, error: data.error || 'Send failed' };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export const authPasswordResetResend = async (email: string, turnstileToken?: string) => {
+  try {
+    const response = await fetch(apiUrl('/api/auth/password-reset/resend'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, turnstileToken }),
+    });
+    const data = await response.json();
+    if (data.success) {
+      return {
+        success: true as const,
+        deliveryHint: data.deliveryHint as string | undefined,
+      };
+    }
+    return { success: false as const, error: data.error || 'Resend failed' };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export const authPasswordResetVerify = async (email: string, code: string) => {
+  try {
+    const response = await fetch(apiUrl('/api/auth/password-reset/verify'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',

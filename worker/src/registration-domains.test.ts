@@ -4,6 +4,8 @@ import {
   isAllowedRegistrationEmail,
   normalizeRegistrationEmail,
   extractEmailDomain,
+  buildRegistrationEmail,
+  validateRegistrationLocalPart,
 } from './registration-domains';
 
 describe('registration email domains', () => {
@@ -29,5 +31,12 @@ describe('registration email domains', () => {
   it('rejects invalid format', () => {
     assert.equal(isAllowedRegistrationEmail('not-an-email'), false);
     assert.equal(isAllowedRegistrationEmail('@qq.com'), false);
+  });
+
+  it('builds and validates local part', () => {
+    assert.equal(buildRegistrationEmail('User.Name', 'qq.com'), 'user.name@qq.com');
+    assert.equal(validateRegistrationLocalPart('user'), null);
+    assert.equal(validateRegistrationLocalPart('user@qq.com'), '只需填写 @ 前面的前缀');
+    assert.equal(validateRegistrationLocalPart(''), '请输入邮箱前缀');
   });
 });

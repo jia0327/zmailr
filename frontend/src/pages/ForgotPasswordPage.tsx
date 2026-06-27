@@ -5,19 +5,22 @@ import { useAuth } from '../contexts/AuthContext';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import TurnstileWidget from '../components/TurnstileWidget';
 import { getRegistrationConfig, type RegistrationDomainGroup } from '../config';
-import { authRegisterResend, authRegisterSendCode, authRegisterVerify } from '../utils/api';
+import {
+  authPasswordResetResend,
+  authPasswordResetSendCode,
+  authPasswordResetVerify,
+} from '../utils/api';
 
 type Step = 'credentials' | 'verify';
 
 const domainSelectClass =
   'appearance-none bg-transparent border-none focus:outline-none text-foreground font-mono text-sm';
 
-const RegisterPage: React.FC = () => {
+const ForgotPasswordPage: React.FC = () => {
   const { t } = useTranslation();
   const { isAuthenticated, isLoading, refresh } = useAuth();
   const navigate = useNavigate();
 
-  const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null);
   const [domainGroups, setDomainGroups] = useState<RegistrationDomainGroup[]>([]);
   const [turnstileSiteKey, setTurnstileSiteKey] = useState<string | null>(null);
   const [turnstileRequired, setTurnstileRequired] = useState(false);
@@ -37,7 +40,6 @@ const RegisterPage: React.FC = () => {
 
   useEffect(() => {
     getRegistrationConfig().then((cfg) => {
-      setRegistrationOpen(cfg.enabled);
       setDomainGroups(cfg.domainGroups);
       setTurnstileRequired(cfg.turnstile.enabled);
       setTurnstileSiteKey(cfg.turnstile.siteKey);
@@ -57,10 +59,6 @@ const RegisterPage: React.FC = () => {
     return <Navigate to="/dashboard/usage" replace />;
   }
 
-  if (registrationOpen === false) {
-    return <Navigate to="/login" replace />;
-  }
-
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -77,7 +75,7 @@ const RegisterPage: React.FC = () => {
       return;
     }
     setLoading(true);
-    const result = await authRegisterSendCode({
+    const result = await authPasswordResetSendCode({
       localPart: emailPrefix.trim(),
       domain: emailDomain,
       password,
@@ -91,21 +89,21 @@ const RegisterPage: React.FC = () => {
       setResendCooldown(60);
       return;
     }
-    setError(result.error || t('auth.registerSendFailed'));
+    setError(result.error || t('auth.forgotPasswordSendFailed'));
   };
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const result = await authRegisterVerify(fullEmail, code.trim());
+    const result = await authPasswordResetVerify(fullEmail, code.trim());
     setLoading(false);
     if (result.success) {
       await refresh();
       navigate('/dashboard/usage');
       return;
     }
-    setError(result.error || t('auth.registerVerifyFailed'));
+    setError(result.error || t('auth.forgotPasswordVerifyFailed'));
   };
 
   const handleResend = async () => {
@@ -116,7 +114,7 @@ const RegisterPage: React.FC = () => {
     }
     setError('');
     setLoading(true);
-    const result = await authRegisterResend(
+    const result = await authPasswordResetResend(
       fullEmail,
       turnstileRequired ? resendTurnstileToken : undefined
     );
@@ -126,7 +124,7 @@ const RegisterPage: React.FC = () => {
       if (result.deliveryHint) setDeliveryHint(result.deliveryHint);
       return;
     }
-    setError(result.error || t('auth.registerSendFailed'));
+    setError(result.error || t('auth.forgotPasswordSendFailed'));
   };
 
   const handlePrefixChange = (value: string) => {
@@ -143,14 +141,18 @@ const RegisterPage: React.FC = () => {
         <div className="w-full max-w-md rounded-2xl border border-sky-200/70 dark:border-border bg-card shadow-xl shadow-sky-500/10 dark:shadow-black/20 p-6 sm:p-8">
           <div className="flex items-center gap-2 mb-6">
             <span className="w-8 h-8 rounded-lg bg-sky-500/15 flex items-center justify-center">
-              <i className="fas fa-user-plus text-sm text-sky-600 dark:text-sky-400" />
+              <i className="fas fa-key text-sm text-sky-600 dark:text-sky-400" />
             </span>
-            <span className="font-semibold">{t('auth.register')}</span>
+            <span className="font-semibold">{t('auth.forgotPassword')}</span>
           </div>
 
-          <h1 className="text-xl font-bold">{step === 'credentials' ? t('auth.registerTitle') : t('auth.registerVerifyTitle')}</h1>
+          <h1 className="text-xl font-bold">
+            {step === 'credentials' ? t('auth.forgotPasswordTitle') : t('auth.forgotPasswordVerifyTitle')}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1 mb-6">
-            {step === 'credentials' ? t('auth.registerHint') : t('auth.registerVerifyHint', { email: fullEmail })}
+            {step === 'credentials'
+              ? t('auth.forgotPasswordHint')
+              : t('auth.forgotPasswordVerifyHint', { email: fullEmail })}
           </p>
 
           {error && (
@@ -199,7 +201,7 @@ const RegisterPage: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t('auth.password')}</label>
+                <label className="block text-sm font-medium mb-1.5">{t('auth.forgotPasswordNew')}</label>
                 <input
                   type="password"
                   value={password}
@@ -227,11 +229,7 @@ const RegisterPage: React.FC = () => {
               )}
               <button
                 type="submit"
-                disabled={
-                  loading ||
-                  registrationOpen === null ||
-                  (turnstileRequired && !turnstileToken)
-                }
+                disabled={loading || (turnstileRequired && !turnstileToken)}
                 className="w-full py-2.5 min-h-10 rounded-lg font-medium text-white bg-sky-600 hover:bg-sky-500 dark:bg-sky-500 dark:hover:bg-sky-400 disabled:opacity-50 shadow-md shadow-sky-600/20 transition-colors"
               >
                 {loading ? t('common.loading') : t('auth.registerSendCode')}
@@ -268,7 +266,7 @@ const RegisterPage: React.FC = () => {
                 disabled={loading || code.length < 6}
                 className="w-full py-2.5 min-h-10 rounded-lg font-medium text-white bg-sky-600 hover:bg-sky-500 dark:bg-sky-500 dark:hover:bg-sky-400 disabled:opacity-50 shadow-md shadow-sky-600/20 transition-colors"
               >
-                {loading ? t('common.loading') : t('auth.registerSubmit')}
+                {loading ? t('common.loading') : t('auth.forgotPasswordSubmit')}
               </button>
               <div className="flex items-center justify-between text-sm">
                 <button
@@ -297,9 +295,8 @@ const RegisterPage: React.FC = () => {
           )}
 
           <p className="text-sm text-muted-foreground mt-6 text-center">
-            {t('auth.registerHasAccount')}{' '}
             <Link to="/login" className="text-sky-600 dark:text-sky-400 hover:underline font-medium">
-              {t('auth.login')}
+              {t('auth.forgotPasswordBackToLogin')}
             </Link>
           </p>
         </div>
@@ -308,4 +305,4 @@ const RegisterPage: React.FC = () => {
   );
 };
 
-export default RegisterPage;
+export default ForgotPasswordPage;

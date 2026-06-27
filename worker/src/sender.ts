@@ -17,12 +17,15 @@ export interface SendMailPayload {
   userId?: number | null;
   tokenId?: number | null;
   attachments?: SendAttachment[];
+  /** Brevo transactional tags for log filtering */
+  tags?: string[];
 }
 
 export interface SendMailResult {
   success: boolean;
   error?: string;
   sentEmailId?: number;
+  brevoMessageId?: string;
 }
 
 export const MAX_ATTACHMENT_TOTAL_BYTES = 5 * 1024 * 1024;
@@ -93,7 +96,7 @@ async function sendViaBrevo(
   fromEmail: string,
   senderName: string,
   data: SendMailPayload
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; messageId?: string } | { ok: false; error: string }> {
   const body: Record<string, unknown> = {
     sender: { name: senderName, email: fromEmail },
     to: [{ email: data.to }],
@@ -101,6 +104,7 @@ async function sendViaBrevo(
   };
   if (data.text) body.textContent = data.text;
   if (data.html) body.htmlContent = data.html;
+  if (data.tags?.length) body.tags = data.tags;
   if (data.attachments && data.attachments.length > 0) {
     body.attachment = data.attachments.map(a => ({ name: a.name, content: a.content }));
   }
@@ -114,11 +118,20 @@ async function sendViaBrevo(
     body: JSON.stringify(body),
   });
 
+  const responseText = await response.text();
   if (!response.ok) {
-    const errorText = await response.text();
-    return { ok: false, error: `Brevo error: ${response.status} ${errorText}` };
+    return { ok: false, error: `Brevo error: ${response.status} ${responseText}` };
   }
-  return { ok: true };
+
+  let messageId: string | undefined;
+  try {
+    const parsed = JSON.parse(responseText) as { messageId?: string; messageIds?: string[] };
+    messageId = parsed.messageId ?? parsed.messageIds?.[0];
+  } catch {
+    // ignore parse errors — Brevo accepted the request
+  }
+
+  return { ok: true, messageId };
 }
 
 /**
@@ -161,7 +174,7 @@ export async function sendMail(
     }
 
     const record = await saveSentEmail(db, buildSaveParams(data, fromEmail, 'sent'));
-    return { success: true, sentEmailId: record.id };
+    return { success: true, sentEmailId: record.id, brevoMessageId: result.messageId };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('发送邮件异常:', error);

@@ -103,7 +103,15 @@ const LoginPage: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t('auth.password')}</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-medium">{t('auth.password')}</label>
+                  <Link
+                    to="/forgot-password"
+                    className="text-xs text-sky-600 dark:text-sky-400 hover:underline"
+                  >
+                    {t('auth.forgotPassword')}
+                  </Link>
+                </div>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}

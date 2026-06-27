@@ -27,6 +27,7 @@ import {
   setMaintenanceMode,
   getRegistrationSettings,
   setRegistrationSettings,
+  toAdminRegistrationView,
   getLegacySendDailyQuota,
   setLegacySendDailyQuota,
   listAuditLogs,
@@ -190,7 +191,12 @@ export function createAdminApp(): Hono<{ Bindings: Env }> {
       getLegacySendDailyQuota(c.env.DB),
       getRegistrationSettings(c.env.DB),
     ]);
-    return c.json({ success: true, maintenance, legacySendDailyQuota, registration });
+    return c.json({
+      success: true,
+      maintenance,
+      legacySendDailyQuota,
+      registration: toAdminRegistrationView(registration),
+    });
   });
 
   admin.put('/api/maintenance', async (c) => {
@@ -212,7 +218,14 @@ export function createAdminApp(): Hono<{ Bindings: Env }> {
       );
     }
     let registration = await getRegistrationSettings(c.env.DB);
-    if (body.registrationEnabled !== undefined) {
+    if (body.registration && typeof body.registration === 'object') {
+      const r = body.registration as Record<string, unknown>;
+      registration = await setRegistrationSettings(c.env.DB, {
+        enabled: !!r.enabled,
+        turnstileSiteKey: r.turnstileSiteKey != null ? String(r.turnstileSiteKey) : undefined,
+        turnstileSecretKey: r.turnstileSecretKey != null ? String(r.turnstileSecretKey) : undefined,
+      });
+    } else if (body.registrationEnabled !== undefined) {
       registration = await setRegistrationSettings(c.env.DB, {
         enabled: !!body.registrationEnabled,
       });
@@ -220,7 +233,7 @@ export function createAdminApp(): Hono<{ Bindings: Env }> {
     const detail: Record<string, unknown> = {
       ...(maintenance as unknown as Record<string, unknown>),
       legacySendDailyQuota,
-      registration,
+      registration: toAdminRegistrationView(registration),
     };
     c.executionCtx.waitUntil(
       writeAuditLog(c.env.DB, {
@@ -231,7 +244,12 @@ export function createAdminApp(): Hono<{ Bindings: Env }> {
         ip: adminIp(c),
       })
     );
-    return c.json({ success: true, maintenance, legacySendDailyQuota, registration });
+    return c.json({
+      success: true,
+      maintenance,
+      legacySendDailyQuota,
+      registration: toAdminRegistrationView(registration),
+    });
   });
 
   admin.get('/api/audit-logs', async (c) => {

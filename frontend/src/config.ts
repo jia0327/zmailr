@@ -1,45 +1,88 @@
 // 配置文件，用于管理域名和API地址设置
 
+export interface RegistrationDomainGroup {
+  label: string;
+  domains: string[];
+}
+
+export interface RegistrationConfig {
+  enabled: boolean;
+  allowedDomains: string[];
+  domainGroups: RegistrationDomainGroup[];
+  turnstile: {
+    enabled: boolean;
+    siteKey: string | null;
+  };
+}
+
+const FALLBACK_REGISTRATION_DOMAIN_GROUPS: RegistrationDomainGroup[] = [
+  { label: '腾讯', domains: ['qq.com', 'foxmail.com'] },
+  { label: '网易', domains: ['163.com', '126.com'] },
+  { label: '谷歌', domains: ['gmail.com'] },
+  { label: '苹果', domains: ['icloud.com'] },
+  { label: '微软', domains: ['outlook.com', 'hotmail.com'] },
+  { label: '搜狐', domains: ['sohu.com'] },
+];
+
 // 邮箱域名配置 - 从 API 动态获取
 let cachedEmailDomains: string[] | null = null;
-let cachedRegistrationEnabled: boolean | null = null;
+let cachedRegistrationConfig: RegistrationConfig | null = null;
 let configLoaded = false;
 
-// 从 API 获取邮箱域名配置
-export async function getEmailDomains(): Promise<string[]> {
-  if (cachedEmailDomains && configLoaded) {
-    return cachedEmailDomains;
-  }
-  
+async function loadAppConfig(): Promise<void> {
+  if (configLoaded) return;
+
   try {
     const response = await fetch('/api/config');
     if (response.ok) {
       const data = await response.json();
-      if (data.success && data.config.emailDomains) {
-        cachedEmailDomains = data.config.emailDomains;
-        cachedRegistrationEnabled = !!data.config.registration?.enabled;
+      if (data.success && data.config) {
+        cachedEmailDomains = data.config.emailDomains ?? ['example.com'];
+        cachedRegistrationConfig = {
+          enabled: !!data.config.registration?.enabled,
+          allowedDomains: data.config.registration?.allowedDomains ?? [],
+          domainGroups: data.config.registration?.domainGroups ?? FALLBACK_REGISTRATION_DOMAIN_GROUPS,
+          turnstile: {
+            enabled: !!data.config.turnstile?.enabled,
+            siteKey: (data.config.turnstile?.siteKey as string | null) ?? null,
+          },
+        };
         configLoaded = true;
-        return cachedEmailDomains!;
+        return;
       }
     }
   } catch (error) {
     console.error('获取邮箱域名配置失败:', error);
   }
-  
-  // 如果 API 获取失败，使用环境变量作为后备
-  const fallbackDomains = (import.meta.env.VITE_EMAIL_DOMAIN || '').split(',').map(domain => domain.trim()).filter(domain => domain);
+
+  const fallbackDomains = (import.meta.env.VITE_EMAIL_DOMAIN || '')
+    .split(',')
+    .map((domain) => domain.trim())
+    .filter(Boolean);
   cachedEmailDomains = fallbackDomains.length > 0 ? fallbackDomains : ['example.com'];
-  cachedRegistrationEnabled = false;
+  cachedRegistrationConfig = {
+    enabled: false,
+    allowedDomains: FALLBACK_REGISTRATION_DOMAIN_GROUPS.flatMap((g) => g.domains),
+    domainGroups: FALLBACK_REGISTRATION_DOMAIN_GROUPS,
+    turnstile: { enabled: false, siteKey: null },
+  };
   configLoaded = true;
+}
+
+// 从 API 获取邮箱域名配置
+export async function getEmailDomains(): Promise<string[]> {
+  await loadAppConfig();
   return cachedEmailDomains!;
 }
 
+export async function getRegistrationConfig(): Promise<RegistrationConfig> {
+  await loadAppConfig();
+  return cachedRegistrationConfig!;
+}
+
 export async function isRegistrationEnabled(): Promise<boolean> {
-  if (configLoaded && cachedRegistrationEnabled != null) {
-    return cachedRegistrationEnabled;
-  }
-  await getEmailDomains();
-  return cachedRegistrationEnabled ?? false;
+  const config = await getRegistrationConfig();
+  return config.enabled;
 }
 
 // 获取默认邮箱域名

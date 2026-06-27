@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import { MailboxProvider } from './contexts/MailboxContext';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -42,6 +43,7 @@ const App: React.FC = () => {
               <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/account" element={<Navigate to="/dashboard/api-keys" replace />} />
 
               <Route element={<PublicLayout />}>

@@ -94,11 +94,22 @@ import { resolveAttachmentBytes } from './r2-attachments';
 import { matchCorsOrigin } from './cors';
 import { apiInternalError } from './http-response';
 import { runHealthChecks } from './health';
+import { resolveTurnstileSettings, verifyTurnstileToken } from './turnstile';
 import {
   sendRegistrationVerificationCode,
   verifyRegistrationCode,
   resendRegistrationVerificationCode,
+  listAllowedRegistrationEmailDomains,
+  getRegistrationDomainGroups,
+  buildRegistrationEmail,
+  validateRegistrationLocalPart,
+  isAllowedRegistrationDomain,
 } from './registration';
+import {
+  sendPasswordResetVerificationCode,
+  verifyPasswordResetCode,
+  resendPasswordResetVerificationCode,
+} from './password-reset';
 import { normalizeRegistrationEmail } from './registration-domains';
 
 type AppVariables = {
@@ -213,6 +224,7 @@ app.get('/api/config', async (c) => {
       getMaintenanceMode(c.env.DB),
       getRegistrationSettings(c.env.DB),
     ]);
+    const turnstile = await resolveTurnstileSettings(c.env.DB, c.env);
 
     return c.json({
       success: true,
@@ -220,6 +232,12 @@ app.get('/api/config', async (c) => {
         emailDomains: domains,
         registration: {
           enabled: registration.enabled,
+          allowedDomains: listAllowedRegistrationEmailDomains(),
+          domainGroups: getRegistrationDomainGroups(),
+        },
+        turnstile: {
+          enabled: turnstile.enabled,
+          siteKey: turnstile.siteKey,
         },
         maintenance: {
           enabled: maintenance.enabled,
@@ -595,6 +613,27 @@ app.post('/api/auth/login', async (c) => {
   }
 });
 
+async function requireRegisterTurnstile(c: any, body: Record<string, unknown>): Promise<Response | null> {
+  const turnstile = await resolveTurnstileSettings(c.env.DB, c.env);
+  if (!turnstile.enabled || !turnstile.secretKey) {
+    return null;
+  }
+  const token =
+    body.turnstileToken != null
+      ? String(body.turnstileToken).trim()
+      : body['cf-turnstile-response'] != null
+        ? String(body['cf-turnstile-response']).trim()
+        : '';
+  if (!token) {
+    return c.json({ success: false, error: '请先完成人机验证' }, 400);
+  }
+  const verified = await verifyTurnstileToken(turnstile.secretKey, token, getClientIp(c.req.raw));
+  if (!verified.success) {
+    return c.json({ success: false, error: '人机验证无效或已过期，请重试' }, 400);
+  }
+  return null;
+}
+
 app.post('/api/auth/register/send-code', async (c) => {
   try {
     const ip = getClientIp(c.req.raw);
@@ -604,8 +643,22 @@ app.post('/api/auth/register/send-code', async (c) => {
     }
 
     const body = await c.req.json();
-    const email = body.email != null ? String(body.email) : '';
+    const turnstileErr = await requireRegisterTurnstile(c, body as Record<string, unknown>);
+    if (turnstileErr) return turnstileErr;
+
     const password = body.password != null ? String(body.password) : '';
+    let email = body.email != null ? String(body.email).trim() : '';
+    if (!email && body.localPart != null && body.domain != null) {
+      const localError = validateRegistrationLocalPart(String(body.localPart));
+      if (localError) {
+        return c.json({ success: false, error: localError }, 400);
+      }
+      const domain = String(body.domain).trim().toLowerCase();
+      if (!isAllowedRegistrationDomain(domain)) {
+        return c.json({ success: false, error: '不支持的邮箱域名' }, 400);
+      }
+      email = buildRegistrationEmail(String(body.localPart), domain);
+    }
     if (!email || !password) {
       return c.json({ success: false, error: '缺少邮箱或密码' }, 400);
     }
@@ -619,6 +672,7 @@ app.post('/api/auth/register/send-code', async (c) => {
       success: true,
       message: '验证码已发送，请查收邮箱',
       email: normalizeRegistrationEmail(email),
+      deliveryHint: result.deliveryHint,
     });
   } catch (error) {
     return c.json(apiInternalError('发送验证码失败', error), 500);
@@ -634,6 +688,9 @@ app.post('/api/auth/register/resend', async (c) => {
     }
 
     const body = await c.req.json();
+    const turnstileErr = await requireRegisterTurnstile(c, body as Record<string, unknown>);
+    if (turnstileErr) return turnstileErr;
+
     const email = body.email != null ? String(body.email) : '';
     if (!email) {
       return c.json({ success: false, error: '缺少邮箱' }, 400);
@@ -644,7 +701,7 @@ app.post('/api/auth/register/resend', async (c) => {
       return c.json({ success: false, error: result.error }, result.status ?? 400);
     }
 
-    return c.json({ success: true, message: '验证码已重新发送' });
+    return c.json({ success: true, message: '验证码已重新发送', deliveryHint: result.deliveryHint });
   } catch (error) {
     return c.json(apiInternalError('重发验证码失败', error), 500);
   }
@@ -691,6 +748,119 @@ app.post('/api/auth/register/verify', async (c) => {
     );
   } catch (error) {
     return c.json(apiInternalError('注册失败', error), 500);
+  }
+});
+
+app.post('/api/auth/password-reset/send-code', async (c) => {
+  try {
+    const ip = getClientIp(c.req.raw);
+    const limitCheck = await consumeLoginAttempt(c.env.DB, ip, 'password-reset');
+    if (!limitCheck.ok) {
+      return c.json(rateLimitExceededBody(limitCheck.locked), 429, rateLimitHeaders(limitCheck));
+    }
+
+    const body = await c.req.json();
+    const turnstileErr = await requireRegisterTurnstile(c, body as Record<string, unknown>);
+    if (turnstileErr) return turnstileErr;
+
+    const password = body.password != null ? String(body.password) : '';
+    let email = body.email != null ? String(body.email).trim() : '';
+    if (!email && body.localPart != null && body.domain != null) {
+      const localError = validateRegistrationLocalPart(String(body.localPart));
+      if (localError) {
+        return c.json({ success: false, error: localError }, 400);
+      }
+      email = buildRegistrationEmail(String(body.localPart), String(body.domain));
+    }
+    if (!email || !password) {
+      return c.json({ success: false, error: '缺少邮箱或密码' }, 400);
+    }
+
+    const result = await sendPasswordResetVerificationCode(c.env.DB, c.env, { email, password, ip });
+    if (!result.ok) {
+      return c.json({ success: false, error: result.error }, result.status ?? 400);
+    }
+
+    return c.json({
+      success: true,
+      message: '验证码已发送，请查收邮箱',
+      email: normalizeRegistrationEmail(email),
+      deliveryHint: result.deliveryHint,
+    });
+  } catch (error) {
+    return c.json(apiInternalError('发送验证码失败', error), 500);
+  }
+});
+
+app.post('/api/auth/password-reset/resend', async (c) => {
+  try {
+    const ip = getClientIp(c.req.raw);
+    const limitCheck = await consumeLoginAttempt(c.env.DB, ip, 'password-reset-resend');
+    if (!limitCheck.ok) {
+      return c.json(rateLimitExceededBody(limitCheck.locked), 429, rateLimitHeaders(limitCheck));
+    }
+
+    const body = await c.req.json();
+    const turnstileErr = await requireRegisterTurnstile(c, body as Record<string, unknown>);
+    if (turnstileErr) return turnstileErr;
+
+    const email = body.email != null ? String(body.email) : '';
+    if (!email) {
+      return c.json({ success: false, error: '缺少邮箱' }, 400);
+    }
+
+    const result = await resendPasswordResetVerificationCode(c.env.DB, c.env, { email, ip });
+    if (!result.ok) {
+      return c.json({ success: false, error: result.error }, result.status ?? 400);
+    }
+
+    return c.json({ success: true, message: '验证码已重新发送', deliveryHint: result.deliveryHint });
+  } catch (error) {
+    return c.json(apiInternalError('重发验证码失败', error), 500);
+  }
+});
+
+app.post('/api/auth/password-reset/verify', async (c) => {
+  try {
+    const ip = getClientIp(c.req.raw);
+    const limitCheck = await consumeLoginAttempt(c.env.DB, ip, 'password-reset-verify');
+    if (!limitCheck.ok) {
+      return c.json(rateLimitExceededBody(limitCheck.locked), 429, rateLimitHeaders(limitCheck));
+    }
+
+    const body = await c.req.json();
+    const email = body.email != null ? String(body.email) : '';
+    const code = body.code != null ? String(body.code) : '';
+    if (!email || !code) {
+      return c.json({ success: false, error: '缺少邮箱或验证码' }, 400);
+    }
+
+    const result = await verifyPasswordResetCode(c.env.DB, { email, code });
+    if (!result.ok) {
+      if (!result.expired) {
+        await recordLoginFailure(c.env.DB, ip, 'password-reset-verify');
+      }
+      return c.json({ success: false, error: result.error }, result.status ?? 400);
+    }
+
+    await clearLoginFailures(c.env.DB, ip, 'password-reset-verify');
+    const cookie = await createUserSessionCookie(c.env, result.userId);
+    c.executionCtx.waitUntil(
+      writeAuditLog(c.env.DB, {
+        actorType: 'user',
+        actorId: result.userId,
+        actorName: result.username,
+        action: 'user.password_reset',
+        ip,
+      })
+    );
+    return c.json(
+      { success: true, user: { id: result.userId, username: result.username, role: 'user' } },
+      200,
+      { 'Set-Cookie': cookie }
+    );
+  } catch (error) {
+    return c.json(apiInternalError('重置密码失败', error), 500);
   }
 });
 

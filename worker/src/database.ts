@@ -32,6 +32,7 @@ import {
   DEFAULT_MAINTENANCE_MODE,
   RegistrationSettings,
   DEFAULT_REGISTRATION_SETTINGS,
+  RegistrationSettingsAdminView,
   RegistrationVerificationRow,
   DEFAULT_LEGACY_SEND_DAILY_QUOTA,
   RateLimitStats,
@@ -118,6 +119,7 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await db.exec(`CREATE TABLE IF NOT EXISTS audit_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, actor_type TEXT NOT NULL, actor_id TEXT, actor_name TEXT, action TEXT NOT NULL, detail TEXT, ip TEXT, created_at INTEGER NOT NULL DEFAULT (unixepoch()));`);
     await db.exec(`CREATE TABLE IF NOT EXISTS mail_domains (id INTEGER PRIMARY KEY AUTOINCREMENT, domain TEXT UNIQUE NOT NULL, enabled INTEGER NOT NULL DEFAULT 1, is_default INTEGER NOT NULL DEFAULT 0, cloudflare_ready INTEGER NOT NULL DEFAULT 0, brevo_verified INTEGER NOT NULL DEFAULT 0, sort_order INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);`);
     await db.exec(`CREATE TABLE IF NOT EXISTS registration_verifications (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, password_hash TEXT NOT NULL, code_hash TEXT NOT NULL, expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL, ip TEXT, attempts INTEGER NOT NULL DEFAULT 0);`);
+    await db.exec(`CREATE TABLE IF NOT EXISTS password_reset_verifications (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, password_hash TEXT NOT NULL, code_hash TEXT NOT NULL, expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL, ip TEXT, attempts INTEGER NOT NULL DEFAULT 0);`);
 
     // Phase 2: add columns to existing tables (must run before indexes on those columns)
     await migrateAddColumn(db, 'emails', 'extracted_code', 'TEXT');
@@ -168,6 +170,8 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_mail_domains_sort ON mail_domains(sort_order);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_registration_verifications_email ON registration_verifications(email);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_registration_verifications_expires ON registration_verifications(expires_at);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_password_reset_verifications_email ON password_reset_verifications(email);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_password_reset_verifications_expires ON password_reset_verifications(expires_at);`);
 
     await seedAdminUser(db, adminPassword);
     await seedGlobalExtractRules(db);
@@ -2411,10 +2415,22 @@ function parseRegistrationSettings(raw: string | null | undefined): Registration
   if (!raw) return { ...DEFAULT_REGISTRATION_SETTINGS };
   try {
     const parsed = JSON.parse(raw) as Partial<RegistrationSettings>;
-    return { enabled: !!parsed.enabled };
+    return {
+      enabled: !!parsed.enabled,
+      turnstileSiteKey: typeof parsed.turnstileSiteKey === 'string' ? parsed.turnstileSiteKey.trim() : '',
+      turnstileSecretKey: typeof parsed.turnstileSecretKey === 'string' ? parsed.turnstileSecretKey.trim() : '',
+    };
   } catch {
     return { ...DEFAULT_REGISTRATION_SETTINGS };
   }
+}
+
+export function toAdminRegistrationView(settings: RegistrationSettings): RegistrationSettingsAdminView {
+  return {
+    enabled: settings.enabled,
+    turnstileSiteKey: settings.turnstileSiteKey ?? '',
+    hasTurnstileSecret: !!(settings.turnstileSecretKey?.trim()),
+  };
 }
 
 export async function getRegistrationSettings(db: D1Database): Promise<RegistrationSettings> {
@@ -2424,9 +2440,28 @@ export async function getRegistrationSettings(db: D1Database): Promise<Registrat
 
 export async function setRegistrationSettings(
   db: D1Database,
-  settings: RegistrationSettings
+  settings: {
+    enabled: boolean;
+    turnstileSiteKey?: string;
+    turnstileSecretKey?: string;
+  }
 ): Promise<RegistrationSettings> {
-  const normalized: RegistrationSettings = { enabled: !!settings.enabled };
+  const existing = await getRegistrationSettings(db);
+  let turnstileSiteKey = existing.turnstileSiteKey ?? '';
+  let turnstileSecretKey = existing.turnstileSecretKey ?? '';
+
+  if (settings.turnstileSiteKey !== undefined) {
+    turnstileSiteKey = String(settings.turnstileSiteKey).trim();
+  }
+  if (settings.turnstileSecretKey !== undefined && String(settings.turnstileSecretKey).trim() !== '') {
+    turnstileSecretKey = String(settings.turnstileSecretKey).trim();
+  }
+
+  const normalized: RegistrationSettings = {
+    enabled: !!settings.enabled,
+    turnstileSiteKey,
+    turnstileSecretKey,
+  };
   await setSystemSetting(db, REGISTRATION_SETTINGS_KEY, JSON.stringify(normalized));
   return normalized;
 }
@@ -2504,6 +2539,60 @@ export async function incrementRegistrationVerificationAttempts(
 
 export async function deleteRegistrationVerification(db: D1Database, id: number): Promise<void> {
   await db.prepare(`DELETE FROM registration_verifications WHERE id = ?`).bind(id).run();
+}
+
+// ─── Password reset verifications ────────────────────────────
+
+export async function deletePasswordResetVerificationByEmail(db: D1Database, email: string): Promise<void> {
+  await db.prepare(`DELETE FROM password_reset_verifications WHERE email = ?`).bind(email).run();
+}
+
+export async function createPasswordResetVerification(
+  db: D1Database,
+  params: {
+    email: string;
+    passwordHash: string;
+    codeHash: string;
+    expiresAt: number;
+    ip: string | null;
+  }
+): Promise<RegistrationVerificationRow> {
+  const now = getCurrentTimestamp();
+  await deletePasswordResetVerificationByEmail(db, params.email);
+  const result = await db
+    .prepare(
+      `INSERT INTO password_reset_verifications (email, password_hash, code_hash, expires_at, created_at, ip, attempts)
+       VALUES (?, ?, ?, ?, ?, ?, 0)
+       RETURNING id, email, password_hash, code_hash, expires_at, created_at, ip, attempts`
+    )
+    .bind(params.email, params.passwordHash, params.codeHash, params.expiresAt, now, params.ip)
+    .first();
+  return mapRegistrationVerification(result as Record<string, unknown>);
+}
+
+export async function getPasswordResetVerificationByEmail(
+  db: D1Database,
+  email: string
+): Promise<RegistrationVerificationRow | null> {
+  const result = await db
+    .prepare(
+      `SELECT id, email, password_hash, code_hash, expires_at, created_at, ip, attempts
+       FROM password_reset_verifications WHERE email = ?`
+    )
+    .bind(email)
+    .first();
+  return result ? mapRegistrationVerification(result as Record<string, unknown>) : null;
+}
+
+export async function incrementPasswordResetVerificationAttempts(db: D1Database, id: number): Promise<void> {
+  await db
+    .prepare(`UPDATE password_reset_verifications SET attempts = attempts + 1 WHERE id = ?`)
+    .bind(id)
+    .run();
+}
+
+export async function deletePasswordResetVerification(db: D1Database, id: number): Promise<void> {
+  await db.prepare(`DELETE FROM password_reset_verifications WHERE id = ?`).bind(id).run();
 }
 
 // ─── Local email / Brevo dashboard stats ───────────────────

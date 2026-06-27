@@ -11,6 +11,10 @@ export interface Env {
   /** Secret URL segment for admin UI (UUID recommended). No leading slash. */
   ADMIN_PATH?: string;
   BREVO_API_KEY?: string;
+  /** Cloudflare Turnstile site key (public). Pair with TURNSTILE_SECRET_KEY secret. */
+  TURNSTILE_SITE_KEY?: string;
+  /** Cloudflare Turnstile secret key — use `wrangler secret put TURNSTILE_SECRET_KEY`. */
+  TURNSTILE_SECRET_KEY?: string;
   /** Default Bearer token requests per minute (optional). */
   RATE_LIMIT_PER_MIN?: string;
   /** Comma-separated extra CORS origins (full URLs, e.g. https://app.example.com). */
@@ -281,11 +285,22 @@ export const DEFAULT_MAINTENANCE_MODE: MaintenanceMode = {
 
 export interface RegistrationSettings {
   enabled: boolean;
+  turnstileSiteKey?: string;
+  turnstileSecretKey?: string;
 }
 
 export const DEFAULT_REGISTRATION_SETTINGS: RegistrationSettings = {
   enabled: false,
+  turnstileSiteKey: '',
+  turnstileSecretKey: '',
 };
+
+/** Admin API / UI — never expose secret key */
+export interface RegistrationSettingsAdminView {
+  enabled: boolean;
+  turnstileSiteKey: string;
+  hasTurnstileSecret: boolean;
+}
 
 export interface RegistrationVerificationRow {
   id: number;
