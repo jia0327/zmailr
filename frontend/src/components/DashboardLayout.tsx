@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import DashboardSidebar from './DashboardSidebar';
+import DashboardTopBar from './DashboardTopBar';
 import AnnouncementModal from './AnnouncementModal';
 import SEO from './SEO';
 import { API_BASE_URL } from '../config';
@@ -100,7 +101,7 @@ const DashboardLayout: React.FC = () => {
       />
 
       <div className="flex-1 flex flex-col min-w-0 w-full overflow-hidden">
-        <header className="md:hidden flex items-center gap-3 px-4 py-3 border-b bg-card shrink-0">
+        <header className="md:hidden flex items-center gap-2 px-3 py-2.5 border-b bg-card shrink-0">
           <button
             type="button"
             onClick={openMobile}
@@ -109,13 +110,16 @@ const DashboardLayout: React.FC = () => {
           >
             <i className="fas fa-bars text-lg" />
           </button>
-          <span className="flex items-center gap-2 min-w-0">
+          <span className="flex items-center gap-2 min-w-0 flex-1">
             <span className="w-7 h-7 rounded-lg bg-sky-500/15 flex items-center justify-center shrink-0">
               <i className="fas fa-envelope text-xs text-sky-600 dark:text-sky-400" />
             </span>
             <span className="text-lg font-bold tracking-tight truncate">zMailR</span>
           </span>
+          <DashboardTopBar variant="mobile" onNavigate={closeMobile} />
         </header>
+
+        <DashboardTopBar variant="desktop" />
 
         <AnnouncementModal />
         {maintenance?.enabled && (

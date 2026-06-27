@@ -1,8 +1,7 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import ThemeSwitcher from './ThemeSwitcher';
 
 interface DashboardSidebarProps {
   collapsed: boolean;
@@ -18,16 +17,9 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   onMobileClose,
 }) => {
   const { t } = useTranslation();
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const initial = user?.username?.charAt(0).toUpperCase() || '?';
-
-  const handleLogout = async () => {
-    onMobileClose();
-    await logout();
-    navigate('/login');
-  };
 
   const handleNavClick = () => {
     onMobileClose();
@@ -140,46 +132,6 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           </div>
         </div>
       </nav>
-
-      <div className={`border-t space-y-2 ${collapsed ? 'md:p-2 p-3' : 'p-3'}`}>
-        <div className={`flex flex-col gap-1 text-sm ${collapsed ? 'md:items-center' : ''}`}>
-          <ThemeSwitcher variant="sidebar" collapsed={collapsed} />
-          <a
-            href="/docs/"
-            title={t('dashboard.docs')}
-            onClick={handleNavClick}
-            className={`flex items-center rounded-md text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors min-h-10 ${
-              collapsed ? 'md:justify-center md:px-2 md:py-2.5 gap-3 px-3 py-2' : 'gap-3 px-3 py-2'
-            }`}
-          >
-            <i className="fas fa-book w-4 text-center shrink-0" />
-            {linkLabel(t('dashboard.docs'))}
-          </a>
-          <a
-            href="https://github.com/jia0327/zmailr"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="GitHub"
-            onClick={handleNavClick}
-            className={`flex items-center rounded-md text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors min-h-10 ${
-              collapsed ? 'md:justify-center md:px-2 md:py-2.5 gap-3 px-3 py-2' : 'gap-3 px-3 py-2'
-            }`}
-          >
-            <i className="fab fa-github w-4 text-center shrink-0" />
-            {linkLabel('GitHub')}
-          </a>
-        </div>
-        <button
-          onClick={handleLogout}
-          title={t('auth.logout')}
-          className={`flex items-center rounded-md text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors min-h-10 ${
-            collapsed ? 'md:w-full md:justify-center md:px-2 md:py-2.5 w-full gap-3 px-3 py-2' : 'w-full gap-3 px-3 py-2'
-          }`}
-        >
-          <i className="fas fa-sign-out-alt w-4 text-center shrink-0" />
-          {linkLabel(t('auth.logout'))}
-        </button>
-      </div>
     </aside>
   );
 };
