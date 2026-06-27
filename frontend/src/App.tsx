@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
-import NotFoundPage from './pages/NotFoundPage';
+import RegisterPage from './pages/RegisterPage';
 import { MailboxProvider } from './contexts/MailboxContext';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -41,6 +41,7 @@ const App: React.FC = () => {
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
               <Route path="/account" element={<Navigate to="/dashboard/api-keys" replace />} />
 
               <Route element={<PublicLayout />}>
@@ -61,9 +62,10 @@ const App: React.FC = () => {
                 <Route path="dashboard/api-debug" element={<ApiDebugPage />} />
                 <Route path="dashboard/usage" element={<UsagePage />} />
                 <Route path="dashboard/extract-rules" element={<ExtractRulesPage />} />
+                <Route path="dashboard/*" element={<Navigate to="/dashboard/usage" replace />} />
               </Route>
 
-              <Route path="*" element={<NotFoundPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
         </div>

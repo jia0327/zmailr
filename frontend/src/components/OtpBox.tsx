@@ -37,9 +37,6 @@ const OtpBox: React.FC<OtpBoxProps> = ({
         className
       )}
     >
-      <span className="absolute top-1 right-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {t('email.otpLabel')}
-      </span>
       {onCopy ? (
         <button
           type="button"

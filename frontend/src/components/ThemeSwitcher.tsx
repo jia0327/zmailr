@@ -23,6 +23,7 @@ const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ variant = 'default', coll
     root.classList.remove(theme === 'light' ? 'dark' : 'light');
     root.classList.add(theme);
     localStorage.setItem('theme', theme);
+    localStorage.setItem('vitepress-theme-appearance', theme);
   }, [theme]);
 
   const toggleTheme = () => {

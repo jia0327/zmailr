@@ -2,6 +2,7 @@
 
 // 邮箱域名配置 - 从 API 动态获取
 let cachedEmailDomains: string[] | null = null;
+let cachedRegistrationEnabled: boolean | null = null;
 let configLoaded = false;
 
 // 从 API 获取邮箱域名配置
@@ -16,6 +17,7 @@ export async function getEmailDomains(): Promise<string[]> {
       const data = await response.json();
       if (data.success && data.config.emailDomains) {
         cachedEmailDomains = data.config.emailDomains;
+        cachedRegistrationEnabled = !!data.config.registration?.enabled;
         configLoaded = true;
         return cachedEmailDomains!;
       }
@@ -27,8 +29,17 @@ export async function getEmailDomains(): Promise<string[]> {
   // 如果 API 获取失败，使用环境变量作为后备
   const fallbackDomains = (import.meta.env.VITE_EMAIL_DOMAIN || '').split(',').map(domain => domain.trim()).filter(domain => domain);
   cachedEmailDomains = fallbackDomains.length > 0 ? fallbackDomains : ['example.com'];
+  cachedRegistrationEnabled = false;
   configLoaded = true;
   return cachedEmailDomains!;
+}
+
+export async function isRegistrationEnabled(): Promise<boolean> {
+  if (configLoaded && cachedRegistrationEnabled != null) {
+    return cachedRegistrationEnabled;
+  }
+  await getEmailDomains();
+  return cachedRegistrationEnabled ?? false;
 }
 
 // 获取默认邮箱域名

@@ -1,23 +1,48 @@
 :root {
-  --vp-c-brand-1: #6366f1;
-  --vp-c-brand-2: #4f46e5;
-  --vp-c-brand-3: #4338ca;
+  --vp-c-brand-1: #0284c7;
+  --vp-c-brand-2: #0ea5e9;
+  --vp-c-brand-3: #38bdf8;
+  --vp-c-brand-soft: rgba(14, 165, 233, 0.12);
+
+  --vp-c-bg: #f4f8fc;
+  --vp-c-bg-soft: #f0f9ff;
+  --vp-c-bg-alt: #e0f2fe;
+  --vp-c-divider: #bae6fd;
+  --vp-c-gutter: #e0f2fe;
 }
 
 .dark {
-  --vp-c-brand-1: #818cf8;
-  --vp-c-brand-2: #6366f1;
-  --vp-c-brand-3: #4f46e5;
+  --vp-c-brand-1: #38bdf8;
+  --vp-c-brand-2: #0ea5e9;
+  --vp-c-brand-3: #0284c7;
+  --vp-c-brand-soft: rgba(14, 165, 233, 0.16);
+}
+
+/* Subtle sky glow behind doc content in light mode */
+html:not(.dark) .VPContent::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 60% 45% at 85% 10%, rgba(14, 165, 233, 0.14), transparent),
+    radial-gradient(ellipse 50% 40% at 10% 90%, rgba(168, 85, 247, 0.06), transparent);
 }
 
 /* Homepage hero tagline */
 .zmailr-hero {
   margin: 0 0 1.5rem;
   padding: 1rem 1.25rem;
-  border-radius: 8px;
-  background: var(--vp-c-bg-soft);
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--vp-c-bg-soft) 0%, var(--vp-c-brand-soft) 100%);
   border: 1px solid var(--vp-c-divider);
   line-height: 1.7;
+  box-shadow: 0 4px 24px rgba(14, 165, 233, 0.08);
+}
+
+.dark .zmailr-hero {
+  box-shadow: none;
 }
 
 .zmailr-hero p:last-child {
@@ -28,10 +53,15 @@
 .zmailr-callout {
   margin: 1.5rem 0;
   padding: 0.875rem 1.25rem;
-  border-radius: 8px;
+  border-radius: 12px;
   border-left: 4px solid var(--vp-c-brand-1);
-  background: var(--vp-c-brand-soft);
+  background: linear-gradient(90deg, var(--vp-c-brand-soft), var(--vp-c-bg-soft));
   line-height: 1.7;
+  box-shadow: 0 2px 12px rgba(14, 165, 233, 0.06);
+}
+
+.dark .zmailr-callout {
+  box-shadow: none;
 }
 
 .zmailr-callout p {
@@ -49,6 +79,11 @@
   height: calc(100vh - var(--vp-nav-height, 64px) - 10rem);
   min-height: 32rem;
   border: 1px solid var(--vp-c-divider);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--vp-c-bg);
+  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.06);
+}
+
+.dark .zmailr-api-embed iframe {
+  box-shadow: none;
 }

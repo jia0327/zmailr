@@ -279,6 +279,25 @@ export const DEFAULT_MAINTENANCE_MODE: MaintenanceMode = {
   blockMailboxCreate: true,
 };
 
+export interface RegistrationSettings {
+  enabled: boolean;
+}
+
+export const DEFAULT_REGISTRATION_SETTINGS: RegistrationSettings = {
+  enabled: false,
+};
+
+export interface RegistrationVerificationRow {
+  id: number;
+  email: string;
+  passwordHash: string;
+  codeHash: string;
+  expiresAt: number;
+  createdAt: number;
+  ip: string | null;
+  attempts: number;
+}
+
 export interface RateLimitHitRow {
   id: number;
   ip: string;

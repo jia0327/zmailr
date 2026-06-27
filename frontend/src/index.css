@@ -4,33 +4,33 @@
  
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 214 32% 97%;
+    --foreground: 222 47% 11%;
  
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
  
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222 47% 11%;
  
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 100%;
  
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 214 32% 93%;
+    --secondary-foreground: 222 47% 11%;
  
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 214 25% 94%;
+    --muted-foreground: 215 16% 40%;
  
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 199 95% 94%;
+    --accent-foreground: 199 89% 35%;
  
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
  
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 214 25% 88%;
+    --input: 214 25% 88%;
+    --ring: 199 89% 48%;
  
     --radius: 0.5rem;
   }
@@ -150,8 +150,9 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 70% 55% at 18% 38%, hsl(210 100% 50% / 0.1), transparent),
-    radial-gradient(ellipse 55% 45% at 82% 68%, hsl(260 80% 60% / 0.08), transparent);
+    radial-gradient(ellipse 70% 55% at 18% 38%, hsl(199 95% 65% / 0.28), transparent),
+    radial-gradient(ellipse 55% 45% at 82% 68%, hsl(260 75% 68% / 0.14), transparent),
+    radial-gradient(ellipse 45% 35% at 50% 100%, hsl(199 90% 75% / 0.12), transparent);
 }
 
 .dark .login-shell::before {
@@ -161,7 +162,9 @@
 }
 
 .login-hero {
-  background: linear-gradient(145deg, hsl(214 82% 96%) 0%, hsl(220 55% 91%) 100%);
+  background:
+    linear-gradient(145deg, hsl(199 95% 94%) 0%, hsl(214 82% 93%) 45%, hsl(220 55% 91%) 100%);
+  border-right: 1px solid hsl(199 89% 48% / 0.12);
 }
 
 .dark .login-hero {
@@ -179,8 +182,9 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 65% 50% at 90% 15%, hsl(210 100% 50% / 0.07), transparent),
-    radial-gradient(ellipse 50% 40% at 10% 85%, hsl(260 80% 60% / 0.05), transparent);
+    radial-gradient(ellipse 65% 50% at 90% 15%, hsl(199 95% 65% / 0.2), transparent),
+    radial-gradient(ellipse 50% 40% at 10% 85%, hsl(260 75% 68% / 0.1), transparent),
+    radial-gradient(ellipse 40% 30% at 50% 50%, hsl(199 90% 75% / 0.06), transparent);
 }
 
 .dark .dashboard-main::before {

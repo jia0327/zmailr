@@ -158,7 +158,7 @@ const UsagePage: React.FC = () => {
               value={token.name ?? '—'}
               icon="fas fa-tag"
             />
-            <div className="rounded-lg border bg-card p-4 shadow-sm transition-shadow hover:shadow-md flex flex-col justify-between gap-3">
+            <div className="rounded-lg border border-sky-200/60 dark:border-border bg-card p-4 shadow-sm shadow-sky-500/5 transition-shadow hover:shadow-md hover:shadow-sky-500/10 dark:shadow-none flex flex-col justify-between gap-3">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   {t('tokens.copyOneClick')}

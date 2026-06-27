@@ -50,7 +50,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 
   return (
     <aside
-      className={`fixed md:relative inset-y-0 left-0 z-50 border-r bg-card flex flex-col min-h-screen transition-[transform,width] duration-300 ease-in-out w-60 ${
+      className={`fixed md:relative inset-y-0 left-0 z-50 border-r border-sky-200/50 dark:border-border bg-gradient-to-b from-white via-sky-50/40 to-white dark:from-card dark:via-card dark:to-card flex flex-col min-h-screen transition-[transform,width] duration-300 ease-in-out w-60 ${
         mobileOpen ? 'translate-x-0' : '-translate-x-full'
       } md:translate-x-0 ${collapsed ? 'md:w-16' : 'md:w-60'}`}
     >

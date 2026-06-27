@@ -18,6 +18,13 @@ export default defineConfig({
   },
   lastUpdated: true,
   appearance: true,
+  head: [
+    [
+      'script',
+      {},
+      `(function(){try{var k='theme',v='vitepress-theme-appearance',a=localStorage.getItem(k);if(a==='dark'||a==='light'){localStorage.setItem(v,a);return}var p=localStorage.getItem(v);if(p==='dark'||p==='light'){localStorage.setItem(k,p);return}localStorage.setItem(k,'dark');localStorage.setItem(v,'dark')}catch(e){}})();`,
+    ],
+  ],
   themeConfig: {
     siteTitle: 'zMailR',
 

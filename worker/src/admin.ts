@@ -8,79 +8,121 @@ export function getAdminHtml(adminBase: string): string {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>zMailR 管理后台</title>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t==='light')document.documentElement.classList.add('light')}catch(e){}})();</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0c0a09;color:#e2e8f0;min-height:100vh;position:relative}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 70% 55% at 15% 35%,rgba(14,165,233,.12),transparent),radial-gradient(ellipse 55% 45% at 85% 72%,rgba(168,85,247,.08),transparent)}
+.login-wrap,.app{position:relative;z-index:1}
 .login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
-.login-box{background:#1e293b;padding:32px;border-radius:12px;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(0,0,0,.3)}
-.login-box h1{font-size:1.5rem;margin-bottom:24px;text-align:center;color:#f8fafc}
-.login-box input{width:100%;padding:12px 16px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#e2e8f0;margin-bottom:16px;font-size:1rem}
-.login-box button{width:100%;padding:12px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer}
-.login-box button:hover{background:#4f46e5}
+.login-box{background:#18181b;padding:32px;border-radius:16px;width:100%;max-width:400px;border:1px solid #27272a;box-shadow:0 8px 32px rgba(0,0,0,.35)}
+.login-brand{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px}
+.login-brand-icon{width:36px;height:36px;border-radius:10px;background:rgba(14,165,233,.15);display:flex;align-items:center;justify-content:center;color:#38bdf8;font-size:1rem}
+.login-box h1{font-size:1.35rem;text-align:center;color:#f8fafc;font-weight:700}
+.login-box input{width:100%;padding:12px 16px;border:1px solid #3f3f46;border-radius:10px;background:#0c0a09;color:#e2e8f0;margin-bottom:16px;font-size:1rem}
+.login-box input:focus{outline:none;border-color:#0ea5e9;box-shadow:0 0 0 2px rgba(14,165,233,.25)}
+.login-box button{width:100%;padding:12px;background:#0ea5e9;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(14,165,233,.25)}
+.login-box button:hover{background:#38bdf8}
 .error{color:#f87171;font-size:.875rem;margin-bottom:12px;display:none}
 .app{display:none;max-width:1200px;margin:0 auto;padding:24px}
-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px;padding-bottom:16px;border-bottom:1px solid #334155}
-header h1{font-size:1.5rem;color:#f8fafc}
-.logout{background:#475569;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:.875rem}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid #27272a}
+header h1{font-size:1.35rem;color:#f8fafc;font-weight:700;display:flex;align-items:center;gap:10px}
+.header-brand-icon{width:32px;height:32px;border-radius:8px;background:rgba(14,165,233,.15);display:flex;align-items:center;justify-content:center;color:#38bdf8;font-size:.875rem}
+.logout{background:#27272a;color:#e2e8f0;border:1px solid #3f3f46;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:.875rem}
+.logout:hover{background:#3f3f46}
 .tabs{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
-.tab{padding:10px 20px;background:#1e293b;border:1px solid #334155;border-radius:8px;cursor:pointer;color:#94a3b8;font-size:.875rem}
-.tab.active{background:#6366f1;border-color:#6366f1;color:#fff}
-.panel{display:none;background:#1e293b;border-radius:12px;padding:24px;border:1px solid #334155}
+.tab{padding:10px 18px;background:#18181b;border:1px solid #27272a;border-radius:10px;cursor:pointer;color:#a1a1aa;font-size:.875rem;transition:background .15s,color .15s}
+.tab:hover{color:#e2e8f0;background:#27272a}
+.tab.active{background:rgba(14,165,233,.18);border-color:rgba(14,165,233,.45);color:#38bdf8;font-weight:600}
+.panel{display:none;background:#18181b;border-radius:16px;padding:24px;border:1px solid #27272a;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .panel.active{display:block}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
-.stat{background:#0f172a;padding:20px;border-radius:8px;border:1px solid #334155}
-.stat .label{font-size:.75rem;color:#94a3b8;margin-bottom:8px}
-.stat .value{font-size:2rem;font-weight:700;color:#6366f1}
+.stat{background:#0c0a09;padding:20px;border-radius:12px;border:1px solid #27272a;transition:box-shadow .15s}
+.stat:hover{box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.stat .label{font-size:.75rem;color:#a1a1aa;margin-bottom:8px;font-weight:500}
+.stat .value{font-size:2rem;font-weight:700;color:#38bdf8}
 .toolbar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
-.btn{padding:8px 16px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.875rem}
-.btn:hover{background:#4f46e5}
+.btn{padding:8px 16px;background:#0ea5e9;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.875rem;font-weight:500}
+.btn:hover{background:#38bdf8}
 .btn-danger{background:#dc2626}
 .btn-danger:hover{background:#b91c1c}
 .btn-sm{padding:4px 10px;font-size:.75rem}
 table{width:100%;border-collapse:collapse;font-size:.875rem}
-th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #334155}
-th{color:#94a3b8;font-weight:600}
-td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;word-break:break-all}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #27272a}
+th{color:#a1a1aa;font-weight:600}
+td code{font-size:.75rem;background:#0c0a09;padding:2px 6px;border-radius:4px;word-break:break-all}
 .badge{display:inline-block;padding:2px 8px;border-radius:9999px;font-size:.75rem}
-.badge-ok{background:#166534;color:#86efac}
+.badge-ok{background:#14532d;color:#86efac}
 .badge-off{background:#7f1d1d;color:#fca5a5}
-.badge-builtin{background:#1e3a5f;color:#93c5fd}
+.badge-builtin{background:#0c4a6e;color:#7dd3fc}
 .badge-warn{background:#713f12;color:#fcd34d}
-.section-title{font-size:1rem;color:#f8fafc;margin-bottom:8px}
-.section-desc{font-size:.75rem;color:#64748b;margin-bottom:12px}
+.section-title{font-size:1rem;color:#f8fafc;margin-bottom:8px;font-weight:600}
+.section-desc{font-size:.75rem;color:#71717a;margin-bottom:12px}
 .section-title+.section-desc{margin-top:-4px}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:100;padding:20px}
 .modal.show{display:flex}
-.modal-box{background:#1e293b;padding:24px;border-radius:12px;width:100%;max-width:480px;border:1px solid #334155}
+.modal-box{background:#18181b;padding:24px;border-radius:16px;width:100%;max-width:480px;border:1px solid #27272a}
 .modal-box h3{margin-bottom:16px;color:#f8fafc}
 .form-group{margin-bottom:12px}
-.form-group label{display:block;font-size:.75rem;color:#94a3b8;margin-bottom:4px}
-.form-group input,.form-group textarea,.form-group select{width:100%;padding:8px 12px;border:1px solid #334155;border-radius:6px;background:#0f172a;color:#e2e8f0;font-size:.875rem}
+.form-group label{display:block;font-size:.75rem;color:#a1a1aa;margin-bottom:4px}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:8px 12px;border:1px solid #3f3f46;border-radius:8px;background:#0c0a09;color:#e2e8f0;font-size:.875rem}
 .form-group textarea{min-height:80px;font-family:monospace}
 .form-group textarea.content-area{min-height:160px;font-family:inherit;white-space:pre-wrap}
 .modal-actions{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
 .form-group input[type=checkbox]{width:auto;margin-right:8px}
 .pagination{display:flex;gap:8px;align-items:center;margin-top:16px;flex-wrap:wrap}
-.pagination span{font-size:.875rem;color:#94a3b8}
-.banner-warn{background:#422006;border:1px solid #92400e;color:#fcd34d;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:.875rem}
+.pagination span{font-size:.875rem;color:#a1a1aa}
+.banner-warn{background:#422006;border:1px solid #92400e;color:#fcd34d;padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:.875rem}
 .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px}
-.card{background:#0f172a;padding:16px;border-radius:8px;border:1px solid #334155}
+.card{background:#0c0a09;padding:16px;border-radius:12px;border:1px solid #27272a}
 .card h4{font-size:.875rem;color:#f8fafc;margin-bottom:12px}
-.hint{font-size:.75rem;color:#64748b;margin-top:8px}
-.chart-wrap{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:16px;margin-bottom:24px}
+.hint{font-size:.75rem;color:#71717a;margin-top:8px}
+.chart-wrap{background:#0c0a09;border:1px solid #27272a;border-radius:12px;padding:16px;margin-bottom:24px}
 .chart-title{font-size:.875rem;color:#f8fafc;margin-bottom:12px}
 .chart-canvas{width:100%;height:280px;display:block}
-.chart-legend{display:flex;flex-wrap:wrap;gap:12px 20px;margin-top:12px;font-size:.75rem;color:#94a3b8}
+.chart-legend{display:flex;flex-wrap:wrap;gap:12px 20px;margin-top:12px;font-size:.75rem;color:#a1a1aa}
 .chart-legend-item{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
 .chart-legend-item.off{opacity:.35}
 .chart-legend-swatch{width:12px;height:3px;border-radius:2px}
-.chart-empty{text-align:center;color:#64748b;padding:48px 16px;font-size:.875rem}
+.chart-empty{text-align:center;color:#71717a;padding:48px 16px;font-size:.875rem}
+html.light body{background:#f0f9ff;color:#1e293b}
+html.light body::before{background:radial-gradient(ellipse 70% 55% at 15% 35%,rgba(14,165,233,.22),transparent),radial-gradient(ellipse 55% 45% at 85% 72%,rgba(168,85,247,.1),transparent)}
+html.light .login-box{background:#fff;border-color:#bae6fd;box-shadow:0 8px 32px rgba(14,165,233,.12)}
+html.light .login-box h1{color:#0f172a}
+html.light .login-brand-icon{background:rgba(14,165,233,.12);color:#0284c7}
+html.light .login-box input{border-color:#bae6fd;background:#f8fafc;color:#1e293b}
+html.light .login-box button{box-shadow:0 4px 14px rgba(14,165,233,.2)}
+html.light header{border-bottom-color:#bae6fd}
+html.light header h1{color:#0f172a}
+html.light .header-brand-icon{background:rgba(14,165,233,.12);color:#0284c7}
+html.light .logout{background:#f0f9ff;color:#334155;border-color:#bae6fd}
+html.light .logout:hover{background:#e0f2fe}
+html.light .tab{background:#fff;border-color:#bae6fd;color:#64748b}
+html.light .tab:hover{color:#0f172a;background:#f0f9ff}
+html.light .tab.active{background:rgba(14,165,233,.14);border-color:rgba(14,165,233,.45);color:#0284c7}
+html.light .panel{background:#fff;border-color:#bae6fd;box-shadow:0 4px 24px rgba(14,165,233,.08)}
+html.light .stat{background:#f8fafc;border-color:#bae6fd}
+html.light .stat:hover{box-shadow:0 4px 12px rgba(14,165,233,.1)}
+html.light .stat .label{color:#64748b}
+html.light .stat .value{color:#0284c7}
+html.light th,html.light td{border-bottom-color:#e0f2fe}
+html.light th{color:#64748b}
+html.light td code{background:#f0f9ff}
+html.light .section-title,html.light .card h4,html.light .modal-box h3,html.light .chart-title{color:#0f172a}
+html.light .section-desc,html.light .hint,html.light .pagination span,html.light .chart-legend{color:#64748b}
+html.light .modal-box{background:#fff;border-color:#bae6fd}
+html.light .form-group input,html.light .form-group textarea,html.light .form-group select{border-color:#bae6fd;background:#f8fafc;color:#1e293b}
+html.light .card,html.light .chart-wrap{background:#f8fafc;border-color:#bae6fd}
+html.light .chart-empty{color:#94a3b8}
 </style>
 </head>
 <body>
 <div id="loginView" class="login-wrap">
   <div class="login-box">
-    <h1>zMailR 管理后台</h1>
+    <div class="login-brand">
+      <span class="login-brand-icon">✉</span>
+      <h1>zMailR 管理后台</h1>
+    </div>
     <div id="loginError" class="error"></div>
     <input type="password" id="passwordInput" placeholder="管理员密码" autocomplete="current-password">
     <button onclick="doLogin()">登录</button>
@@ -88,7 +130,7 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
 </div>
 <div id="appView" class="app">
   <header>
-    <h1>zMailR 管理后台</h1>
+    <h1><span class="header-brand-icon">✉</span> zMailR 管理后台</h1>
     <button class="logout" onclick="doLogout()">退出登录</button>
   </header>
   <div class="tabs">
@@ -209,6 +251,10 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
     <table><thead><tr><th>ID</th><th>域名</th><th>默认</th><th>Cloudflare</th><th>Brevo</th><th>状态</th><th>操作</th></tr></thead><tbody id="domainsBody"></tbody></table>
   </div>
   <div id="panel-settings" class="panel">
+    <h3 class="section-title">用户注册</h3>
+    <p class="section-desc">开启后，用户可使用腾讯/网易/Gmail/iCloud/Outlook/搜狐等知名邮箱注册；验证码由系统通过 Brevo 发信</p>
+    <div class="form-group"><label><input type="checkbox" id="regEnabled"> 开放用户注册</label></div>
+    <hr style="border:none;border-top:1px solid #27272a;margin:24px 0">
     <h3 class="section-title">维护模式</h3>
     <p class="section-desc">开启后按下方选项阻断对应 API，用户端显示维护横幅</p>
     <div class="form-group"><label><input type="checkbox" id="maintEnabled" onchange="updateMaintenancePreview()"> 启用维护模式</label></div>
@@ -329,8 +375,8 @@ const pB=document.getElementById('topPathsBody');if(!rs.topPaths.length){pB.inne
 const s=rlData.stats;document.getElementById('rateLimitStatsGrid').innerHTML='<div class="stat"><div class="label">今日 429 次数</div><div class="value">'+s.todayCount+'</div></div>';
 const ipB=document.getElementById('topIpsBody');if(!s.topIps.length){ipB.innerHTML='<tr><td colspan="2" class="empty">暂无</td></tr>'}else{ipB.innerHTML=s.topIps.map(r=>'<tr><td><code>'+r.ip+'</code></td><td>'+r.count+'</td></tr>').join('')}
 const uB=document.getElementById('topUsersBody');if(!s.topUsers.length){uB.innerHTML='<tr><td colspan="2" class="empty">暂无</td></tr>'}else{uB.innerHTML=s.topUsers.map(r=>'<tr><td>'+r.username+' (#'+r.userId+')</td><td>'+r.count+'</td></tr>').join('')}}
-async function loadMaintenance(){const d=await api('/maintenance');const m=d.maintenance;document.getElementById('maintEnabled').checked=!!m.enabled;document.getElementById('maintMessage').value=m.message||'';document.getElementById('maintBlockLease').checked=!!m.blockLease;document.getElementById('maintBlockSend').checked=!!m.blockSend;document.getElementById('maintBlockMailbox').checked=!!m.blockMailboxCreate;updateMaintenancePreview()}
-function readMaintenanceForm(){return{enabled:document.getElementById('maintEnabled').checked,message:document.getElementById('maintMessage').value,blockLease:document.getElementById('maintBlockLease').checked,blockSend:document.getElementById('maintBlockSend').checked,blockMailboxCreate:document.getElementById('maintBlockMailbox').checked}}
+async function loadMaintenance(){const d=await api('/maintenance');const m=d.maintenance;document.getElementById('regEnabled').checked=!!(d.registration&&d.registration.enabled);document.getElementById('maintEnabled').checked=!!m.enabled;document.getElementById('maintMessage').value=m.message||'';document.getElementById('maintBlockLease').checked=!!m.blockLease;document.getElementById('maintBlockSend').checked=!!m.blockSend;document.getElementById('maintBlockMailbox').checked=!!m.blockMailboxCreate;updateMaintenancePreview()}
+function readMaintenanceForm(){return{enabled:document.getElementById('maintEnabled').checked,message:document.getElementById('maintMessage').value,blockLease:document.getElementById('maintBlockLease').checked,blockSend:document.getElementById('maintBlockSend').checked,blockMailboxCreate:document.getElementById('maintBlockMailbox').checked,registrationEnabled:document.getElementById('regEnabled').checked}}
 function getMaintenanceBlockedLabelsClient(m){const labels=[];if(m.blockSend)labels.push('发送邮件');if(m.blockMailboxCreate)labels.push('创建新邮箱（含 API 租用）');else if(m.blockLease)labels.push('API 租用随机邮箱');return labels}
 function buildMaintenanceDisplayMessageClient(m){if(!m.enabled)return'';const custom=(m.message||'').trim();const blocked=getMaintenanceBlockedLabelsClient(m);if(!blocked.length)return custom||'系统维护中，请稍后再试';const blockedText='暂停服务：'+blocked.join('、')+'。';return custom?custom+' '+blockedText:'系统维护中。'+blockedText}
 function updateMaintenancePreview(){const m=readMaintenanceForm();const el=document.getElementById('maintPreview');if(!m.enabled){el.style.display='none';return}el.style.display='block';el.innerHTML='<strong>用户端将看到：</strong><br>'+esc(buildMaintenanceDisplayMessageClient(m))}

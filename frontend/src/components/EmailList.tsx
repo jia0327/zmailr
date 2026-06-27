@@ -234,7 +234,7 @@ const EmailList: React.FC<EmailListProps> = ({
             />
             <span>{t('email.from')}</span>
             <span>{t('email.subject')}</span>
-            <span>{t('email.verificationCode')}</span>
+            <span>{t('email.ruleExtract')}</span>
             <span className="text-right">{t('email.date')}</span>
           </div>
 

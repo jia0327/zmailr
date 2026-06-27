@@ -48,6 +48,7 @@ import {
   markAnnouncementRead,
   markAllAnnouncementsRead,
   getMaintenanceMode,
+  getRegistrationSettings,
   writeAuditLog,
   getLegacySendDailyQuota,
 } from './database';
@@ -93,6 +94,12 @@ import { resolveAttachmentBytes } from './r2-attachments';
 import { matchCorsOrigin } from './cors';
 import { apiInternalError } from './http-response';
 import { runHealthChecks } from './health';
+import {
+  sendRegistrationVerificationCode,
+  verifyRegistrationCode,
+  resendRegistrationVerificationCode,
+} from './registration';
+import { normalizeRegistrationEmail } from './registration-domains';
 
 type AppVariables = {
   auth?: ApiAuthContext;
@@ -202,12 +209,18 @@ app.get('/api/public/status', async (c) => {
 app.get('/api/config', async (c) => {
   try {
     const domains = c.get('enabledMailDomains') ?? (await resolveEnabledMailDomainNames(c.env.DB, c.env));
-    const maintenance = await getMaintenanceMode(c.env.DB);
+    const [maintenance, registration] = await Promise.all([
+      getMaintenanceMode(c.env.DB),
+      getRegistrationSettings(c.env.DB),
+    ]);
 
     return c.json({
       success: true,
       config: {
         emailDomains: domains,
+        registration: {
+          enabled: registration.enabled,
+        },
         maintenance: {
           enabled: maintenance.enabled,
           message: maintenance.message,
@@ -579,6 +592,105 @@ app.post('/api/auth/login', async (c) => {
     return c.json({ success: true, user: { id: user.id, username: user.username, role: user.role } }, 200, { 'Set-Cookie': cookie });
   } catch (error) {
     return c.json(apiInternalError('登录失败', error), 500);
+  }
+});
+
+app.post('/api/auth/register/send-code', async (c) => {
+  try {
+    const ip = getClientIp(c.req.raw);
+    const limitCheck = await consumeLoginAttempt(c.env.DB, ip, 'register');
+    if (!limitCheck.ok) {
+      return c.json(rateLimitExceededBody(limitCheck.locked), 429, rateLimitHeaders(limitCheck));
+    }
+
+    const body = await c.req.json();
+    const email = body.email != null ? String(body.email) : '';
+    const password = body.password != null ? String(body.password) : '';
+    if (!email || !password) {
+      return c.json({ success: false, error: '缺少邮箱或密码' }, 400);
+    }
+
+    const result = await sendRegistrationVerificationCode(c.env.DB, c.env, { email, password, ip });
+    if (!result.ok) {
+      return c.json({ success: false, error: result.error }, result.status ?? 400);
+    }
+
+    return c.json({
+      success: true,
+      message: '验证码已发送，请查收邮箱',
+      email: normalizeRegistrationEmail(email),
+    });
+  } catch (error) {
+    return c.json(apiInternalError('发送验证码失败', error), 500);
+  }
+});
+
+app.post('/api/auth/register/resend', async (c) => {
+  try {
+    const ip = getClientIp(c.req.raw);
+    const limitCheck = await consumeLoginAttempt(c.env.DB, ip, 'register-resend');
+    if (!limitCheck.ok) {
+      return c.json(rateLimitExceededBody(limitCheck.locked), 429, rateLimitHeaders(limitCheck));
+    }
+
+    const body = await c.req.json();
+    const email = body.email != null ? String(body.email) : '';
+    if (!email) {
+      return c.json({ success: false, error: '缺少邮箱' }, 400);
+    }
+
+    const result = await resendRegistrationVerificationCode(c.env.DB, c.env, { email, ip });
+    if (!result.ok) {
+      return c.json({ success: false, error: result.error }, result.status ?? 400);
+    }
+
+    return c.json({ success: true, message: '验证码已重新发送' });
+  } catch (error) {
+    return c.json(apiInternalError('重发验证码失败', error), 500);
+  }
+});
+
+app.post('/api/auth/register/verify', async (c) => {
+  try {
+    const ip = getClientIp(c.req.raw);
+    const limitCheck = await consumeLoginAttempt(c.env.DB, ip, 'register-verify');
+    if (!limitCheck.ok) {
+      return c.json(rateLimitExceededBody(limitCheck.locked), 429, rateLimitHeaders(limitCheck));
+    }
+
+    const body = await c.req.json();
+    const email = body.email != null ? String(body.email) : '';
+    const code = body.code != null ? String(body.code) : '';
+    if (!email || !code) {
+      return c.json({ success: false, error: '缺少邮箱或验证码' }, 400);
+    }
+
+    const result = await verifyRegistrationCode(c.env.DB, { email, code });
+    if (!result.ok) {
+      if (!result.expired) {
+        await recordLoginFailure(c.env.DB, ip, 'register-verify');
+      }
+      return c.json({ success: false, error: result.error }, result.status ?? 400);
+    }
+
+    await clearLoginFailures(c.env.DB, ip, 'register-verify');
+    const cookie = await createUserSessionCookie(c.env, result.userId);
+    c.executionCtx.waitUntil(
+      writeAuditLog(c.env.DB, {
+        actorType: 'user',
+        actorId: result.userId,
+        actorName: result.username,
+        action: 'user.register',
+        ip,
+      })
+    );
+    return c.json(
+      { success: true, user: { id: result.userId, username: result.username, role: 'user' } },
+      200,
+      { 'Set-Cookie': cookie }
+    );
+  } catch (error) {
+    return c.json(apiInternalError('注册失败', error), 500);
   }
 });
 

@@ -25,6 +25,8 @@ import {
   getLocalEmailStats,
   getMaintenanceMode,
   setMaintenanceMode,
+  getRegistrationSettings,
+  setRegistrationSettings,
   getLegacySendDailyQuota,
   setLegacySendDailyQuota,
   listAuditLogs,
@@ -183,11 +185,12 @@ export function createAdminApp(): Hono<{ Bindings: Env }> {
   admin.get('/api/maintenance', async (c) => {
     const authErr = await requireAdmin(c);
     if (authErr) return authErr;
-    const [maintenance, legacySendDailyQuota] = await Promise.all([
+    const [maintenance, legacySendDailyQuota, registration] = await Promise.all([
       getMaintenanceMode(c.env.DB),
       getLegacySendDailyQuota(c.env.DB),
+      getRegistrationSettings(c.env.DB),
     ]);
-    return c.json({ success: true, maintenance, legacySendDailyQuota });
+    return c.json({ success: true, maintenance, legacySendDailyQuota, registration });
   });
 
   admin.put('/api/maintenance', async (c) => {
@@ -208,9 +211,16 @@ export function createAdminApp(): Hono<{ Bindings: Env }> {
         parseInt(String(body.legacySendDailyQuota), 10)
       );
     }
+    let registration = await getRegistrationSettings(c.env.DB);
+    if (body.registrationEnabled !== undefined) {
+      registration = await setRegistrationSettings(c.env.DB, {
+        enabled: !!body.registrationEnabled,
+      });
+    }
     const detail: Record<string, unknown> = {
       ...(maintenance as unknown as Record<string, unknown>),
       legacySendDailyQuota,
+      registration,
     };
     c.executionCtx.waitUntil(
       writeAuditLog(c.env.DB, {
@@ -221,7 +231,7 @@ export function createAdminApp(): Hono<{ Bindings: Env }> {
         ip: adminIp(c),
       })
     );
-    return c.json({ success: true, maintenance, legacySendDailyQuota });
+    return c.json({ success: true, maintenance, legacySendDailyQuota, registration });
   });
 
   admin.get('/api/audit-logs', async (c) => {

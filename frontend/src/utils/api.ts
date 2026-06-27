@@ -334,6 +334,52 @@ export const authLogin = async (username: string, password: string) => {
   }
 };
 
+export const authRegisterSendCode = async (email: string, password: string) => {
+  try {
+    const response = await fetch(apiUrl('/api/auth/register/send-code'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await response.json();
+    if (data.success) return { success: true as const, email: data.email as string };
+    return { success: false as const, error: data.error || 'Send failed' };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export const authRegisterResend = async (email: string) => {
+  try {
+    const response = await fetch(apiUrl('/api/auth/register/resend'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await response.json();
+    if (data.success) return { success: true as const };
+    return { success: false as const, error: data.error || 'Resend failed' };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export const authRegisterVerify = async (email: string, code: string) => {
+  try {
+    const response = await fetch(apiUrl('/api/auth/register/verify'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, code }),
+    });
+    const data = await response.json();
+    if (data.success) return { success: true as const };
+    return { success: false as const, error: data.error || 'Verify failed' };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
 export const authLogout = async () => {
   await fetch(apiUrl('/api/auth/logout'), { method: 'POST', credentials: 'include' });
 };

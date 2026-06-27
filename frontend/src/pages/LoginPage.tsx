@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ThemeSwitcher from '../components/ThemeSwitcher';
+import { isRegistrationEnabled } from '../config';
 
 const LOGIN_FEATURES = [
   { icon: 'fas fa-inbox', titleKey: 'auth.loginFeatureInbox', descKey: 'auth.loginFeatureInboxDesc' },
@@ -21,6 +22,11 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState(false);
+
+  useEffect(() => {
+    isRegistrationEnabled().then(setRegistrationOpen);
+  }, []);
 
   if (!isLoading && isAuthenticated) {
     return <Navigate to="/dashboard/usage" replace />;
@@ -46,7 +52,7 @@ const LoginPage: React.FC = () => {
       </div>
 
       <div className="relative flex-1 flex items-center justify-center px-4 py-6 lg:p-6">
-        <div className="w-full max-w-md lg:max-w-4xl flex flex-col lg:flex-row rounded-2xl border bg-card shadow-xl overflow-hidden">
+        <div className="w-full max-w-md lg:max-w-4xl flex flex-col lg:flex-row rounded-2xl border border-sky-200/70 dark:border-border bg-card shadow-xl shadow-sky-500/10 dark:shadow-black/20 overflow-hidden">
           <div className="login-hero relative hidden lg:block lg:w-[44%] p-8 lg:p-10">
             <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">{t('auth.loginTitle')}</h1>
             <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{t('auth.loginTagline')}</p>
@@ -126,6 +132,15 @@ const LoginPage: React.FC = () => {
                 {loading ? t('common.loading') : t('auth.login')}
               </button>
             </form>
+
+            {registrationOpen && (
+              <p className="text-sm text-muted-foreground mt-6 text-center">
+                {t('auth.registerNoAccount')}{' '}
+                <Link to="/register" className="text-sky-600 dark:text-sky-400 hover:underline font-medium">
+                  {t('auth.register')}
+                </Link>
+              </p>
+            )}
           </div>
         </div>
       </div>

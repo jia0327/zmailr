@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { createUserMailbox, updateUserMailboxDomain } from '../utils/api';
 import { formatMailboxEmail } from '../config';
@@ -235,11 +236,15 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
           </button>
         </div>
       </div>
-      {domains.length > 1 && (
-        <p className="text-xs text-muted-foreground px-1 leading-relaxed">
-          {t('mailbox.domainSwitchHint')}
-        </p>
-      )}
+      <p className="text-xs text-muted-foreground px-1 leading-relaxed">
+        {t('mailbox.extractRulesHint')}{' '}
+        <Link
+          to="/dashboard/extract-rules"
+          className="text-primary hover:underline font-medium"
+        >
+          {t('mailbox.extractRulesLink')}
+        </Link>
+      </p>
       </div>
     </div>
   );
