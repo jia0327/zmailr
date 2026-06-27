@@ -12,6 +12,7 @@
 | 区域 | 功能点 | 说明 |
 |------|--------|------|
 | **Auth** | 登录 / 登出 | Session Cookie，受保护路由 |
+| | 产品介绍页 `/` | 未登录展示落地页；已登录重定向 `/dashboard/usage` |
 | | API Token | Dashboard → API 密钥，最多 3 个/用户，scope：`lease` / `mail` / `send` |
 | | 无匿名 API | 未带 Bearer 时 `POST /api/lease`、`GET /api/mail` 等返回 401 |
 | **Inbox** | 新建收件箱 | 24h 临时地址 |
@@ -76,6 +77,7 @@
 | 24 | Ops · `GET /api/health` | Pass | `{"status":"ok"}` |
 | 25 | MCP · `@zmailr/mcp` | Pass | `pnpm --filter @zmailr/mcp test` — 11 工具注册、env 校验、mock fetch |
 | 26 | Ops · D1 备份脚本 | 文档就绪 | 见 [backup.md](./backup.md) |
+| 27 | 用户端 · 产品介绍页 `/` | Pass | Hero、Quickstart（curl/MCP）、收件流与 API 效果对照 |
 
 ## API 脚本验证
 

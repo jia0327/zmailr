@@ -74,6 +74,43 @@ export function mcpConfigExample(baseUrl: string): string {
 }`;
 }
 
+export function mcpQuickstart(baseUrl: string): string {
+  return `# 1. 添加到 Cursor / Claude Desktop 配置
+${mcpConfigExample(baseUrl)}
+
+# 2. 让 Claude 执行：
+# 「创建 zMailR 邮箱，等待验证邮件，返回 OTP。」`;
+}
+
+export const quickstartResponseLine =
+  '{ "code": "847291", "from": "noreply@stripe.com", "subject": "Your code" }';
+
+export const leaseResponseLine =
+  '{ "success": true, "email": "signup-k8m2@your-domain.com", "address": "signup-k8m2" }';
+
+export const quotaResponseLine =
+  '{ "dailySendQuota": 50, "sentToday": 10, "remaining": 40, "unlimited": false }';
+
+export const sendResponseLine = '{ "success": true, "sentEmailId": 42 }';
+
+export const latestCodeLine = '{ "success": true, "code": "847291" }';
+
+export const latestLinkLine =
+  '{ "success": true, "link": "https://github.com/login/verify?t=…" }';
+
+export const mailboxesListLine =
+  '{ "success": true, "mailboxes": [{ "address": "signup-k8m2", "email": "signup-k8m2@…" }] }';
+
+export const emailsListLine =
+  '{ "success": true, "emails": [{ "id": "em_abc", "subject": "Your code", "from": "noreply@stripe.com" }] }';
+
+export const emailDetailLine =
+  '{ "id": "em_abc", "subject": "Your code", "from": "noreply@stripe.com", "code": "847291" }';
+
+export const deleteSuccessLine = '{ "success": true }';
+
+export const rawEmailHint = 'Content-Type: message/rfc822 (.eml file)';
+
 export function curlSend(baseUrl: string): string {
   return `curl -X POST "${baseUrl}/api/send" \\
   -H "Authorization: Bearer YOUR_TOKEN" \\

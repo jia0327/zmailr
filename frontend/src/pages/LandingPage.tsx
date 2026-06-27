@@ -4,26 +4,29 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import SEO from '../components/SEO';
 import ThemeSwitcher from '../components/ThemeSwitcher';
-import ApiDocCodeBlock from '../components/ApiDocCodeBlock';
 import {
   curlQuickstart,
   getApiBaseUrl,
-  mailResponse,
-  mcpConfigExample,
+  mcpQuickstart,
+  quickstartResponseLine,
 } from '../utils/apiDocExamples';
+import {
+  LANDING_MCP_GROUPS,
+  LANDING_REST_API_GROUPS,
+  methodBadgeClass,
+  type ApiShowcaseGroup,
+  type ApiShowcaseItem,
+} from '../utils/landingApiShowcase';
 import { copyTextToClipboard } from '../utils/clipboard';
 
 type QuickstartTab = 'curl' | 'mcp';
 
 const WORKS_WITH = ['CI / 脚本', 'Playwright', 'Cursor', 'Claude', 'MCP', 'OpenAPI'] as const;
 
-const PRIMITIVES = [
+const FEATURES = [
   { icon: 'fas fa-envelope', titleKey: 'landing.primitiveReceiveTitle', descKey: 'landing.primitiveReceiveDesc' },
   { icon: 'fas fa-clock', titleKey: 'landing.primitivePollTitle', descKey: 'landing.primitivePollDesc' },
   { icon: 'fas fa-robot', titleKey: 'landing.primitiveAgentTitle', descKey: 'landing.primitiveAgentDesc' },
-] as const;
-
-const CONSOLE_FEATURES = [
   { icon: 'fas fa-inbox', titleKey: 'landing.consoleInbox', descKey: 'landing.consoleInboxDesc' },
   { icon: 'fas fa-paper-plane', titleKey: 'landing.consoleOutbox', descKey: 'landing.consoleOutboxDesc' },
   { icon: 'fas fa-filter', titleKey: 'landing.consoleRules', descKey: 'landing.consoleRulesDesc' },
@@ -32,18 +35,69 @@ const CONSOLE_FEATURES = [
   { icon: 'fas fa-chart-bar', titleKey: 'landing.consoleUsage', descKey: 'landing.consoleUsageDesc' },
 ] as const;
 
-const FAQ_KEYS = [
-  { q: 'landing.faqQ1', a: 'landing.faqA1' },
-  { q: 'landing.faqQ2', a: 'landing.faqA2' },
-  { q: 'landing.faqQ3', a: 'landing.faqA3' },
-  { q: 'landing.faqQ4', a: 'landing.faqA4' },
-] as const;
+const SHOWCASE_PANEL_H = 'min-h-[420px] lg:h-[440px]';
+
+const ApiShowcaseCard: React.FC<{ item: ApiShowcaseItem }> = ({ item }) => (
+  <div className="rounded-lg bg-white/5 border border-white/10 p-3">
+    <div className="flex items-start justify-between gap-3 mb-2">
+      <div className="flex flex-wrap items-center gap-2 min-w-0">
+        <span className={`px-1.5 py-0.5 rounded font-semibold shrink-0 ${methodBadgeClass(item.method)}`}>
+          {item.method}
+        </span>
+        <span className="text-[#8b949e] break-all">{item.path}</span>
+      </div>
+      <span className="text-emerald-400 font-semibold shrink-0 tabular-nums">{item.status}</span>
+    </div>
+    <p className="text-[#8b949e] break-all">{item.body}</p>
+  </div>
+);
+
+const ApiShowcaseGroupBlock: React.FC<{ group: ApiShowcaseGroup; t: (key: string) => string }> = ({
+  group,
+  t,
+}) => (
+  <div className="space-y-2">
+    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#8b949e] px-1">
+      {t(group.categoryKey)}
+    </p>
+    {group.items.map((item) => (
+      <ApiShowcaseCard key={`${item.method}-${item.path}`} item={item} />
+    ))}
+  </div>
+);
+
+const ShowcaseDescCard: React.FC<{
+  iconClass: string;
+  icon: string;
+  title: string;
+  titleClass?: string;
+  desc: string;
+  href: string;
+  linkLabel: string;
+}> = ({ iconClass, icon, title, titleClass, desc, href, linkLabel }) => (
+  <div className="rounded-xl border border-border bg-card/80 p-5 min-h-[148px] flex gap-3 items-start shrink-0">
+    <span className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${iconClass}`}>
+      <i className={`${icon} text-base`} />
+    </span>
+    <div className="min-w-0 flex-1">
+      <h3 className={`font-semibold ${titleClass ?? ''}`}>{title}</h3>
+      <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{desc}</p>
+      <a
+        href={href}
+        className="mt-2 inline-flex items-center gap-1 text-sm text-sky-600 dark:text-sky-400 hover:underline"
+      >
+        {linkLabel}
+        <i className="fas fa-arrow-right text-xs" />
+      </a>
+    </div>
+  </div>
+);
 
 const LandingPage: React.FC = () => {
   const { t } = useTranslation();
   const { isAuthenticated, isLoading } = useAuth();
   const baseUrl = useMemo(getApiBaseUrl, []);
-  const [quickstartTab, setQuickstartTab] = useState<QuickstartTab>('curl');
+  const [quickstartTab, setQuickstartTab] = useState<QuickstartTab>('mcp');
   const [copied, setCopied] = useState<string | null>(null);
 
   if (!isLoading && isAuthenticated) {
@@ -59,7 +113,7 @@ const LandingPage: React.FC = () => {
   };
 
   const quickstartCode =
-    quickstartTab === 'curl' ? curlQuickstart(baseUrl) : mcpConfigExample(baseUrl);
+    quickstartTab === 'curl' ? curlQuickstart(baseUrl) : mcpQuickstart(baseUrl);
 
   return (
     <div className="login-shell relative min-h-screen flex flex-col">
@@ -100,7 +154,6 @@ const LandingPage: React.FC = () => {
       </header>
 
       <main className="relative flex-1">
-        {/* Hero */}
         <section className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16 lg:py-20">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
             <div>
@@ -172,7 +225,6 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Quickstart */}
         <section className="border-y border-border bg-card/40">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
             <div className="max-w-2xl">
@@ -180,16 +232,16 @@ const LandingPage: React.FC = () => {
               <p className="mt-2 text-muted-foreground">{t('landing.quickstartSubtitle')}</p>
             </div>
 
-            <div className="mt-8 rounded-xl border border-border bg-card overflow-hidden">
-              <div className="flex items-center gap-1 p-2 border-b border-border bg-muted/30">
-                {(['curl', 'mcp'] as QuickstartTab[]).map((tab) => (
+            <div className="mt-8 rounded-xl border border-border bg-[#0d1117] dark:bg-[#0a0a0a] overflow-hidden shadow-lg">
+              <div className="flex items-center gap-1 p-2 border-b border-white/10 bg-white/5">
+                {(['mcp', 'curl'] as QuickstartTab[]).map((tab) => (
                   <button
                     key={tab}
                     type="button"
                     onClick={() => setQuickstartTab(tab)}
                     className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
                       quickstartTab === tab
-                        ? 'bg-background shadow-sm font-medium'
+                        ? 'bg-white/10 text-foreground font-medium'
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
@@ -200,23 +252,20 @@ const LandingPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => copyCode(quickstartCode, 'quickstart')}
-                  className="text-xs px-2 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  className="text-xs px-2 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-white/10"
                 >
                   <i className={`fas ${copied === 'quickstart' ? 'fa-check' : 'fa-copy'} mr-1`} />
                   {copied === 'quickstart' ? t('common.copied') : t('tokens.copyOneClick')}
                 </button>
               </div>
-              <div className="p-4 sm:p-6">
-                {quickstartTab === 'mcp' && (
-                  <p className="text-sm text-muted-foreground mb-4">{t('landing.quickstartMcpHint')}</p>
-                )}
-                <ApiDocCodeBlock>{quickstartCode}</ApiDocCodeBlock>
-                {quickstartTab === 'curl' && (
-                  <div className="mt-6">
-                    <p className="text-sm font-medium mb-2">{t('landing.quickstartResponse')}</p>
-                    <ApiDocCodeBlock>{mailResponse}</ApiDocCodeBlock>
-                  </div>
-                )}
+              <div className="p-4 sm:p-6 text-sm font-mono leading-relaxed text-[#e6edf3] overflow-x-auto">
+                <pre className="whitespace-pre-wrap break-words"><code>{quickstartCode}</code></pre>
+              </div>
+              <div className="border-t border-white/10 px-4 sm:px-6 py-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-mono bg-black/30">
+                <span className="text-emerald-400 font-semibold uppercase tracking-wider shrink-0">
+                  {t('landing.quickstartResponse')}
+                </span>
+                <span className="text-[#8b949e] break-all">{quickstartResponseLine}</span>
               </div>
             </div>
 
@@ -236,111 +285,135 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Primitives */}
         <section className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
-          <div className="max-w-2xl">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('landing.primitivesTitle')}</h2>
-            <p className="mt-2 text-muted-foreground">{t('landing.primitivesSubtitle')}</p>
-          </div>
-          <div className="mt-8 grid sm:grid-cols-3 gap-6">
-            {PRIMITIVES.map(({ icon, titleKey, descKey }) => (
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-10 lg:items-stretch">
+            <div className="flex flex-col gap-6 min-h-0">
               <div
-                key={titleKey}
-                className="rounded-xl border border-border p-5 bg-card hover:border-sky-300/50 dark:hover:border-sky-500/30 transition-colors"
+                className={`flex flex-col rounded-xl border border-border bg-[#0d1117] dark:bg-[#0a0a0a] overflow-hidden font-mono text-xs text-[#e6edf3] ${SHOWCASE_PANEL_H}`}
               >
-                <span className="w-10 h-10 rounded-lg bg-sky-500/15 flex items-center justify-center">
-                  <i className={`${icon} text-sky-600 dark:text-sky-400`} />
-                </span>
-                <h3 className="mt-4 font-semibold">{t(titleKey)}</h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{t(descKey)}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Console */}
-        <section className="border-y border-border bg-card/40">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
-            <div className="max-w-2xl">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('landing.consoleTitle')}</h2>
-              <p className="mt-2 text-muted-foreground">{t('landing.consoleSubtitle')}</p>
-            </div>
-            <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {CONSOLE_FEATURES.map(({ icon, titleKey, descKey }) => (
-                <div key={titleKey} className="rounded-lg border border-border p-4 bg-card">
-                  <div className="flex items-start gap-3">
-                    <span className="w-8 h-8 rounded-md bg-sky-500/10 flex items-center justify-center shrink-0">
-                      <i className={`${icon} text-sm text-sky-600 dark:text-sky-400`} />
-                    </span>
-                    <div>
-                      <h3 className="font-medium text-sm">{t(titleKey)}</h3>
-                      <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{t(descKey)}</p>
+                <div className="px-4 py-2 border-b border-white/10 bg-white/5 text-[11px] font-semibold uppercase tracking-wider text-[#8b949e] shrink-0">
+                  {t('landing.showcaseInboxFeed')}
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2 text-[11px]">
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold">
+                        {t('landing.showcaseDelivered')}
+                      </span>
+                      <span className="text-[#8b949e] tabular-nums">14:23:01</span>
+                    </div>
+                    <p className="text-[#8b949e]">
+                      {t('landing.showcaseTo')}{' '}
+                      <span className="text-[#e6edf3]">signup-k8m2@your-domain.com</span>
+                    </p>
+                    <p className="text-[#8b949e]">
+                      {t('landing.showcaseFrom')}{' '}
+                      <span className="text-[#e6edf3]">noreply@stripe.com</span>
+                    </p>
+                    <div className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 flex items-center justify-between">
+                      <span className="text-emerald-300 font-semibold">{t('landing.showcaseOtp')}</span>
+                      <span className="text-lg font-bold tracking-widest text-[#e6edf3]">847291</span>
                     </div>
                   </div>
+
+                  <div className="space-y-2 border-t border-white/10 pt-4">
+                    <div className="flex items-center justify-between gap-2 text-[11px]">
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold">
+                        {t('landing.showcaseDelivered')}
+                      </span>
+                      <span className="text-[#8b949e] tabular-nums">14:22:48</span>
+                    </div>
+                    <p className="text-[#8b949e]">
+                      {t('landing.showcaseTo')}{' '}
+                      <span className="text-[#e6edf3]">test-r4n9@your-domain.com</span>
+                    </p>
+                    <p className="text-[#8b949e]">
+                      {t('landing.showcaseFrom')}{' '}
+                      <span className="text-[#e6edf3]">team@github.com</span>
+                    </p>
+                    <div className="mt-2 rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2">
+                      <span className="text-sky-300 font-semibold">{t('landing.showcaseLink')}</span>
+                      <p className="mt-1 text-[11px] text-[#8b949e] truncate">
+                        https://github.com/login/verify?t=…
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 border-t border-white/10 pt-4">
+                    <div className="flex items-center justify-between gap-2 text-[11px]">
+                      <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold">
+                        {t('landing.showcasePending')}
+                      </span>
+                      <span className="text-[#8b949e] tabular-nums">14:22:32</span>
+                    </div>
+                    <p className="text-[#8b949e]">
+                      {t('landing.showcaseTo')}{' '}
+                      <span className="text-[#e6edf3]">wait-3f2a@your-domain.com</span>
+                    </p>
+                  </div>
                 </div>
-              ))}
+              </div>
+              <ShowcaseDescCard
+                iconClass="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                icon="fas fa-envelope"
+                title={t('landing.showcaseRealMxTitle')}
+                titleClass="text-emerald-600 dark:text-emerald-400"
+                desc={t('landing.showcaseRealMxDesc')}
+                href="/docs/"
+                linkLabel={t('landing.showcaseLearnMore')}
+              />
+            </div>
+
+            <div className="flex flex-col gap-6 min-h-0">
+              <div
+                className={`flex flex-col rounded-xl border border-border bg-[#0d1117] dark:bg-[#0a0a0a] overflow-hidden font-mono text-xs text-[#e6edf3] ${SHOWCASE_PANEL_H}`}
+              >
+                <div className="px-4 py-2 border-b border-white/10 bg-white/5 text-[11px] font-semibold uppercase tracking-wider text-[#8b949e] shrink-0">
+                  {t('landing.showcaseRestApi')} · {t('landing.showcaseMcpTools')}
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-5 min-h-0">
+                  {LANDING_REST_API_GROUPS.map((group) => (
+                    <ApiShowcaseGroupBlock key={group.categoryKey} group={group} t={t} />
+                  ))}
+                  <div className="border-t border-white/10 pt-4">
+                    {LANDING_MCP_GROUPS.map((group) => (
+                      <ApiShowcaseGroupBlock key={group.categoryKey} group={group} t={t} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <ShowcaseDescCard
+                iconClass="bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                icon="fas fa-code"
+                title={t('landing.showcaseJsonTitle')}
+                desc={t('landing.showcaseJsonDesc')}
+                href="/docs/api.html"
+                linkLabel={t('landing.showcaseReadDocs')}
+              />
             </div>
           </div>
         </section>
 
-        {/* Self-host */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
-          <div className="rounded-2xl border border-border bg-gradient-to-br from-sky-500/5 via-card to-card p-6 sm:p-10">
-            <h2 className="text-2xl font-bold tracking-tight">{t('landing.selfHostTitle')}</h2>
-            <p className="mt-3 text-muted-foreground max-w-2xl leading-relaxed">{t('landing.selfHostDesc')}</p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <a
-                href="/docs/deploy.html"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium border border-border hover:bg-muted/50 transition-colors"
-              >
-                <i className="fas fa-book text-sm" />
-                {t('landing.selfHostDeploy')}
-              </a>
-              <a
-                href="https://github.com/jia0327/zmailr"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium border border-border hover:bg-muted/50 transition-colors"
-              >
-                <i className="fab fa-github text-sm" />
-                {t('landing.selfHostGithub')}
-              </a>
-            </div>
-          </div>
-        </section>
-
-        {/* FAQ */}
         <section className="border-t border-border bg-card/40">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('landing.faqTitle')}</h2>
-            <dl className="mt-8 space-y-6 max-w-3xl">
-              {FAQ_KEYS.map(({ q, a }) => (
-                <div key={q}>
-                  <dt className="font-medium">{t(q)}</dt>
-                  <dd className="mt-2 text-sm text-muted-foreground leading-relaxed">{t(a)}</dd>
+            <div className="max-w-2xl">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('landing.featuresTitle')}</h2>
+              <p className="mt-2 text-muted-foreground">{t('landing.featuresSubtitle')}</p>
+            </div>
+            <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {FEATURES.map(({ icon, titleKey, descKey }) => (
+                <div
+                  key={titleKey}
+                  className="rounded-xl border border-border p-4 sm:p-5 bg-card hover:border-sky-300/50 dark:hover:border-sky-500/30 transition-colors"
+                >
+                  <span className="w-9 h-9 rounded-lg bg-sky-500/15 flex items-center justify-center">
+                    <i className={`${icon} text-sm text-sky-600 dark:text-sky-400`} />
+                  </span>
+                  <h3 className="mt-3 font-semibold text-sm sm:text-base">{t(titleKey)}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{t(descKey)}</p>
                 </div>
               ))}
-            </dl>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('landing.ctaTitle')}</h2>
-          <p className="mt-3 text-muted-foreground max-w-xl mx-auto">{t('landing.ctaSubtitle')}</p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-white bg-sky-600 hover:bg-sky-500 dark:bg-sky-500 dark:hover:bg-sky-400 transition-colors"
-            >
-              {t('landing.tryDemo')}
-            </Link>
-            <a
-              href="/docs/"
-              className="inline-flex items-center px-5 py-2.5 rounded-lg font-medium border border-border hover:bg-muted/50 transition-colors"
-            >
-              {t('landing.readDocs')}
-            </a>
+            </div>
           </div>
         </section>
       </main>

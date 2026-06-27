@@ -26,22 +26,25 @@ const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ variant = 'default', coll
     localStorage.setItem('vitepress-theme-appearance', theme);
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
-  };
-
-  const icon =
-    theme === 'light' ? (
-      <i className="fas fa-moon w-4 text-center shrink-0" />
-    ) : (
-      <i className="fas fa-sun w-4 text-center shrink-0" />
-    );
+  const segmentClass = (active: boolean) =>
+    `flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
+      active
+        ? 'bg-background text-foreground shadow-sm'
+        : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+    }`;
 
   if (variant === 'sidebar') {
+    const icon =
+      theme === 'light' ? (
+        <i className="fas fa-moon w-4 text-center shrink-0" />
+      ) : (
+        <i className="fas fa-sun w-4 text-center shrink-0" />
+      );
+
     return (
       <button
         type="button"
-        onClick={toggleTheme}
+        onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
         className={`flex items-center rounded-md text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors min-h-10 w-full ${
           collapsed ? 'md:justify-center md:px-2 md:py-2.5 gap-3 px-3 py-2' : 'gap-3 px-3 py-2'
         }`}
@@ -55,19 +58,32 @@ const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ variant = 'default', coll
   }
 
   return (
-    <button
-      type="button"
-      onClick={toggleTheme}
-      className="w-8 h-8 flex items-center justify-center rounded-md transition-all duration-200 hover:bg-primary/20 hover:text-primary hover:scale-110"
+    <div
+      className="inline-flex items-center rounded-lg border border-border bg-muted/30 p-0.5 shrink-0"
+      role="group"
       aria-label={t('settings.toggleTheme')}
-      title={t('settings.toggleTheme')}
     >
-      {theme === 'light' ? (
-        <i className="fas fa-moon text-base" />
-      ) : (
-        <i className="fas fa-sun text-base" />
-      )}
-    </button>
+      <button
+        type="button"
+        onClick={() => setTheme('light')}
+        className={segmentClass(theme === 'light')}
+        aria-label={t('settings.lightMode')}
+        aria-pressed={theme === 'light'}
+        title={t('settings.lightMode')}
+      >
+        <i className="fas fa-sun text-sm" aria-hidden />
+      </button>
+      <button
+        type="button"
+        onClick={() => setTheme('dark')}
+        className={segmentClass(theme === 'dark')}
+        aria-label={t('settings.darkMode')}
+        aria-pressed={theme === 'dark'}
+        title={t('settings.darkMode')}
+      >
+        <i className="fas fa-moon text-sm" aria-hidden />
+      </button>
+    </div>
   );
 };
 

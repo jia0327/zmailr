@@ -2,11 +2,22 @@
 
 <div class="zmailr-hero">
 
-开源、可自托管的 24 小时临时邮箱与 OTP 自动化平台。Web 控制台 + Bearer API + MCP，部署在 Cloudflare Workers。
+开源、可自托管的 24 小时临时邮箱与 OTP 自动化平台。Web 控制台 + Bearer API + MCP，部署在 Cloudflare Workers 边缘。
 
-**在线演示**：[zmailr.itool.eu.cc](https://zmailr.itool.eu.cc/) · 演示账号由站点管理员在后台创建
+**在线演示**：[zmailr.itool.eu.cc](https://zmailr.itool.eu.cc/)（[`/` 产品介绍页](https://zmailr.itool.eu.cc/)）· 演示账号 `guest` / `guest` · 登录 [`/login`](https://zmailr.itool.eu.cc/login)
 
 </div>
+
+## 产品介绍页
+
+未登录访问站点根路径 [`/`](https://zmailr.itool.eu.cc/) 可查看公开落地页，包含：
+
+- **Hero**：测试与 Agent 的临时邮箱；真实 MX 收验证信，24 小时自动销毁
+- **Quickstart**：`curl` / Cursor MCP 双 Tab，底部 RESPONSE 示例
+- **效果展示**：左侧收件流（OTP / 验证链接）与右侧 REST API + MCP 工具对照
+- **能力网格**：收信、发信、规则、API 密钥等 9 项能力
+
+已登录用户访问 `/` 会自动进入控制台 [`/dashboard/usage`](https://zmailr.itool.eu.cc/dashboard/usage)。
 
 ## API 速通
 
@@ -42,7 +53,7 @@ Scope 与 Session 登录 → [user-auth.md](./user-auth.md)
 | `POST` | `/api/send` | `send` | Brevo 出站发信 |
 | `GET` | `/api/user/quota` | 任意 | 日发信配额与用量 |
 
-完整端点表与 curl 示例 → [API 快速参考](./api.md)
+完整端点表与 curl 示例 → [API 快速参考](./api.md) · MCP 11 工具与 REST 一一对应 → [MCP 集成](./mcp.md)
 
 ### 租用临时邮箱
 
