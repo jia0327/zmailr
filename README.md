@@ -5,12 +5,12 @@
     <a href="https://github.com/jia0327/zmailr/stargazers"><img src="https://img.shields.io/github/stars/jia0327/zmailr?style=social" alt="GitHub stars"></a>
     <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
     <a href="https://workers.cloudflare.com/"><img src="https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white" alt="Cloudflare Workers"></a>
-    <a href="https://zmailr.itool.eu.cc/"><img src="https://img.shields.io/badge/demo-zmailr.itool.eu.cc-blue" alt="Live Demo"></a>
+    <a href="https://zmailr.onlydev.ccwu.cc/"><img src="https://img.shields.io/badge/demo-zmailr.onlydev.ccwu.cc-blue" alt="Live Demo"></a>
   </p>
 
 
   <p>
-    <a href="https://zmailr.itool.eu.cc/" target="_blank"><strong>在线体验</strong></a>
+    <a href="https://zmailr.onlydev.ccwu.cc/" target="_blank"><strong>在线体验</strong></a>
     ·
     <a href="./README.en.md">English</a>
     ·
@@ -30,7 +30,7 @@
 
 **技术栈**：Cloudflare Workers、D1、Email Routing（入站）、Brevo Transactional API（出站）、React + Vite 前端。
 
-**在线演示**：[https://zmailr.itool.eu.cc/](https://zmailr.itool.eu.cc/) · 演示账号 `guest` / `guest`
+**在线演示**：[https://zmailr.onlydev.ccwu.cc/](https://zmailr.onlydev.ccwu.cc/) · 演示账号 `guest` / `guest`
 
 ---
 
@@ -57,12 +57,12 @@
 - **`GET /api/mail`**：拉取邮件与 OTP 提取结果
 - **`POST /api/send`**：Brevo 出站发信
 - **`GET /api/user/quota`**：配额与用量查询
-- **OpenAPI**：[`/openapi.json`](https://zmailr.itool.eu.cc/openapi.json) 机器可读规范（`pnpm run build` 生成 `frontend/public/openapi.json`）
+- **OpenAPI**：[`/openapi.json`](https://zmailr.onlydev.ccwu.cc/openapi.json) 机器可读规范（`pnpm run build` 生成 `frontend/public/openapi.json`）
 - **MCP**：[`@zmailr/mcp`](https://www.npmjs.com/package/@zmailr/mcp) npm 包（`npx @zmailr/mcp`，Cursor / Claude Desktop），详见 [docs/mcp.md](docs/mcp.md)
 - **Bearer Token 认证**（`Authorization: Bearer <token>`）；**不支持匿名 API**
 - **速率限制响应头**：`x-ratelimit-limit` / `remaining` / `reset`
 
-完整 API 列表与限流说明见 [docs/api.md](docs/api.md)、部署后的 [`/api-docs`](https://zmailr.itool.eu.cc/api-docs)（含 [`/openapi.json`](https://zmailr.itool.eu.cc/openapi.json)）或 [user-auth.md](docs/user-auth.md)。
+完整 API 列表与限流说明见 [docs/api.md](docs/api.md)、部署后的 [`/api-docs`](https://zmailr.onlydev.ccwu.cc/api-docs)（含 [`/openapi.json`](https://zmailr.onlydev.ccwu.cc/openapi.json)）或 [user-auth.md](docs/user-auth.md)。
 
 ### OTP 提取规则
 
@@ -92,26 +92,32 @@
 - **Cloudflare D1**：用户、邮箱、邮件、规则、审计等持久化
 - **R2 附件**：入站附件存 `zmailr-attachments` bucket（`ATTACHMENTS` 绑定）；D1 存元数据，历史 D1 附件可回退读取
 - **依赖健康检查**：公开 `GET /api/public/status` 探测 D1/R2/Brevo，聚合 `ok` / `degraded` / `error`；**D1 备份**见 [docs/backup.md](docs/backup.md)
-- **文档站**：[`/docs/`](https://zmailr.itool.eu.cc/docs/)（VitePress）、[`/docs/api-interactive`](https://zmailr.itool.eu.cc/docs/api-interactive) 交互式 API 文档
+- **文档站**：[`/docs/`](https://zmailr.onlydev.ccwu.cc/docs/)（VitePress）、[`/api-docs`](https://zmailr.onlydev.ccwu.cc/api-docs) 交互式 API 文档
 - **Brevo 出站**：Transactional API 发信（唯一出站通道），SPF/DKIM/DMARC 见 [brevo-setup.md](docs/brevo-setup.md)
 
 ---
 
 ## 效果图
 
-以下截图来自生产环境 [zmailr.itool.eu.cc](https://zmailr.itool.eu.cc/) 的 E2E 实测（2026-06-26）。完整测试报告见 [docs/testing.md](docs/testing.md)。
+以下截图来自演示站 [zmailr.onlydev.ccwu.cc](https://zmailr.onlydev.ccwu.cc/) 的全页 E2E 截图（2026-06-28）。完整列表见 [docs/testing.md](docs/testing.md)。
 
 ### 用户端
 
-#### 登录
+#### 产品介绍
 
-![登录页 — guest 账号入口](docs/screenshots/login.png)
+![产品介绍页 — 落地页 Hero、Quickstart、收件流演示](docs/screenshots/landing.png)
+
+#### 登录与账号
+
+![登录页 — guest 账号已填写](docs/screenshots/login.png)
+
+![用户注册页](docs/screenshots/register.png)
+
+![忘记密码页](docs/screenshots/forgot-password.png)
 
 #### 仪表板
 
-<img width="1798" height="810" alt="image" src="https://github.com/user-attachments/assets/c84bd5fc-4e16-4e05-9547-6bf23681e981" />
-
-
+![仪表板用量 — Token 状态、收件/发件统计](docs/screenshots/dashboard.png)
 
 #### 收件箱
 
@@ -119,7 +125,7 @@
 
 ![新建收件箱 — 点击「新建收件箱」生成地址](docs/screenshots/inbox-new-mailbox.png)
 
-![收信与 OTP — 向下滚动至邮件列表，POST /api/send 测试邮件到达，验证码 847291 高亮](docs/screenshots/inbox-with-otp.png)
+![收信与 OTP — POST /api/send 测试邮件到达，验证码 847291 高亮](docs/screenshots/inbox-with-otp.png)
 
 ![收件箱历史 — 邮箱历史列表与分页](docs/screenshots/inbox.png)
 
@@ -135,9 +141,9 @@
 
 #### API 密钥
 
-![Token 创建 — 删除并重新创建后一次性展示明文 Bearer Token](docs/screenshots/api-keys-create.png)
+![Token 创建 — 展示明文 Bearer Token（zmr_ 前缀）](docs/screenshots/api-keys-create.png)
 
-每位用户最多 3 个 Bearer Token（zmr_ 前缀；旧版无前缀仍可用），可选 `lease` / `mail` / `send` scope，含 curl 示例。
+每位用户最多 3 个 Bearer Token（`zmr_` 前缀；旧版无前缀仍可用），可选 `lease` / `mail` / `send` scope，含 curl 示例。
 
 #### API 调试
 
@@ -147,15 +153,21 @@
 
 #### 提取规则
 
-![自定义提取规则 — 按域名 zmailr.itool.eu.cc 配置 OTP 正则](docs/screenshots/extract-rules-custom.png)
+![自定义提取规则 — 按域名配置 OTP 正则](docs/screenshots/extract-rules-custom.png)
 
 系统内置规则（只读）与用户自定义规则（按域名优先级匹配）。
 
 #### 文档站
 
-![文档首页 — VitePress 文档站 `/docs/`](docs/screenshots/docs-home.png)
+![文档首页 — VitePress `/docs/`](docs/screenshots/docs-home.png)
 
-![交互式 API 文档 — `/docs/api-interactive`](docs/screenshots/api-interactive.png)
+![文档产品概述](docs/screenshots/docs-overview.png)
+
+![文档 5 分钟体验](docs/screenshots/docs-quickstart.png)
+
+![文档 MCP 接入](docs/screenshots/docs-mcp.png)
+
+![交互式 API 文档 — `/api-docs`](docs/screenshots/api-interactive.png)
 
 ---
 
@@ -165,17 +177,17 @@
 
 #### 登录
 
-![管理后台登录](docs/screenshots/admin-login.png)
+![管理后台登录 — 密码已填写](docs/screenshots/admin-login.png)
 
 #### 仪表盘
 
-<img width="1542" height="791" alt="image" src="https://github.com/user-attachments/assets/6cf7513d-77e5-4ad7-b6ce-2b25d5fb4c5f" />
+![管理后台仪表盘 — 系统健康、运营统计、Brevo](docs/screenshots/admin-dashboard.png)
 
 #### 公告
 
-![创建公告 — 新增 E2E 测试公告表单（标题/内容/启用）](docs/screenshots/admin-announcement-create.png)
+![创建公告 — 新增公告表单（标题/内容/启用）](docs/screenshots/admin-announcement-create.png)
 
-![公告列表 — 「测试」公告启用，已读 1 人](docs/screenshots/admin-announcements-list.png)
+![公告列表](docs/screenshots/admin-announcements-list.png)
 
 #### 用户管理
 
@@ -190,12 +202,16 @@
 全局内置规则与所有用户自定义规则汇总。
 
 #### 请求监控
-![管理后台请求监控 — 近 7 日趋势、状态码分布、429 Top IP/用户]<img width="1545" height="836" alt="image" src="https://github.com/user-attachments/assets/ff03d0bd-e17f-40c8-bd49-37091ffd1643" />
 
+![管理后台请求监控 — 近 7 日趋势、状态码分布、429 Top IP/用户](docs/screenshots/admin-request-monitor.png)
+
+#### 邮箱域名
+
+![管理后台域名管理 — 多域名启用与 Brevo / Cloudflare 确认](docs/screenshots/admin-domains.png)
 
 #### 系统设置
 
-![管理后台系统设置](docs/screenshots/admin-settings.png)
+![管理后台系统设置 — 维护模式与 Turnstile 开关](docs/screenshots/admin-settings.png)
 
 维护模式：可选阻断 lease、发信、创建邮箱等 API。
 

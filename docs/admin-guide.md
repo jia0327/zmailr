@@ -30,8 +30,14 @@ zMailR 管理后台用于运维与用户治理，**不在前端 bundle 中暴露
 | **提取规则** | 全局规则 + 汇总所有用户自定义规则 |
 | **请求监控** | 近 7 日折线趋势、今日状态码分布、429 Top IP / 用户 |
 | **域名** | 多邮箱域名管理：添加 / 启用 / 禁用 / 设默认；须先完成 Cloudflare Email Routing 与 Brevo 域名认证 |
-| **系统设置** | **维护模式**（可选阻断 lease / 发信 / 创建邮箱） |
+| **系统设置** | **维护模式**（可选阻断 lease / 发信 / 创建邮箱）；**Turnstile** 人机验证开关与密钥 |
 | **审计日志** | 管理员与用户关键操作记录，按日期筛选 |
+
+![管理后台仪表盘](./screenshots/admin-dashboard.png)
+
+![管理后台域名管理](./screenshots/admin-domains.png)
+
+![管理后台系统设置](./screenshots/admin-settings.png)
 
 程序化 API 请使用 Dashboard → **API 密钥**（用户 Bearer Token + scope + 日配额）。详见 [user-auth.md](./user-auth.md)。
 

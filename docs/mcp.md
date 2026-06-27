@@ -74,6 +74,10 @@ JSON 结构与 Cursor 相同。修改后 **重启 Cursor / Claude Desktop**。
 
 ![交互式 API 文档](./screenshots/api-interactive.png)
 
+MCP 文档页截图：
+
+![MCP 文档](./screenshots/docs-mcp.png)
+
 在线文档：<SiteLink to="/api-docs">/api-docs</SiteLink>
 
 ---

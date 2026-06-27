@@ -16,6 +16,8 @@
 未注册也可体验：<SiteLink to="/login">登录页</SiteLink> 使用 `guest` / `guest`。
 :::
 
+![产品介绍页](./screenshots/landing.png)
+
 ---
 
 ## 核心能力

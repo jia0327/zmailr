@@ -13,7 +13,7 @@
 
 ## 步骤 1：登录控制台
 
-1. 打开 <SiteLink to="/login">登录页</SiteLink>
+1. 打开 <SiteLink to="/login">登录页</SiteLink>（未登录时可从 <SiteLink to="/">首页</SiteLink> 进入）
 2. 输入用户名 `guest`、密码 `guest`
 3. 点击 **登录**
 
