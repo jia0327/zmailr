@@ -12,6 +12,8 @@ interface Mailbox {
   expiresAt: number;
   lastAccessed: number;
   ipAddress?: string;
+  mailDomain?: string | null;
+  email?: string;
 }
 
 interface Email {

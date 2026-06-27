@@ -112,13 +112,33 @@ export const deleteUserSentEmails = async (params: { ids?: number[]; all?: boole
   }
 };
 
-export const createUserMailbox = async (address?: string) => {
+export const createUserMailbox = async (address?: string, domain?: string) => {
   try {
+    const body: { address?: string; domain?: string } = {};
+    if (address) body.address = address;
+    if (domain) body.domain = domain;
     const response = await fetch(apiUrl('/api/user/mailboxes'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify(address ? { address } : {}),
+      body: JSON.stringify(body),
+    });
+    const data = await response.json();
+    if (data.success) return { success: true as const, mailbox: data.mailbox };
+    return { success: false as const, error: data.error };
+  } catch {
+    return { success: false as const, error: 'Network error' };
+  }
+};
+
+export const updateUserMailboxDomain = async (address: string, domain: string) => {
+  try {
+    const localPart = address.includes('@') ? address.split('@')[0] : address;
+    const response = await fetch(apiUrl(`/api/user/mailboxes/${encodeURIComponent(localPart)}/domain`), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ domain }),
     });
     const data = await response.json();
     if (data.success) return { success: true as const, mailbox: data.mailbox };

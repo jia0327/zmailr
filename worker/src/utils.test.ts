@@ -5,7 +5,10 @@ import {
   TOKEN_LAST_USED_TOUCH_INTERVAL_SEC,
   validateExtractRuleInput,
   validateSendFromAddress,
+  validateMailDomainHostname,
   extractMailboxName,
+  extractEmailDomain,
+  buildMailboxEmail,
   generateApiToken,
   API_TOKEN_PREFIX,
 } from './utils';
@@ -63,6 +66,19 @@ describe('validateExtractRuleInput', () => {
   });
 });
 
+describe('validateMailDomainHostname', () => {
+  it('accepts valid root domain', () => {
+    const result = validateMailDomainHostname('mail.example.com');
+    assert.equal(result.ok, true);
+    if (result.ok) assert.equal(result.domain, 'mail.example.com');
+  });
+
+  it('rejects domain with @', () => {
+    const result = validateMailDomainHostname('user@example.com');
+    assert.equal(result.ok, false);
+  });
+});
+
 describe('validateSendFromAddress', () => {
   it('accepts a valid mailbox on the configured domain', () => {
     const result = validateSendFromAddress('abc123@itool.eu.cc', 'itool.eu.cc');
@@ -71,6 +87,12 @@ describe('validateSendFromAddress', () => {
       assert.equal(result.localPart, 'abc123');
       assert.equal(result.fromEmail, 'abc123@itool.eu.cc');
     }
+  });
+
+  it('accepts any domain in allowed list', () => {
+    const result = validateSendFromAddress('abc@onlyme.qzz.io', ['itool.eu.cc', 'onlyme.qzz.io']);
+    assert.equal(result.ok, true);
+    if (result.ok) assert.equal(result.fromEmail, 'abc@onlyme.qzz.io');
   });
 
   it('rejects addresses on other domains', () => {
@@ -92,6 +114,18 @@ describe('validateSendFromAddress', () => {
     if (result.ok) {
       assert.equal(result.fromEmail, 'abc123@itool.eu.cc');
     }
+  });
+});
+
+describe('extractEmailDomain', () => {
+  it('returns lowercase domain from email', () => {
+    assert.equal(extractEmailDomain('user@OnlyMe.Qzz.io'), 'onlyme.qzz.io');
+  });
+});
+
+describe('buildMailboxEmail', () => {
+  it('joins local part and domain', () => {
+    assert.equal(buildMailboxEmail('abc', 'example.com'), 'abc@example.com');
   });
 });
 

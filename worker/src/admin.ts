@@ -97,6 +97,7 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
     <div class="tab" data-tab="announcements" onclick="switchTab('announcements')">公告</div>
     <div class="tab" data-tab="rules" onclick="switchTab('rules')">提取规则</div>
     <div class="tab" data-tab="ratelimit" onclick="switchTab('ratelimit')">请求监控</div>
+    <div class="tab" data-tab="domains" onclick="switchTab('domains')">域名</div>
     <div class="tab" data-tab="settings" onclick="switchTab('settings')">系统设置</div>
     <div class="tab" data-tab="audit" onclick="switchTab('audit')">审计日志</div>
   </div>
@@ -191,6 +192,22 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
     </div>
     <p class="hint">请求统计保留 7 天（D1 api_request_stats）；429 明细保留 7 天（rate_limit_hits）。每小时 Cron 清理过期数据。</p>
   </div>
+  <div id="panel-domains" class="panel">
+    <div id="domainPrereqBanner" class="banner-warn">
+      <strong>添加域名前请完成以下配置：</strong>
+      <ol style="margin:8px 0 0 18px;line-height:1.6">
+        <li>在 <strong>Cloudflare</strong> 将该域名接入本账户，启用 <strong>Email Routing</strong>，并将 Catch-all 指向本 zMailR Worker（详见部署文档）。</li>
+        <li>在 <strong>Brevo</strong> 完成该域名的发信认证（SPF / DKIM / DMARC），并确保 Worker 已配置 <code>BREVO_API_KEY</code>。</li>
+      </ol>
+      <p style="margin-top:8px">两项均完成后，方可勾选确认并添加域名。禁用域名后，前端将不再展示该域名，发信 API 也会拒绝该域名地址。</p>
+    </div>
+    <div class="toolbar">
+      <button class="btn" onclick="showDomainModal()">添加域名</button>
+      <button class="btn btn-sm" onclick="loadDomains()">刷新</button>
+      <span id="domainBrevoHint" class="hint"></span>
+    </div>
+    <table><thead><tr><th>ID</th><th>域名</th><th>默认</th><th>Cloudflare</th><th>Brevo</th><th>状态</th><th>操作</th></tr></thead><tbody id="domainsBody"></tbody></table>
+  </div>
   <div id="panel-settings" class="panel">
     <h3 class="section-title">维护模式</h3>
     <p class="section-desc">开启后按下方选项阻断对应 API，用户端显示维护横幅</p>
@@ -209,6 +226,22 @@ td code{font-size:.75rem;background:#0f172a;padding:2px 6px;border-radius:4px;wo
     </div>
     <table><thead><tr><th>时间</th><th>操作者</th><th>动作</th><th>详情</th><th>IP</th></tr></thead><tbody id="auditBody"></tbody></table>
     <div class="pagination" id="auditPagination"></div>
+  </div>
+</div>
+<div id="domainModal" class="modal">
+  <div class="modal-box" style="max-width:520px">
+    <h3 id="domainModalTitle">添加域名</h3>
+    <div class="banner-warn" style="margin-bottom:16px;font-size:.8125rem">
+      请确认已在 Cloudflare 配置 Email Routing 指向 zMailR，且已在 Brevo 完成域名发信认证。
+    </div>
+    <div class="form-group"><label>根域名</label><input id="domainName" placeholder="example.com"></div>
+    <div class="form-group"><label><input type="checkbox" id="domainCfReady"> 已在 Cloudflare 接入该域名并配置 Email Routing → zMailR Worker</label></div>
+    <div class="form-group"><label><input type="checkbox" id="domainBrevoReady"> 已在 Brevo 完成该域名发信认证（SPF/DKIM/DMARC）</label></div>
+    <div class="form-group"><label><input type="checkbox" id="domainSetDefault"> 设为默认域名（租用邮箱、未指定 from 时使用）</label></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="hideModal('domainModal')">取消</button>
+      <button class="btn" onclick="saveDomain()">添加</button>
+    </div>
   </div>
 </div>
 <div id="announcementModal" class="modal">
@@ -264,7 +297,7 @@ function showLogin(){document.getElementById('loginView').style.display='flex';d
 function showApp(){document.getElementById('loginView').style.display='none';document.getElementById('appView').style.display='block'}
 async function doLogin(){const pw=document.getElementById('passwordInput').value;const err=document.getElementById('loginError');err.style.display='none';try{const r=await fetch('${loginPath}',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({password:pw})});const d=await r.json();if(!d.success){err.textContent=d.error||'登录失败';err.style.display='block';return}showApp();loadAll()}catch(e){err.textContent='网络错误';err.style.display='block'}}
 async function doLogout(){await fetch('${logoutPath}',{method:'POST',credentials:'include'});showLogin()}
-function switchTab(name){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+name));if(name==='users')loadUsers();if(name==='announcements')loadAnnouncements();if(name==='rules')loadRules();if(name==='ratelimit')loadRateLimitStats();if(name==='settings')loadMaintenance();if(name==='audit')loadAuditLogs(1)}
+function switchTab(name){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+name));if(name==='users')loadUsers();if(name==='domains')loadDomains();if(name==='announcements')loadAnnouncements();if(name==='rules')loadRules();if(name==='ratelimit')loadRateLimitStats();if(name==='settings')loadMaintenance();if(name==='audit')loadAuditLogs(1)}
 function hideModal(id){document.getElementById(id).classList.remove('show')}
 function showModal(id){document.getElementById(id).classList.add('show')}
 function fmtTime(ts){if(!ts)return'-';const d=new Date(ts>1e12?ts:ts*1000);return d.toLocaleString('zh-CN')}
@@ -314,6 +347,13 @@ function showAnnouncementModal(){document.getElementById('announcementModalTitle
 function editAnnouncement(id){const a=(window._announcements||[]).find(x=>x.id===id);if(!a)return;document.getElementById('announcementModalTitle').textContent='编辑公告';document.getElementById('announcementId').value=a.id;document.getElementById('announcementTitle').value=a.title;document.getElementById('announcementContent').value=a.content;document.getElementById('announcementEnabled').value=a.enabled?'1':'0';showModal('announcementModal')}
 async function saveAnnouncement(){const id=document.getElementById('announcementId').value;const title=document.getElementById('announcementTitle').value.trim();const content=document.getElementById('announcementContent').value.trim();if(!title||!content){alert('标题和内容必填');return}const body={title,content,enabled:document.getElementById('announcementEnabled').value==='1'};if(id){await api('/announcements/'+id,{method:'PUT',body:JSON.stringify(body)})}else{await api('/announcements',{method:'POST',body:JSON.stringify(body)})}hideModal('announcementModal');loadAnnouncements()}
 async function deleteAnnouncement(id){if(!confirm('确定删除此公告？'))return;await api('/announcements/'+id,{method:'DELETE'});loadAnnouncements()}
+async function loadDomains(){const d=await api('/domains');window._domains=d.domains||[];window._brevoConfigured=!!d.brevoConfigured;const hint=document.getElementById('domainBrevoHint');if(d.brevoConfigured){hint.textContent='BREVO_API_KEY 已配置';hint.style.color='#86efac'}else{hint.textContent='⚠ 未配置 BREVO_API_KEY，无法添加新域名';hint.style.color='#fcd34d'}const b=document.getElementById('domainsBody');if(!window._domains.length){b.innerHTML='<tr><td colspan="7" class="empty">暂无域名，请从环境变量导入或手动添加</td></tr>';return}b.innerHTML=window._domains.map(dom=>'<tr><td>'+dom.id+'</td><td><code>'+dom.domain+'</code></td><td>'+(dom.isDefault?'<span class="badge badge-ok">默认</span>':'<button class="btn btn-sm" onclick="setDefaultDomain('+dom.id+')">设为默认</button>')+'</td><td><span class="badge '+(dom.cloudflareReady?'badge-ok':'badge-warn')+'">'+(dom.cloudflareReady?'已确认':'未确认')+'</span></td><td><span class="badge '+(dom.brevoVerified?'badge-ok':'badge-warn')+'">'+(dom.brevoVerified?'已认证':'未认证')+'</span></td><td><span class="badge '+(dom.enabled?'badge-ok':'badge-off')+'">'+(dom.enabled?'启用':'禁用')+'</span></td><td>'+(!dom.cloudflareReady||!dom.brevoVerified?'<button class="btn btn-sm" onclick="confirmDomainReady('+dom.id+')">确认已配置</button> ':'')+(dom.enabled?'<button class="btn btn-sm" onclick="toggleDomainEnabled('+dom.id+',false)">禁用</button>':'<button class="btn btn-sm" onclick="toggleDomainEnabled('+dom.id+',true)">启用</button>')+' <button class="btn btn-danger btn-sm" onclick="deleteDomain('+dom.id+')">删除</button></td></tr>').join('')}
+function showDomainModal(){if(!window._brevoConfigured){alert('请先在 Worker 环境变量中配置 BREVO_API_KEY');return}document.getElementById('domainName').value='';document.getElementById('domainCfReady').checked=false;document.getElementById('domainBrevoReady').checked=false;document.getElementById('domainSetDefault').checked=false;showModal('domainModal')}
+async function saveDomain(){const domain=document.getElementById('domainName').value.trim();const cloudflareReady=document.getElementById('domainCfReady').checked;const brevoVerified=document.getElementById('domainBrevoReady').checked;const isDefault=document.getElementById('domainSetDefault').checked;if(!domain){alert('请填写域名');return}if(!cloudflareReady||!brevoVerified){alert('请先完成 Cloudflare 与 Brevo 配置，并勾选两项确认');return}const r=await api('/domains',{method:'POST',body:JSON.stringify({domain,cloudflareReady,brevoVerified,isDefault})});if(!r.success){alert(r.error||'添加失败');return}hideModal('domainModal');loadDomains()}
+async function toggleDomainEnabled(id,enabled){const dom=(window._domains||[]).find(x=>x.id===id);if(enabled&&dom&&(!dom.cloudflareReady||!dom.brevoVerified)){alert('请先点击「确认已配置」，或删除后重新添加并勾选 Cloudflare / Brevo 确认项');return}const r=await api('/domains/'+id,{method:'PUT',body:JSON.stringify({enabled})});if(!r.success){alert(r.error||'更新失败');return}loadDomains()}
+async function confirmDomainReady(id){const dom=(window._domains||[]).find(x=>x.id===id);if(!dom)return;if(!window._brevoConfigured){alert('请先在 Worker 环境变量中配置 BREVO_API_KEY');return}if(!confirm('确认域名 '+dom.domain+' 已在 Cloudflare 配置 Email Routing 指向 zMailR，且已在 Brevo 完成发信认证？'))return;const r=await api('/domains/'+id,{method:'PUT',body:JSON.stringify({cloudflareReady:true,brevoVerified:true})});if(!r.success){alert(r.error||'更新失败');return}loadDomains()}
+async function setDefaultDomain(id){const r=await api('/domains/'+id,{method:'PUT',body:JSON.stringify({isDefault:true,enabled:true})});if(!r.success){alert(r.error||'设置失败');return}loadDomains()}
+async function deleteDomain(id){const dom=(window._domains||[]).find(x=>x.id===id);if(!confirm('确定删除域名 '+(dom?dom.domain:id)+' ？'))return;const r=await api('/domains/'+id,{method:'DELETE'});if(!r.success){alert(r.error||'删除失败');return}loadDomains()}
 async function loadRules(){const d=await api('/rules');const b=document.getElementById('rulesBody');const ub=document.getElementById('userRulesBody');if(!d.rules.length){b.innerHTML='<tr><td colspan="7" class="empty">暂无全局规则</td></tr>'}else{b.innerHTML=d.rules.map(r=>'<tr><td>'+r.id+'</td><td>'+r.domain+'</td><td><code>'+r.regex+'</code></td><td>'+r.priority+'</td><td><span class="badge '+(r.enabled?'badge-ok':'badge-off')+'">'+(r.enabled?'启用':'禁用')+'</span></td><td>'+(r.remark||'-')+'</td><td><button class="btn btn-sm" onclick="editRule('+r.id+')">编辑</button> <button class="btn btn-danger btn-sm" onclick="deleteRule('+r.id+')">删除</button></td></tr>').join('')};window._rules=d.rules;if(!d.userRules||!d.userRules.length){ub.innerHTML='<tr><td colspan="8" class="empty">暂无用户规则</td></tr>'}else{ub.innerHTML=d.userRules.map(r=>'<tr><td>'+r.id+'</td><td>'+r.username+'</td><td>'+r.domain+'</td><td><code>'+r.regex+'</code></td><td>'+r.priority+'</td><td><span class="badge '+(r.enabled?'badge-ok':'badge-off')+'">'+(r.enabled?'启用':'禁用')+'</span></td><td>'+(r.remark||'-')+'</td><td><button class="btn btn-danger btn-sm" onclick="deleteUserRule('+r.id+')">删除</button></td></tr>').join('')}}
 function showRuleModal(){document.getElementById('ruleModalTitle').textContent='新增规则';document.getElementById('ruleId').value='';document.getElementById('ruleDomain').value='*';document.getElementById('ruleRegex').value='';document.getElementById('rulePriority').value='0';document.getElementById('ruleRemark').value='';document.getElementById('ruleEnabled').value='1';showModal('ruleModal')}
 function editRule(id){const r=(window._rules||[]).find(x=>x.id===id);if(!r)return;document.getElementById('ruleModalTitle').textContent='编辑规则';document.getElementById('ruleId').value=r.id;document.getElementById('ruleDomain').value=r.domain;document.getElementById('ruleRegex').value=r.regex;document.getElementById('rulePriority').value=r.priority;document.getElementById('ruleRemark').value=r.remark||'';document.getElementById('ruleEnabled').value=r.enabled?'1':'0';showModal('ruleModal')}

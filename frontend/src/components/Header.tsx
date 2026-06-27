@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import HeaderMailbox from './HeaderMailbox';
 import ComposeModal from './ComposeModal';
 import Container from './Container';
-import { getEmailDomains, getDefaultEmailDomain, EMAIL_DOMAINS, DEFAULT_EMAIL_DOMAIN } from '../config';
+import { getEmailDomains, getDefaultEmailDomain, EMAIL_DOMAINS, DEFAULT_EMAIL_DOMAIN, formatMailboxEmail } from '../config';
 import ThemeSwitcher from './ThemeSwitcher';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -129,7 +129,7 @@ const Header: React.FC<HeaderProps> = ({
       <ComposeModal
         isOpen={composeOpen && isAuthenticated}
         onClose={() => setComposeOpen(false)}
-        defaultFrom={mailbox ? `${mailbox.address}@${defaultDomain}` : undefined}
+        defaultFrom={mailbox ? formatMailboxEmail(mailbox, defaultDomain) : undefined}
         onSent={refresh}
       />
     </header>

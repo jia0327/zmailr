@@ -1,6 +1,10 @@
 import { D1Database } from '@cloudflare/workers-types';
 import { Env, SendAttachment } from './types';
-import { getMailDomain } from './utils';
+import {
+  assertEnabledMailDomain,
+  resolveDefaultMailDomain,
+} from './mail-domains';
+import { extractEmailDomain, extractMailboxName } from './utils';
 import { saveSentEmail } from './database';
 
 export interface SendMailPayload {
@@ -117,76 +121,38 @@ async function sendViaBrevo(
   return { ok: true };
 }
 
-async function sendViaMailChannels(
-  apiKey: string,
-  domain: string,
-  fromEmail: string,
-  senderName: string,
-  data: SendMailPayload
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (data.attachments && data.attachments.length > 0) {
-    return { ok: false, error: 'MailChannels 不支持附件，请配置 BREVO_API_KEY' };
-  }
-
-  const content: Array<{ type: string; value: string }> = [];
-  if (data.text) {
-    content.push({ type: 'text/plain', value: data.text });
-  }
-  if (data.html) {
-    content.push({ type: 'text/html', value: data.html });
-  }
-  if (content.length === 0) {
-    content.push({ type: 'text/plain', value: '' });
-  }
-
-  const response = await fetch('https://api.mailchannels.net/tx/v1/send', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Api-Key': apiKey,
-      'X-MailChannels-Custom-Sender-Domain': domain,
-    },
-    body: JSON.stringify({
-      personalizations: [{ to: [{ email: data.to }] }],
-      from: { email: fromEmail, name: senderName },
-      subject: data.subject,
-      content,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    return { ok: false, error: `MailChannels error: ${response.status} ${errorText}` };
-  }
-  return { ok: true };
-}
-
 /**
- * 发送邮件：优先 Brevo，未配置时回退 MailChannels
+ * 通过 Brevo 发送邮件。
+ * 发件域名取自 from 地址中的域名，并在已启用域名列表中校验。
  */
 export async function sendMail(
   db: D1Database,
   env: Env,
   data: SendMailPayload
 ): Promise<SendMailResult> {
-  const domain = getMailDomain(env);
-  const fromEmail = data.from ?? `no-reply@${domain}`;
-  const senderName = data.from ? fromEmail.split('@')[0] : SENDER_NAME;
+  const defaultDomain = await resolveDefaultMailDomain(db, env);
+  const fromEmail = data.from ?? `no-reply@${defaultDomain}`;
+  const sendDomain = extractEmailDomain(fromEmail);
+  const domainCheck = await assertEnabledMailDomain(db, env, sendDomain);
+  if (!domainCheck.ok) {
+    const error = domainCheck.error;
+    await saveSentEmail(db, buildSaveParams(data, fromEmail, 'failed', error));
+    return { success: false, error };
+  }
+
+  const localPart = extractMailboxName(fromEmail);
+  const senderName = data.from && localPart !== 'no-reply' ? localPart : SENDER_NAME;
 
   const brevoKey = env.BREVO_API_KEY;
-  const mailchannelsKey = env.MAILCHANNELS_API_KEY;
-
-  if (!brevoKey && !mailchannelsKey) {
-    const error = 'BREVO_API_KEY or MAILCHANNELS_API_KEY must be configured';
+  if (!brevoKey) {
+    const error = '未配置 BREVO_API_KEY';
     console.error(error);
     await saveSentEmail(db, buildSaveParams(data, fromEmail, 'failed', error));
     return { success: false, error };
   }
 
   try {
-    const result = brevoKey
-      ? await sendViaBrevo(brevoKey, fromEmail, senderName, data)
-      : await sendViaMailChannels(mailchannelsKey!, domain, fromEmail, senderName, data);
+    const result = await sendViaBrevo(brevoKey, fromEmail, senderName, data);
 
     if (!result.ok) {
       console.error('发信失败:', result.error);

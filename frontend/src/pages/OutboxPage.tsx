@@ -8,7 +8,7 @@ import { MailboxContext } from '../contexts/MailboxContext';
 import ListPagination, { HISTORY_PAGE_SIZE } from '../components/ListPagination';
 import SentEmailDetailModal from '../components/SentEmailDetailModal';
 import { getUserSentEmails, deleteUserSentEmails, SentEmailItem } from '../utils/api';
-import { getDefaultEmailDomain, DEFAULT_EMAIL_DOMAIN } from '../config';
+import { getDefaultEmailDomain, DEFAULT_EMAIL_DOMAIN, formatMailboxEmail } from '../config';
 
 const OutboxPage: React.FC = () => {
   const { t } = useTranslation();
@@ -72,7 +72,7 @@ const OutboxPage: React.FC = () => {
       : String(remaining);
 
   const defaultFrom = mailbox
-    ? `${mailbox.address.includes('@') ? mailbox.address.split('@')[0] : mailbox.address}@${defaultDomain}`
+    ? formatMailboxEmail(mailbox, defaultDomain)
     : undefined;
 
   const fmtTime = (ts: number) =>

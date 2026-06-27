@@ -41,6 +41,14 @@ export async function getDefaultEmailDomain(): Promise<string> {
 export const EMAIL_DOMAINS = (import.meta.env.VITE_EMAIL_DOMAIN || '').split(',').map(domain => domain.trim()).filter(domain => domain) || ['example.com'];
 export const DEFAULT_EMAIL_DOMAIN = EMAIL_DOMAINS[0] || 'example.com';
 
+/** 根据邮箱记录与回退域名拼出完整地址 */
+export function formatMailboxEmail(mailbox: Mailbox, fallbackDomain: string = DEFAULT_EMAIL_DOMAIN): string {
+  if (mailbox.email) return mailbox.email;
+  const localPart = mailbox.address.includes('@') ? mailbox.address.split('@')[0] : mailbox.address;
+  const domain = mailbox.mailDomain || fallbackDomain;
+  return `${localPart}@${domain}`;
+}
+
 // API地址配置
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 

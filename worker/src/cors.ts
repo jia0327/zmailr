@@ -36,11 +36,20 @@ function originsFromEnvList(raw: string | undefined): string[] {
   return parseDomainList(raw);
 }
 
-export function resolveAllowedCorsOrigins(env: Pick<Env, 'MAIL_DOMAIN' | 'VITE_EMAIL_DOMAIN' | 'CORS_ALLOWED_ORIGINS'>): Set<string> {
+export function resolveAllowedCorsOrigins(
+  env: Pick<Env, 'MAIL_DOMAIN' | 'VITE_EMAIL_DOMAIN' | 'CORS_ALLOWED_ORIGINS'>,
+  extraDomains?: string[]
+): Set<string> {
+  const extraOrigins: string[] = [];
+  for (const domain of extraDomains ?? []) {
+    extraOrigins.push(`https://${domain}`);
+    extraOrigins.push(`http://${domain}`);
+  }
   return new Set([
     ...LOCAL_DEV_ORIGINS,
     ...originsFromMailDomains(env),
     ...originsFromEnvList(env.CORS_ALLOWED_ORIGINS),
+    ...extraOrigins,
   ]);
 }
 
@@ -50,9 +59,10 @@ export function resolveAllowedCorsOrigins(env: Pick<Env, 'MAIL_DOMAIN' | 'VITE_E
  */
 export function matchCorsOrigin(
   origin: string | undefined,
-  env: Pick<Env, 'MAIL_DOMAIN' | 'VITE_EMAIL_DOMAIN' | 'CORS_ALLOWED_ORIGINS'>
+  env: Pick<Env, 'MAIL_DOMAIN' | 'VITE_EMAIL_DOMAIN' | 'CORS_ALLOWED_ORIGINS'>,
+  extraDomains?: string[]
 ): string | null {
   if (!origin) return null;
-  const allowed = resolveAllowedCorsOrigins(env);
+  const allowed = resolveAllowedCorsOrigins(env, extraDomains);
   return allowed.has(origin) ? origin : null;
 }

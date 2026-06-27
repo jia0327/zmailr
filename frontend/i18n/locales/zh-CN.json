@@ -694,7 +694,7 @@
       "badRequest": "缺少或无效的请求参数。",
       "notFound": "邮箱不存在或已过期。",
       "timeout": "在超时时间内未收到匹配的邮件。",
-      "sendFailed": "发信失败（Brevo / MailChannels）。",
+      "sendFailed": "发信失败（Brevo）。",
       "rateLimit": "超出速率限制（请查看 X-RateLimit-* 响应头）。"
     },
     "param": "参数",
@@ -777,7 +777,7 @@
     "networkError": "网络错误 — 请检查连接或 CORS",
     "networkTimeout": "请求超时",
     "error401": "未授权 — Bearer Token 无效或缺失",
-    "error502": "发信失败（Brevo / MailChannels）",
+    "error502": "发信失败（Brevo）",
     "supportedEndpoints": "支持的接口",
     "categories": {
       "account": "账户",

@@ -11,7 +11,7 @@ import {
 } from './database';
 import { verifyPassword } from './crypto';
 import { adminPathPrefix } from './admin-path';
-import { validateSendFromAddress } from './utils';
+import { validateSendFromAddress, extractEmailDomain } from './utils';
 
 const ADMIN_SESSION_COOKIE = 'zmail_admin_session';
 const USER_SESSION_COOKIE = 'zmail_user_session';
@@ -204,7 +204,7 @@ export type SendFromAuthMode = 'user' | 'legacy';
 export async function resolveSendFromAddress(
   db: D1Database,
   from: string | undefined,
-  mailDomain: string,
+  allowedDomains: string | string[],
   mode: SendFromAuthMode,
   userId?: number | null
 ): Promise<{ ok: true; fromEmail?: string } | { ok: false; error: string }> {
@@ -212,7 +212,7 @@ export async function resolveSendFromAddress(
     return { ok: true };
   }
 
-  const validated = validateSendFromAddress(String(from), mailDomain);
+  const validated = validateSendFromAddress(String(from), allowedDomains);
   if (!validated.ok) {
     return validated;
   }
@@ -232,6 +232,13 @@ export async function resolveSendFromAddress(
     }
   } else if (mode !== 'legacy') {
     return { ok: false, error: '无权使用该发件地址' };
+  }
+
+  if (mailbox.mailDomain) {
+    const fromDomain = extractEmailDomain(validated.fromEmail);
+    if (fromDomain !== mailbox.mailDomain.toLowerCase()) {
+      return { ok: false, error: '发件域名须与邮箱绑定的域名一致' };
+    }
   }
 
   return { ok: true, fromEmail: validated.fromEmail };

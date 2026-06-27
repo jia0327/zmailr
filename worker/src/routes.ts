@@ -8,6 +8,7 @@ import {
   getMailboxRawById,
   deleteMailbox,
   reactivateMailbox,
+  updateMailboxMailDomain,
   getEmails, 
   getEmail, 
   deleteEmail,
@@ -50,7 +51,7 @@ import {
   writeAuditLog,
   getLegacySendDailyQuota,
 } from './database';
-import { generateRandomAddress, getMailDomain, parseMailboxAddress, getCurrentTimestamp, validateExtractRuleInput, isValidEmailAddress } from './utils';
+import { generateRandomAddress, parseMailboxAddress, getCurrentTimestamp, validateExtractRuleInput, isValidEmailAddress } from './utils';
 import { reExtractSingleEmail, scheduleReExtractAfterRuleChange } from './re-extract';
 import {
   authenticateApiToken,
@@ -67,6 +68,7 @@ import { sendMail, validateSendAttachments } from './sender';
 import { extractLink } from './extractor';
 import { isAdminRequest, isLegacyAdminRequest, stripAdminPrefix } from './admin-path';
 import { createAdminApp } from './admin-routes';
+import { resolveDefaultMailDomain, resolveEnabledMailDomainNames, assertEnabledMailDomain, formatMailboxEmail } from './mail-domains';
 import {
   consumeRequestRateLimit,
   consumeRateLimit,
@@ -90,6 +92,7 @@ import { runHealthChecks } from './health';
 type AppVariables = {
   auth?: ApiAuthContext;
   user?: User;
+  enabledMailDomains?: string[];
 };
 
 // 创建 Hono 应用
@@ -114,9 +117,16 @@ app.use('*', async (c, next) => {
   return await next();
 });
 
+// 加载已启用邮箱域名（供 CORS 与业务路由使用）
+app.use('/*', async (c, next) => {
+  const domains = await resolveEnabledMailDomainNames(c.env.DB, c.env);
+  c.set('enabledMailDomains', domains);
+  await next();
+});
+
 // CORS：仅允许配置的域名 + 本地开发源；拒绝未知 Origin
 app.use('/*', cors({
-  origin: (origin, c) => matchCorsOrigin(origin, c.env),
+  origin: (origin, c) => matchCorsOrigin(origin, c.env, c.get('enabledMailDomains')),
   credentials: true,
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
@@ -184,8 +194,7 @@ app.get('/api/public/status', async (c) => {
 // 获取系统配置
 app.get('/api/config', async (c) => {
   try {
-    const emailDomains = c.env.VITE_EMAIL_DOMAIN || '';
-    const domains = emailDomains.split(',').map((domain: string) => domain.trim()).filter((domain: string) => domain);
+    const domains = c.get('enabledMailDomains') ?? (await resolveEnabledMailDomainNames(c.env.DB, c.env));
     const maintenance = await getMaintenanceMode(c.env.DB);
 
     return c.json({
@@ -231,12 +240,12 @@ app.get('/api/mailboxes', async (c) => {
 
     const mailboxes = await listMailboxesByUser(c.env.DB, auth.userId, { limit });
 
-    const domain = getMailDomain(c.env);
+    const defaultDomain = await resolveDefaultMailDomain(c.env.DB, c.env);
     return c.json({
       success: true,
       mailboxes: mailboxes.mailboxes.map((m) => ({
         ...m,
-        email: `${m.address}@${domain}`,
+        email: formatMailboxEmail(m, defaultDomain),
       })),
     });
   } catch (error) {
@@ -906,13 +915,13 @@ app.get('/api/user/mailboxes', async (c) => {
     hasEmails,
     search,
   });
-  const domain = getMailDomain(c.env);
+  const defaultDomain = await resolveDefaultMailDomain(c.env.DB, c.env);
   const now = getCurrentTimestamp();
   return c.json({
     success: true,
     mailboxes: mailboxes.map((m) => ({
       ...m,
-      email: `${m.address}@${domain}`,
+      email: formatMailboxEmail(m, defaultDomain),
       isExpired: m.expiresAt <= now,
     })),
     total,
@@ -998,6 +1007,16 @@ app.post('/api/user/mailboxes', async (c) => {
       return c.json({ success: false, error: '无效的邮箱地址' }, 400);
     }
 
+    const defaultDomain = await resolveDefaultMailDomain(c.env.DB, c.env);
+    let mailDomain = defaultDomain;
+    if (body.domain != null && String(body.domain).trim()) {
+      const domainCheck = await assertEnabledMailDomain(c.env.DB, c.env, String(body.domain));
+      if (!domainCheck.ok) {
+        return c.json({ success: false, error: domainCheck.error }, 400);
+      }
+      mailDomain = domainCheck.domain;
+    }
+
     const ip = getClientIp(c.req.raw);
     const address = body.address || generateRandomAddress();
 
@@ -1011,11 +1030,53 @@ app.post('/api/user/mailboxes', async (c) => {
       expiresInHours: 24,
       ipAddress: ip,
       userId: user.id,
+      mailDomain,
     });
 
-    return c.json({ success: true, mailbox });
+    return c.json({
+      success: true,
+      mailbox: {
+        ...mailbox,
+        email: formatMailboxEmail(mailbox, defaultDomain),
+      },
+    });
   } catch (error) {
     return c.json(apiInternalError('创建邮箱失败', error), 400);
+  }
+});
+
+app.patch('/api/user/mailboxes/:address/domain', async (c) => {
+  const authErr = await requireUserSession(c);
+  if (authErr) return authErr;
+  const user = c.get('user')!;
+
+  try {
+    const body = await c.req.json();
+    const domainRaw = String(body.domain ?? '').trim();
+    if (!domainRaw) {
+      return c.json({ success: false, error: '缺少 domain 参数' }, 400);
+    }
+    const domainCheck = await assertEnabledMailDomain(c.env.DB, c.env, domainRaw);
+    if (!domainCheck.ok) {
+      return c.json({ success: false, error: domainCheck.error }, 400);
+    }
+
+    const localPart = parseMailboxAddress(c.req.param('address'));
+    const mailbox = await updateMailboxMailDomain(c.env.DB, localPart, user.id, domainCheck.domain);
+    if (!mailbox) {
+      return c.json({ success: false, error: '邮箱不存在或无权操作' }, 404);
+    }
+
+    const defaultDomain = await resolveDefaultMailDomain(c.env.DB, c.env);
+    return c.json({
+      success: true,
+      mailbox: {
+        ...mailbox,
+        email: formatMailboxEmail(mailbox, defaultDomain),
+      },
+    });
+  } catch (error) {
+    return c.json(apiInternalError('更新邮箱域名失败', error), 500);
   }
 });
 
@@ -1043,8 +1104,8 @@ app.post('/api/user/send', async (c) => {
       return c.json({ success: false, error: quotaCheck.error }, 429);
     }
 
-    const domain = getMailDomain(c.env);
-    const fromResult = await resolveSendFromAddress(c.env.DB, body.from, domain, 'user', user.id);
+    const allowedDomains = c.get('enabledMailDomains') ?? (await resolveEnabledMailDomainNames(c.env.DB, c.env));
+    const fromResult = await resolveSendFromAddress(c.env.DB, body.from, allowedDomains, 'user', user.id);
     if (!fromResult.ok) {
       return c.json({ success: false, error: fromResult.error }, 400);
     }
@@ -1167,7 +1228,17 @@ app.post('/api/lease', async (c) => {
   const auth = c.get('auth')!;
 
   try {
-    const domain = getMailDomain(c.env);
+    const body = await c.req.json().catch(() => ({}));
+    const defaultDomain = await resolveDefaultMailDomain(c.env.DB, c.env);
+    let mailDomain = defaultDomain;
+    if (body.domain != null && String(body.domain).trim()) {
+      const domainCheck = await assertEnabledMailDomain(c.env.DB, c.env, String(body.domain));
+      if (!domainCheck.ok) {
+        return c.json({ success: false, error: domainCheck.error }, 400);
+      }
+      mailDomain = domainCheck.domain;
+    }
+
     const address = generateRandomAddress();
     const ip = getClientIp(c.req.raw);
 
@@ -1176,6 +1247,7 @@ app.post('/api/lease', async (c) => {
       expiresInHours: 24,
       ipAddress: ip,
       userId: auth.type === 'user' ? auth.userId : null,
+      mailDomain,
     });
 
     if (auth.type === 'user' && auth.userId) {
@@ -1184,8 +1256,9 @@ app.post('/api/lease', async (c) => {
 
     return c.json({
       success: true,
-      email: `${address}@${domain}`,
+      email: formatMailboxEmail(mailbox, defaultDomain),
       address: mailbox.address,
+      mailDomain: mailbox.mailDomain,
       expiresAt: mailbox.expiresAt,
     });
   } catch (error) {
@@ -1296,12 +1369,12 @@ app.post('/api/send', async (c) => {
       }
     }
 
-    const domain = getMailDomain(c.env);
+    const allowedDomains = c.get('enabledMailDomains') ?? (await resolveEnabledMailDomainNames(c.env.DB, c.env));
     const fromMode = auth.type === 'legacy' ? 'legacy' : 'user';
     const fromResult = await resolveSendFromAddress(
       c.env.DB,
       body.from,
-      domain,
+      allowedDomains,
       fromMode,
       auth.userId
     );

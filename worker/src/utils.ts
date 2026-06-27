@@ -77,6 +77,20 @@ export function generateRandomString(length: number): string {
   export function extractMailboxName(address: string): string {
     return address.split('@')[0];
   }
+
+  /** 从完整邮箱地址提取域名（小写） */
+  export function extractEmailDomain(email: string): string {
+    const at = email.lastIndexOf('@');
+    if (at < 0) {
+      throw new Error('无效的邮箱地址');
+    }
+    return email.slice(at + 1).toLowerCase();
+  }
+
+  /** 将 local part 与域名拼成完整地址 */
+  export function buildMailboxEmail(localPart: string, domain: string): string {
+    return `${localPart}@${domain.toLowerCase()}`;
+  }
   
   /**
    * 格式化日期时间
@@ -147,7 +161,7 @@ export function generateRandomString(length: number): string {
 
   export function validateSendFromAddress(
     from: string,
-    mailDomain: string
+    allowedDomains: string | string[]
   ): { ok: true; localPart: string; fromEmail: string } | { ok: false; error: string } {
     const trimmed = from.trim();
     if (!trimmed.includes('@')) {
@@ -159,9 +173,30 @@ export function generateRandomString(length: number): string {
     const at = trimmed.lastIndexOf('@');
     const localPart = trimmed.slice(0, at);
     const fromDomain = trimmed.slice(at + 1).toLowerCase();
-    const expectedDomain = mailDomain.toLowerCase();
-    if (fromDomain !== expectedDomain) {
-      return { ok: false, error: 'from 域名与系统域名不匹配' };
+    const domains = (Array.isArray(allowedDomains) ? allowedDomains : [allowedDomains]).map((d) =>
+      d.toLowerCase()
+    );
+    if (!domains.includes(fromDomain)) {
+      return { ok: false, error: 'from 域名与系统允许的域名不匹配' };
     }
-    return { ok: true, localPart, fromEmail: `${localPart}@${expectedDomain}` };
+    return { ok: true, localPart, fromEmail: `${localPart}@${fromDomain}` };
+  }
+
+  /** 平台邮箱根域名格式校验（不含 @） */
+  const MAIL_HOST_DOMAIN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
+
+  export function validateMailDomainHostname(
+    domain: string
+  ): { ok: true; domain: string } | { ok: false; error: string } {
+    const normalized = domain.trim().toLowerCase();
+    if (!normalized) {
+      return { ok: false, error: '域名不能为空' };
+    }
+    if (normalized.includes('@')) {
+      return { ok: false, error: '请填写根域名，不要包含 @' };
+    }
+    if (!MAIL_HOST_DOMAIN.test(normalized)) {
+      return { ok: false, error: '域名格式无效，请使用 example.com 形式' };
+    }
+    return { ok: true, domain: normalized };
   }

@@ -29,8 +29,12 @@ import {
   setLegacySendDailyQuota,
   listAuditLogs,
   writeAuditLog,
+  listMailDomains,
+  createMailDomain,
+  updateMailDomain,
+  deleteMailDomain,
 } from './database';
-import { validateExtractRuleInput } from './utils';
+import { validateExtractRuleInput, validateMailDomainHostname } from './utils';
 import { testRunExtractRules } from './extractor';
 import { scheduleReExtractAfterRuleChange } from './re-extract';
 import {
@@ -54,6 +58,7 @@ import {
 } from './rate-limit';
 import { logRateLimitHit, logApiRequestStat } from './monitoring';
 import { fetchBrevoAccountIfConfigured } from './brevo-stats';
+import { ensureMailDomainsSeeded } from './mail-domains';
 
 async function globalIpRateLimitMiddleware(c: any, next: () => Promise<void>) {
   const rateKey = getGlobalIpRateLimitKey(c.req.header('CF-Connecting-IP'));
@@ -578,6 +583,133 @@ export function createAdminApp(): Hono<{ Bindings: Env }> {
       })
     );
     return c.json({ success: true });
+  });
+
+  admin.get('/api/domains', async (c) => {
+    const authErr = await requireAdmin(c);
+    if (authErr) return authErr;
+    await ensureMailDomainsSeeded(c.env.DB, c.env);
+    const domains = await listMailDomains(c.env.DB);
+    return c.json({
+      success: true,
+      domains,
+      brevoConfigured: !!c.env.BREVO_API_KEY,
+    });
+  });
+
+  admin.post('/api/domains', async (c) => {
+    const authErr = await requireAdmin(c);
+    if (authErr) return authErr;
+    const body = await c.req.json();
+
+    if (!c.env.BREVO_API_KEY) {
+      return c.json(
+        { success: false, error: '请先在 Worker 环境变量中配置 BREVO_API_KEY' },
+        400
+      );
+    }
+    if (!body.cloudflareReady || !body.brevoVerified) {
+      return c.json(
+        {
+          success: false,
+          error: '添加域名前须确认已在 Cloudflare 接入 zMailR（Email Routing）且已在 Brevo 完成发信域名认证',
+        },
+        400
+      );
+    }
+
+    const validated = validateMailDomainHostname(String(body.domain ?? ''));
+    if (!validated.ok) {
+      return c.json({ success: false, error: validated.error }, 400);
+    }
+
+    try {
+      const domain = await createMailDomain(c.env.DB, {
+        domain: validated.domain,
+        enabled: body.enabled !== false,
+        cloudflareReady: true,
+        brevoVerified: true,
+        isDefault: !!body.isDefault,
+      });
+      c.executionCtx.waitUntil(
+        writeAuditLog(c.env.DB, {
+          actorType: 'admin',
+          actorName: 'admin',
+          action: 'domain.create',
+          detail: { domainId: domain.id, domain: domain.domain },
+          ip: adminIp(c),
+        })
+      );
+      return c.json({ success: true, domain });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('UNIQUE')) {
+        return c.json({ success: false, error: '该域名已存在' }, 400);
+      }
+      return c.json({ success: false, error: msg || '添加域名失败' }, 500);
+    }
+  });
+
+  admin.put('/api/domains/:id', async (c) => {
+    const authErr = await requireAdmin(c);
+    if (authErr) return authErr;
+    const domainId = parseInt(c.req.param('id'), 10);
+    const body = await c.req.json();
+
+    try {
+      const domain = await updateMailDomain(c.env.DB, domainId, {
+        enabled: body.enabled,
+        isDefault: body.isDefault,
+        cloudflareReady: body.cloudflareReady,
+        brevoVerified: body.brevoVerified,
+        sortOrder: body.sortOrder !== undefined ? parseInt(body.sortOrder, 10) : undefined,
+      });
+      if (!domain) return c.json({ success: false, error: '域名不存在' }, 404);
+      c.executionCtx.waitUntil(
+        writeAuditLog(c.env.DB, {
+          actorType: 'admin',
+          actorName: 'admin',
+          action: 'domain.update',
+          detail: {
+            domainId: domain.id,
+            domain: domain.domain,
+            enabled: domain.enabled,
+            isDefault: domain.isDefault,
+          },
+          ip: adminIp(c),
+        })
+      );
+      return c.json({ success: true, domain });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      return c.json({ success: false, error: msg || '更新域名失败' }, 400);
+    }
+  });
+
+  admin.delete('/api/domains/:id', async (c) => {
+    const authErr = await requireAdmin(c);
+    if (authErr) return authErr;
+    const domainId = parseInt(c.req.param('id'), 10);
+
+    try {
+      const existing = await listMailDomains(c.env.DB);
+      const target = existing.find((d) => d.id === domainId);
+      const ok = await deleteMailDomain(c.env.DB, domainId);
+      if (!ok) return c.json({ success: false, error: '域名不存在' }, 404);
+      c.executionCtx.waitUntil(
+        writeAuditLog(c.env.DB, {
+          actorType: 'admin',
+          actorName: 'admin',
+          action: 'domain.delete',
+          detail: { domainId, domain: target?.domain },
+          ip: adminIp(c),
+        })
+      );
+      return c.json({ success: true });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      return c.json({ success: false, error: msg || '删除域名失败' }, 400);
+    }
   });
 
   return admin;

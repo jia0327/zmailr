@@ -5,7 +5,9 @@ import {
   cleanupExpiredMails,
   cleanupReadMails,
   cleanupOldApiRequestStats,
+  backfillMailboxMailDomains,
 } from './database';
+import { ensureMailDomainsSeeded, resolveDefaultMailDomain } from './mail-domains';
 import { handleEmail } from './email-handler';
 import app from './routes';
 
@@ -15,6 +17,9 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     try {
       await ensureDatabaseInitialized(env.DB, env.ADMIN_PASSWORD);
+      await ensureMailDomainsSeeded(env.DB, env);
+      const defaultDomain = await resolveDefaultMailDomain(env.DB, env);
+      await backfillMailboxMailDomains(env.DB, defaultDomain);
 
       return app.fetch(request, env, ctx);
     } catch (error) {

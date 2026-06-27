@@ -34,6 +34,9 @@ import {
   RateLimitStats,
   ApiRequestStats,
   LocalEmailStats,
+  MailDomain,
+  CreateMailDomainParams,
+  UpdateMailDomainParams,
 } from './types';
 import {
   aggregateByStatusCode,
@@ -110,6 +113,7 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await db.exec(`CREATE TABLE IF NOT EXISTS api_request_stats (stat_date TEXT NOT NULL, status_code INTEGER NOT NULL, path_group TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (stat_date, status_code, path_group));`);
     await db.exec(`CREATE TABLE IF NOT EXISTS system_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER NOT NULL);`);
     await db.exec(`CREATE TABLE IF NOT EXISTS audit_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, actor_type TEXT NOT NULL, actor_id TEXT, actor_name TEXT, action TEXT NOT NULL, detail TEXT, ip TEXT, created_at INTEGER NOT NULL DEFAULT (unixepoch()));`);
+    await db.exec(`CREATE TABLE IF NOT EXISTS mail_domains (id INTEGER PRIMARY KEY AUTOINCREMENT, domain TEXT UNIQUE NOT NULL, enabled INTEGER NOT NULL DEFAULT 1, is_default INTEGER NOT NULL DEFAULT 0, cloudflare_ready INTEGER NOT NULL DEFAULT 0, brevo_verified INTEGER NOT NULL DEFAULT 0, sort_order INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);`);
 
     // Phase 2: add columns to existing tables (must run before indexes on those columns)
     await migrateAddColumn(db, 'emails', 'extracted_code', 'TEXT');
@@ -118,6 +122,7 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await migrateAddColumn(db, 'mailboxes', 'last_api_mail_email_id', 'TEXT');
     await migrateAddColumn(db, 'mailboxes', 'last_api_mail_received_at', 'INTEGER');
     await migrateAddColumn(db, 'mailboxes', 'user_id', 'INTEGER');
+    await migrateAddColumn(db, 'mailboxes', 'mail_domain', 'TEXT');
     await migrateAddColumn(db, 'sent_emails', 'user_id', 'INTEGER');
     await migrateAddColumn(db, 'sent_emails', 'token_id', 'INTEGER');
     await migrateAddColumn(db, 'sent_emails', 'from_email', 'TEXT');
@@ -155,6 +160,8 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_rate_limit_hits_user_id ON rate_limit_hits(user_id);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_mail_domains_enabled ON mail_domains(enabled);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_mail_domains_sort ON mail_domains(sort_order);`);
 
     await seedAdminUser(db, adminPassword);
     await seedGlobalExtractRules(db);
@@ -235,6 +242,9 @@ function parseScopes(raw: string): TokenScope[] {
   }
 }
 
+const MAILBOX_COLUMNS =
+  'id, address, created_at, expires_at, ip_address, last_accessed, user_id, mail_domain';
+
 /**
  * 创建邮箱
  * @param db 数据库实例
@@ -250,9 +260,10 @@ export async function createMailbox(db: D1Database, params: CreateMailboxParams)
     expiresAt: calculateExpiryTimestamp(params.expiresInHours),
     ipAddress: params.ipAddress,
     lastAccessed: now,
+    mailDomain: params.mailDomain ?? null,
   };
   
-  await db.prepare(`INSERT INTO mailboxes (id, address, created_at, expires_at, ip_address, last_accessed, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(mailbox.id, mailbox.address, mailbox.createdAt, mailbox.expiresAt, mailbox.ipAddress, mailbox.lastAccessed, params.userId ?? null).run();
+  await db.prepare(`INSERT INTO mailboxes (id, address, created_at, expires_at, ip_address, last_accessed, user_id, mail_domain) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).bind(mailbox.id, mailbox.address, mailbox.createdAt, mailbox.expiresAt, mailbox.ipAddress, mailbox.lastAccessed, params.userId ?? null, mailbox.mailDomain ?? null).run();
   
   return mailbox;
 }
@@ -272,12 +283,13 @@ function rowToMailbox(result: Record<string, unknown>, lastAccessed?: number): M
     ipAddress: result.ip_address as string,
     lastAccessed: lastAccessed ?? (result.last_accessed as number),
     userId: (result.user_id as number | null) ?? null,
+    mailDomain: (result.mail_domain as string | null) ?? null,
   };
 }
 
 export async function getMailbox(db: D1Database, address: string): Promise<Mailbox | null> {
   const now = getCurrentTimestamp();
-  const result = await db.prepare(`SELECT id, address, created_at, expires_at, ip_address, last_accessed, user_id FROM mailboxes WHERE address = ? AND expires_at > ?`).bind(address, now).first();
+  const result = await db.prepare(`SELECT ${MAILBOX_COLUMNS} FROM mailboxes WHERE address = ? AND expires_at > ?`).bind(address, now).first();
   
   if (!result) return null;
   
@@ -290,8 +302,7 @@ export async function getMailbox(db: D1Database, address: string): Promise<Mailb
 export async function getMailboxRaw(db: D1Database, address: string): Promise<Mailbox | null> {
   const result = await db
     .prepare(
-      `SELECT id, address, created_at, expires_at, ip_address, last_accessed, user_id
-       FROM mailboxes WHERE address = ?`
+      `SELECT ${MAILBOX_COLUMNS} FROM mailboxes WHERE address = ?`
     )
     .bind(address)
     .first();
@@ -303,8 +314,7 @@ export async function getMailboxById(db: D1Database, id: string): Promise<Mailbo
   const now = getCurrentTimestamp();
   const result = await db
     .prepare(
-      `SELECT id, address, created_at, expires_at, ip_address, last_accessed, user_id
-       FROM mailboxes WHERE id = ? AND expires_at > ?`
+      `SELECT ${MAILBOX_COLUMNS} FROM mailboxes WHERE id = ? AND expires_at > ?`
     )
     .bind(id, now)
     .first();
@@ -316,8 +326,7 @@ export async function getMailboxById(db: D1Database, id: string): Promise<Mailbo
 export async function getMailboxRawById(db: D1Database, id: string): Promise<Mailbox | null> {
   const result = await db
     .prepare(
-      `SELECT id, address, created_at, expires_at, ip_address, last_accessed, user_id
-       FROM mailboxes WHERE id = ?`
+      `SELECT ${MAILBOX_COLUMNS} FROM mailboxes WHERE id = ?`
     )
     .bind(id)
     .first();
@@ -355,6 +364,8 @@ function mapMailboxRow(result: Record<string, unknown>): Mailbox {
     expiresAt: result.expires_at as number,
     ipAddress: result.ip_address as string,
     lastAccessed: result.last_accessed as number,
+    userId: (result.user_id as number | null) ?? null,
+    mailDomain: (result.mail_domain as string | null) ?? null,
   };
 }
 
@@ -414,7 +425,7 @@ export async function listMailboxesByUser(
 
   const results = await db
     .prepare(
-      `SELECT m.id, m.address, m.created_at, m.expires_at, m.ip_address, m.last_accessed, m.user_id
+      `SELECT m.id, m.address, m.created_at, m.expires_at, m.ip_address, m.last_accessed, m.user_id, m.mail_domain
        ${fromClause}
        WHERE ${where}
        ORDER BY m.created_at DESC
@@ -445,6 +456,33 @@ export async function reactivateMailbox(
     .bind(expiresAt, now, mailbox.id)
     .run();
   return { ...mailbox, expiresAt, lastAccessed: now };
+}
+
+export async function updateMailboxMailDomain(
+  db: D1Database,
+  address: string,
+  userId: number,
+  mailDomain: string
+): Promise<Mailbox | null> {
+  const mailbox = await getMailboxRaw(db, address);
+  if (!mailbox || mailbox.userId !== userId) return null;
+  await db
+    .prepare(`UPDATE mailboxes SET mail_domain = ?, last_accessed = ? WHERE id = ?`)
+    .bind(mailDomain, getCurrentTimestamp(), mailbox.id)
+    .run();
+  return { ...mailbox, mailDomain, lastAccessed: getCurrentTimestamp() };
+}
+
+export async function backfillMailboxMailDomains(
+  db: D1Database,
+  defaultDomain: string
+): Promise<void> {
+  const domain = defaultDomain.trim().toLowerCase();
+  if (!domain) return;
+  await db
+    .prepare(`UPDATE mailboxes SET mail_domain = ? WHERE mail_domain IS NULL OR mail_domain = ''`)
+    .bind(domain)
+    .run();
 }
 
 export async function listActiveMailboxes(db: D1Database, limit = 50): Promise<Mailbox[]> {
@@ -2422,4 +2460,198 @@ export async function listAuditLogs(
     page,
     limit,
   };
+}
+
+// ─── Mail domains ────────────────────────────────────────────
+
+function mapMailDomainRow(row: Record<string, unknown>): MailDomain {
+  return {
+    id: row.id as number,
+    domain: row.domain as string,
+    enabled: !!(row.enabled as number),
+    isDefault: !!(row.is_default as number),
+    cloudflareReady: !!(row.cloudflare_ready as number),
+    brevoVerified: !!(row.brevo_verified as number),
+    sortOrder: (row.sort_order as number) ?? 0,
+    createdAt: row.created_at as number,
+    updatedAt: row.updated_at as number,
+  };
+}
+
+export async function countMailDomains(db: D1Database): Promise<number> {
+  const row = await db.prepare(`SELECT COUNT(*) as c FROM mail_domains`).first<{ c: number }>();
+  return row?.c ?? 0;
+}
+
+export async function listMailDomains(db: D1Database): Promise<MailDomain[]> {
+  const results = await db
+    .prepare(
+      `SELECT id, domain, enabled, is_default, cloudflare_ready, brevo_verified, sort_order, created_at, updated_at
+       FROM mail_domains
+       ORDER BY sort_order ASC, id ASC`
+    )
+    .all();
+  return (results.results ?? []).map((row) => mapMailDomainRow(row as Record<string, unknown>));
+}
+
+export async function getMailDomainById(db: D1Database, id: number): Promise<MailDomain | null> {
+  const row = await db
+    .prepare(
+      `SELECT id, domain, enabled, is_default, cloudflare_ready, brevo_verified, sort_order, created_at, updated_at
+       FROM mail_domains WHERE id = ?`
+    )
+    .bind(id)
+    .first();
+  return row ? mapMailDomainRow(row as Record<string, unknown>) : null;
+}
+
+export async function getEnabledMailDomainNames(db: D1Database): Promise<string[]> {
+  const results = await db
+    .prepare(
+      `SELECT domain FROM mail_domains WHERE enabled = 1 ORDER BY is_default DESC, sort_order ASC, id ASC`
+    )
+    .all();
+  return (results.results ?? []).map((row) => (row as { domain: string }).domain);
+}
+
+async function clearDefaultMailDomain(db: D1Database, exceptId?: number): Promise<void> {
+  const now = getCurrentTimestamp();
+  if (exceptId != null) {
+    await db
+      .prepare(`UPDATE mail_domains SET is_default = 0, updated_at = ? WHERE id != ?`)
+      .bind(now, exceptId)
+      .run();
+  } else {
+    await db.prepare(`UPDATE mail_domains SET is_default = 0, updated_at = ?`).bind(now).run();
+  }
+}
+
+export async function seedMailDomainsFromEnvIfEmpty(
+  db: D1Database,
+  rawDomains: string | undefined
+): Promise<void> {
+  const count = await countMailDomains(db);
+  if (count > 0) return;
+
+  const domains = (rawDomains || '')
+    .split(',')
+    .map((d) => d.trim().toLowerCase())
+    .filter(Boolean);
+  if (!domains.length) return;
+
+  const now = getCurrentTimestamp();
+  for (let i = 0; i < domains.length; i++) {
+    await db
+      .prepare(
+        `INSERT INTO mail_domains (domain, enabled, is_default, cloudflare_ready, brevo_verified, sort_order, created_at, updated_at)
+         VALUES (?, 1, ?, 0, 0, ?, ?, ?)`
+      )
+      .bind(domains[i], i === 0 ? 1 : 0, i, now, now)
+      .run();
+  }
+  console.log(`已从环境变量导入 ${domains.length} 个邮箱域名`);
+}
+
+export async function createMailDomain(
+  db: D1Database,
+  params: CreateMailDomainParams
+): Promise<MailDomain> {
+  const now = getCurrentTimestamp();
+  const domain = params.domain.trim().toLowerCase();
+  const enabled = params.enabled !== false;
+  const isDefault = !!params.isDefault;
+  const count = await countMailDomains(db);
+  const sortOrder = count;
+
+  if (isDefault || count === 0) {
+    await clearDefaultMailDomain(db);
+  }
+
+  const result = await db
+    .prepare(
+      `INSERT INTO mail_domains (domain, enabled, is_default, cloudflare_ready, brevo_verified, sort_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      domain,
+      enabled ? 1 : 0,
+      isDefault || count === 0 ? 1 : 0,
+      params.cloudflareReady ? 1 : 0,
+      params.brevoVerified ? 1 : 0,
+      sortOrder,
+      now,
+      now
+    )
+    .run();
+
+  const id = result.meta.last_row_id as number;
+  const created = await getMailDomainById(db, id);
+  if (!created) throw new Error('创建域名记录失败');
+  return created;
+}
+
+export async function updateMailDomain(
+  db: D1Database,
+  id: number,
+  params: UpdateMailDomainParams
+): Promise<MailDomain | null> {
+  const existing = await getMailDomainById(db, id);
+  if (!existing) return null;
+
+  const now = getCurrentTimestamp();
+  const enabled = params.enabled !== undefined ? !!params.enabled : existing.enabled;
+  const isDefault = params.isDefault !== undefined ? !!params.isDefault : existing.isDefault;
+  const cloudflareReady =
+    params.cloudflareReady !== undefined ? !!params.cloudflareReady : existing.cloudflareReady;
+  const brevoVerified =
+    params.brevoVerified !== undefined ? !!params.brevoVerified : existing.brevoVerified;
+  const sortOrder = params.sortOrder !== undefined ? params.sortOrder : existing.sortOrder;
+
+  if (isDefault && !enabled) {
+    throw new Error('默认域名不能处于禁用状态');
+  }
+
+  if (enabled && (!cloudflareReady || !brevoVerified)) {
+    throw new Error('启用域名前须确认 Cloudflare 与 Brevo 均已配置完成');
+  }
+
+  if (isDefault) {
+    await clearDefaultMailDomain(db, id);
+  }
+
+  await db
+    .prepare(
+      `UPDATE mail_domains
+       SET enabled = ?, is_default = ?, cloudflare_ready = ?, brevo_verified = ?, sort_order = ?, updated_at = ?
+       WHERE id = ?`
+    )
+    .bind(enabled ? 1 : 0, isDefault ? 1 : 0, cloudflareReady ? 1 : 0, brevoVerified ? 1 : 0, sortOrder, now, id)
+    .run();
+
+  return getMailDomainById(db, id);
+}
+
+export async function deleteMailDomain(db: D1Database, id: number): Promise<boolean> {
+  const existing = await getMailDomainById(db, id);
+  if (!existing) return false;
+
+  const enabledCount = await db
+    .prepare(`SELECT COUNT(*) as c FROM mail_domains WHERE enabled = 1`)
+    .first<{ c: number }>();
+  if (existing.enabled && (enabledCount?.c ?? 0) <= 1) {
+    throw new Error('至少保留一个已启用的域名');
+  }
+
+  await db.prepare(`DELETE FROM mail_domains WHERE id = ?`).bind(id).run();
+
+  if (existing.isDefault) {
+    const next = await db
+      .prepare(`SELECT id FROM mail_domains WHERE enabled = 1 ORDER BY sort_order ASC, id ASC LIMIT 1`)
+      .first<{ id: number }>();
+    if (next) {
+      await updateMailDomain(db, next.id, { isDefault: true });
+    }
+  }
+
+  return true;
 }

@@ -11,7 +11,6 @@ export interface Env {
   /** Secret URL segment for admin UI (UUID recommended). No leading slash. */
   ADMIN_PATH?: string;
   BREVO_API_KEY?: string;
-  MAILCHANNELS_API_KEY?: string;
   /** Default Bearer token requests per minute (optional). */
   RATE_LIMIT_PER_MIN?: string;
   /** Comma-separated extra CORS origins (full URLs, e.g. https://app.example.com). */
@@ -100,6 +99,8 @@ export interface Mailbox {
   ipAddress: string;
   lastAccessed: number;
   userId?: number | null;
+  /** 邮箱绑定的发信/展示域名 */
+  mailDomain?: string | null;
 }
 
 // 创建邮箱参数
@@ -108,6 +109,7 @@ export interface CreateMailboxParams {
   expiresInHours: number;
   ipAddress: string;
   userId?: number | null;
+  mailDomain?: string | null;
 }
 
 // 邮件类型
@@ -335,6 +337,37 @@ export interface BrevoStats {
   brevo: BrevoAccountSummary | null;
   brevoAvailable: boolean;
   brevoError?: string;
+}
+
+/** 平台邮箱域名（管理后台配置，供收信/发信使用） */
+export interface MailDomain {
+  id: number;
+  domain: string;
+  enabled: boolean;
+  isDefault: boolean;
+  /** 管理员确认已在 Cloudflare 接入并配置 Email Routing */
+  cloudflareReady: boolean;
+  /** 管理员确认已在 Brevo 完成发信域名认证 */
+  brevoVerified: boolean;
+  sortOrder: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface CreateMailDomainParams {
+  domain: string;
+  enabled?: boolean;
+  cloudflareReady: boolean;
+  brevoVerified: boolean;
+  isDefault?: boolean;
+}
+
+export interface UpdateMailDomainParams {
+  enabled?: boolean;
+  isDefault?: boolean;
+  cloudflareReady?: boolean;
+  brevoVerified?: boolean;
+  sortOrder?: number;
 }
 
 // 邮件列表项（不包含内容）

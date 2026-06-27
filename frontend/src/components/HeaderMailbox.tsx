@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
-import { createUserMailbox } from '../utils/api';
+import { createUserMailbox, updateUserMailboxDomain } from '../utils/api';
+import { formatMailboxEmail } from '../config';
 import MailboxSwitcher from './MailboxSwitcher';
 import { MailboxContext } from '../contexts/MailboxContext';
 import { copyTextToClipboard } from '../utils/clipboard';
@@ -29,14 +30,21 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
   const [customAddressError, setCustomAddressError] = useState<string | null>(null);
 
   useEffect(() => {
-    setSelectedDomain(domain);
-  }, [domain]);
+    if (!mailbox) return;
+    const nextDomain = mailbox.mailDomain || domain;
+    if (domains.includes(nextDomain)) {
+      setSelectedDomain(nextDomain);
+    } else {
+      setSelectedDomain(domain);
+    }
+  }, [mailbox, domain, domains]);
 
   if (!mailbox || isLoading) return null;
 
-  const fullAddress = mailbox.address.includes('@')
-    ? mailbox.address
-    : `${mailbox.address}@${selectedDomain}`;
+  const fullAddress = formatMailboxEmail(
+    { ...mailbox, mailDomain: selectedDomain },
+    domain
+  );
 
   const copyToClipboard = async () => {
     const ok = await copyTextToClipboard(fullAddress);
@@ -46,7 +54,7 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
 
   const handleRefreshMailbox = async () => {
     setIsActionLoading(true);
-    const result = await createUserMailbox();
+    const result = await createUserMailbox(undefined, selectedDomain);
     setIsActionLoading(false);
 
     if (result.success && result.mailbox) {
@@ -67,7 +75,7 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
     }
 
     setIsActionLoading(true);
-    const result = await createUserMailbox(customAddress.trim());
+    const result = await createUserMailbox(customAddress.trim(), selectedDomain);
     setIsActionLoading(false);
 
     if (result.success && result.mailbox) {
@@ -78,7 +86,7 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
         setCustomAddress('');
       }, 1500);
     } else {
-      const isAddressExistsError = result.error === 'Address already exists';
+      const isAddressExistsError = result.error === 'Address already exists' || result.error === '邮箱地址已存在';
       if (isAddressExistsError) {
         setCustomAddressError(t('mailbox.addressExists'));
       } else {
@@ -94,8 +102,17 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
   };
 
   const handleDomainChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedDomain(e.target.value);
-    await handleRefreshMailbox();
+    const nextDomain = e.target.value;
+    setSelectedDomain(nextDomain);
+    setIsActionLoading(true);
+    const result = await updateUserMailboxDomain(mailbox.address, nextDomain);
+    setIsActionLoading(false);
+    if (result.success && result.mailbox) {
+      onMailboxChange(result.mailbox);
+    } else {
+      showErrorMessage(result.error || t('mailbox.refreshFailed'));
+      setSelectedDomain(mailbox.mailDomain || domain);
+    }
   };
 
   const actionBtnClass =
@@ -127,6 +144,7 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
                   value={selectedDomain}
                   onChange={handleDomainChange}
                   className="appearance-none bg-transparent border-none focus:outline-none pl-1 pr-5"
+                  disabled={isActionLoading}
                 >
                   {domains.map(d => (
                     <option key={d} value={d}>{d}</option>
@@ -165,6 +183,7 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
                 value={selectedDomain}
                 onChange={handleDomainChange}
                 className="appearance-none bg-transparent border-none focus:outline-none font-mono font-medium pr-4 cursor-pointer"
+                disabled={isActionLoading}
               >
                 {domains.map(d => (
                   <option key={d} value={d}>{d}</option>

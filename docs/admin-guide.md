@@ -29,6 +29,7 @@ zMailR 管理后台用于运维与用户治理，**不在前端 bundle 中暴露
 | **公告** | 面向 Dashboard 用户的系统公告（Markdown/纯文本） |
 | **提取规则** | 全局规则 + 汇总所有用户自定义规则 |
 | **请求监控** | 近 7 日折线趋势、今日状态码分布、429 Top IP / 用户 |
+| **域名** | 多邮箱域名管理：添加 / 启用 / 禁用 / 设默认；须先完成 Cloudflare Email Routing 与 Brevo 域名认证 |
 | **系统设置** | **维护模式**（可选阻断 lease / 发信 / 创建邮箱） |
 | **审计日志** | 管理员与用户关键操作记录，按日期筛选 |
 
@@ -106,6 +107,34 @@ zMailR 管理后台用于运维与用户治理，**不在前端 bundle 中暴露
 - 读信、查询配额等未勾选阻断的功能仍可用
 
 配置持久化在 D1 `system_settings` 表，保存时写入审计日志 `maintenance.update`。
+
+---
+
+## 邮箱域名管理
+
+**域名** 标签用于管理多邮箱后缀（如 `itellme.eu.cc`、`onlyme.qzz.io` 等）。域名列表持久化在 D1 `mail_domains` 表；前端 `GET /api/config` 的 `emailDomains` 仅返回 **已启用** 的域名。
+
+### 添加前必读
+
+每新增一个域名，须 **先** 完成：
+
+1. **Cloudflare**：域名已接入本账户，**Email Routing** 已启用，Catch-all 指向本 zMailR Worker（参见 [deploy.md](./deploy.md) §4）。
+2. **Brevo**：该域名已在 Brevo 完成发信认证（SPF / DKIM / DMARC），且 Worker 已配置 `BREVO_API_KEY`（参见 [brevo-setup.md](./brevo-setup.md)）。
+
+后台 **添加域名** 时须勾选上述两项确认；未配置 `BREVO_API_KEY` 时无法添加新域名。
+
+从环境变量 `VITE_EMAIL_DOMAIN` 首次导入的域名会标记为「未确认」，可在列表中点击 **确认已配置** 后再启用。
+
+### 操作说明
+
+| 操作 | 说明 |
+|------|------|
+| **添加** | 填写根域名并勾选 Cloudflare / Brevo 确认 |
+| **启用 / 禁用** | 禁用后前端下拉与发信 API 不再接受该域名 |
+| **设为默认** | 租用邮箱、`from` 未指定时的默认后缀 |
+| **删除** | 至少保留一个已启用域名 |
+
+管理 API：`GET/POST {ADMIN_PATH}/api/domains`、`PUT/DELETE {ADMIN_PATH}/api/domains/:id`
 
 ---
 
