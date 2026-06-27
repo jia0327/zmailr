@@ -142,7 +142,7 @@ const HomePage: React.FC = () => {
           </div>
           <p className="mt-4 text-sm">
             {t('intro.apiLink.text')}{' '}
-            <a href="/docs/api-interactive.html" className="text-primary hover:underline">
+            <a href="/api-docs" className="text-primary hover:underline">
               {t('intro.apiLink.link')}
             </a>
           </p>

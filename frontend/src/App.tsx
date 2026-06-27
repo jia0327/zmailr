@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -24,14 +24,8 @@ const RouteFallback: React.FC = () => (
   </div>
 );
 
-/** Standalone /api-docs moved into VitePress; keep ?embed=1 for docs iframe. */
-const ApiDocsRoute: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  if (searchParams.get('embed') !== '1') {
-    return <Navigate to="/docs/api-interactive.html" replace />;
-  }
-  return <ApiDocsPage />;
-};
+/** /api-docs — full page or ?embed=1 for iframe embed in docs. */
+const ApiDocsRoute: React.FC = () => <ApiDocsPage />;
 
 const App: React.FC = () => {
   return (

@@ -86,6 +86,7 @@ export default defineConfig({
         text: '参考',
         items: [
           { text: 'OpenAPI', link: '../../openapi.json', target: '_blank' },
+          { text: '交互式 API', link: '../../api-docs' },
         ],
       },
     ],

@@ -11,7 +11,7 @@ const ApiUsageDocs: React.FC = () => {
         <p className="text-xs text-muted-foreground mt-0.5">{t('apiUsage.docsLinkHint')}</p>
       </div>
       <a
-        href="/docs/api-interactive.html"
+        href="/api-docs"
         className="inline-flex items-center justify-center shrink-0 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
       >
         {t('apiUsage.viewFullApiDocs')}

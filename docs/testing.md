@@ -42,7 +42,7 @@
 | | 审计日志 | 按日期筛选 |
 | **Docs** | `/docs/` | VitePress 文档站 |
 | | `/docs/testing` | 本测试报告 |
-| | `/api-docs` | 交互式 API 文档（重定向自 `/docs/api-interactive`） |
+| | `/api-docs` | React 交互式 API 文档页 |
 | | `/openapi.json` | 机器可读 OpenAPI |
 | **MCP** | `@zmailr/mcp` | npm 已发布；单元测试（工具注册、env 校验、mock API）；见 [mcp.md](./mcp.md) |
 | **Ops** | `GET /api/health` | 静态 `{ status: "ok" }` |

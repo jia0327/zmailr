@@ -53,7 +53,7 @@ const Header: React.FC<HeaderProps> = ({
               {t('nav.docs')}
             </a>
             <a
-              href="/docs/api-interactive.html"
+              href="/api-docs"
               className="text-sm transition-colors hover:text-foreground text-muted-foreground"
             >
               {t('nav.api')}
