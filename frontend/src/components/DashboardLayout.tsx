@@ -11,6 +11,7 @@ const SIDEBAR_COLLAPSED_KEY = 'dashboardSidebarCollapsed';
 interface PublicMaintenance {
   enabled: boolean;
   message: string;
+  displayMessage?: string;
 }
 
 const DashboardLayout: React.FC = () => {
@@ -56,7 +57,10 @@ const DashboardLayout: React.FC = () => {
         if (!cancelled && data.success && data.maintenance?.enabled) {
           setMaintenance({
             enabled: true,
-            message: data.maintenance.message || t('dashboard.maintenanceDefault'),
+            message:
+              data.maintenance.displayMessage ||
+              data.maintenance.message ||
+              t('dashboard.maintenanceDefault'),
           });
         }
       } catch {

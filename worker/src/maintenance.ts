@@ -2,6 +2,30 @@ import type { D1Database } from '@cloudflare/workers-types';
 import type { MaintenanceMode } from './types';
 import { getMaintenanceMode } from './database';
 
+/** User-facing labels for each maintenance block flag (deduped for display). */
+export function getMaintenanceBlockedLabels(mode: MaintenanceMode): string[] {
+  const labels: string[] = [];
+  if (mode.blockSend) labels.push('发送邮件');
+  if (mode.blockMailboxCreate) {
+    labels.push('创建新邮箱（含 API 租用）');
+  } else if (mode.blockLease) {
+    labels.push('API 租用随机邮箱');
+  }
+  return labels;
+}
+
+/** Compose banner / API message: optional admin prefix + explicit blocked features. */
+export function buildMaintenanceDisplayMessage(mode: MaintenanceMode): string {
+  if (!mode.enabled) return '';
+  const custom = mode.message?.trim();
+  const blocked = getMaintenanceBlockedLabels(mode);
+  if (blocked.length === 0) {
+    return custom || '系统维护中，请稍后再试';
+  }
+  const blockedText = `暂停服务：${blocked.join('、')}。`;
+  return custom ? `${custom} ${blockedText}` : `系统维护中。${blockedText}`;
+}
+
 export function maintenanceBlockedBody(mode: MaintenanceMode): {
   success: false;
   error: 'maintenance';
@@ -10,7 +34,7 @@ export function maintenanceBlockedBody(mode: MaintenanceMode): {
   return {
     success: false,
     error: 'maintenance',
-    message: mode.message?.trim() || '系统维护中，请稍后再试',
+    message: buildMaintenanceDisplayMessage(mode),
   };
 }
 

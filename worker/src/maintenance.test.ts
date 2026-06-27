@@ -62,11 +62,25 @@ describe('maintenanceBlockedBody', () => {
   it('uses custom message when provided', () => {
     const body = maintenanceBlockedBody({ ...DEFAULT_MAINTENANCE_MODE, enabled: true, message: ' 升级中  ' });
     assert.equal(body.error, 'maintenance');
-    assert.equal(body.message, '升级中');
+    assert.match(body.message, /升级中/);
+    assert.match(body.message, /暂停服务/);
   });
 
   it('falls back to default message', () => {
     const body = maintenanceBlockedBody({ ...DEFAULT_MAINTENANCE_MODE, enabled: true, message: '' });
     assert.match(body.message, /维护/);
+    assert.match(body.message, /暂停服务/);
+  });
+
+  it('lists only enabled block flags', () => {
+    const body = maintenanceBlockedBody({
+      enabled: true,
+      message: '系统维护中，部分功能暂不可用',
+      blockLease: false,
+      blockSend: false,
+      blockMailboxCreate: true,
+    });
+    assert.match(body.message, /创建新邮箱/);
+    assert.doesNotMatch(body.message, /发送邮件/);
   });
 });

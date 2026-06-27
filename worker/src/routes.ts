@@ -81,7 +81,12 @@ import {
   getLegacySendRateLimitKey,
   LEGACY_SEND_WINDOW_MS,
 } from './rate-limit';
-import { checkMaintenanceBlock, maintenanceBlockedBody } from './maintenance';
+import {
+  buildMaintenanceDisplayMessage,
+  checkMaintenanceBlock,
+  getMaintenanceBlockedLabels,
+  maintenanceBlockedBody,
+} from './maintenance';
 import { logRateLimitHit, logApiRequestStat } from './monitoring';
 import { getOpenApiJson } from './openapi';
 import { resolveAttachmentBytes } from './r2-attachments';
@@ -186,6 +191,8 @@ app.get('/api/public/status', async (c) => {
     maintenance: {
       enabled: maintenance.enabled,
       message: maintenance.message,
+      displayMessage: buildMaintenanceDisplayMessage(maintenance),
+      blockedFeatures: maintenance.enabled ? getMaintenanceBlockedLabels(maintenance) : [],
     },
     checks: health.checks,
   });
@@ -204,6 +211,7 @@ app.get('/api/config', async (c) => {
         maintenance: {
           enabled: maintenance.enabled,
           message: maintenance.message,
+          displayMessage: buildMaintenanceDisplayMessage(maintenance),
         },
       },
     });

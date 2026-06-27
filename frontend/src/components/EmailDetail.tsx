@@ -3,9 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { MailboxContext } from '../contexts/MailboxContext';
 import { stripHtmlToText } from '../utils/htmlBody';
-import OtpBox from './OtpBox';
 import NoOtpHint from './NoOtpHint';
-
 interface EmailDetailProps {
   emailId: string;
   onClose: () => void;
@@ -401,21 +399,7 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ emailId, onClose }) => {
             </button>
           </div>
 
-          {email.extractedCode ? (
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-md border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-4">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">{t('email.verificationCode')}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{t('email.clickToCopy')}</p>
-              </div>
-              <OtpBox
-                code={email.extractedCode}
-                size="md"
-                className="self-start sm:self-auto"
-                matchedRuleId={email.matchedRuleId}
-                onCopy={() => showSuccessMessage(t('common.copied'))}
-              />
-            </div>
-          ) : (
+          {!email.extractedCode && (
             <NoOtpHint
               fromAddress={email.fromAddress}
               subject={email.subject}

@@ -280,7 +280,7 @@
     "confirmClearAllMailboxes": "您确定要清空所有已保存的邮箱吗？（当前使用的邮箱不会被删除）",
     "clearAll": "全部清除",
     "clearAllSuccess": "已清空所有保存的邮箱",
-    "domainSwitchHint": "切换域名会改变邮箱后缀。收信须向当前显示的完整地址发信，且该域名已在 Cloudflare 配置 Email Routing 指向 zMailR（每个域名需单独配置）。"
+    "domainSwitchHint": "切换域名会改变邮箱后缀。收信须向当前显示的完整地址发信，且该域名已在 Cloudflare 配置 Email Routing 指向 zMailR（每个域名需单独配置）。",
     "clearAllFailed": "部分邮箱清空失败 ({{count}}个)"
   },
   "email": {

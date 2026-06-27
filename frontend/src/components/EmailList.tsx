@@ -225,7 +225,7 @@ const EmailList: React.FC<EmailListProps> = ({
       ) : (
         <>
           {/* Table header */}
-          <div className="hidden sm:grid grid-cols-[auto_1fr_2fr_auto] gap-4 px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide border-b bg-muted/10 items-center">
+          <div className="hidden sm:grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,7.5rem)_auto] gap-4 px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide border-b bg-muted/10 items-center">
             <input
               type="checkbox"
               checked={selectedIds.size === emails.length && emails.length > 0}
@@ -234,6 +234,7 @@ const EmailList: React.FC<EmailListProps> = ({
             />
             <span>{t('email.from')}</span>
             <span>{t('email.subject')}</span>
+            <span>{t('email.verificationCode')}</span>
             <span className="text-right">{t('email.date')}</span>
           </div>
 
@@ -241,7 +242,7 @@ const EmailList: React.FC<EmailListProps> = ({
             {emails.map((email) => (
               <React.Fragment key={email.id}>
                 <li
-                  className={`grid sm:grid-cols-[auto_1fr_2fr_auto] gap-2 sm:gap-4 items-center px-4 py-3 cursor-pointer border-b last:border-b-0 transition-colors hover:bg-muted/30 ${
+                  className={`grid sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,7.5rem)_auto] gap-2 sm:gap-4 items-center px-4 py-3 cursor-pointer border-b last:border-b-0 transition-colors hover:bg-muted/30 ${
                     selectedEmailId === email.id ? 'bg-muted/50' : ''
                   } ${!email.isRead ? 'font-medium' : ''}`}
                   onClick={() => onSelectEmail(selectedEmailId === email.id ? null : email.id)}
@@ -269,6 +270,11 @@ const EmailList: React.FC<EmailListProps> = ({
                         aria-hidden
                       />
                     )}
+                  </div>
+                  <div
+                    className="flex items-center gap-1 min-w-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {email.extractedCode ? (
                       <OtpBox
                         code={email.extractedCode}
