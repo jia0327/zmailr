@@ -13,9 +13,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://api.mail.mdzz.uk',
+        // 本地 UI 开发默认走演示站 API；自托管后端可用 VITE_DEV_PROXY_TARGET 覆盖
+        target: process.env.VITE_DEV_PROXY_TARGET || 'https://zmailr.itool.eu.cc',
         changeOrigin: true,
-        secure: false,
+        secure: true,
         rewrite: (path) => path,
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, _res) => {

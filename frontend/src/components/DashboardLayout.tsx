@@ -109,7 +109,12 @@ const DashboardLayout: React.FC = () => {
           >
             <i className="fas fa-bars text-lg" />
           </button>
-          <span className="text-lg font-bold tracking-tight truncate">zMailR</span>
+          <span className="flex items-center gap-2 min-w-0">
+            <span className="w-7 h-7 rounded-lg bg-sky-500/15 flex items-center justify-center shrink-0">
+              <i className="fas fa-envelope text-xs text-sky-600 dark:text-sky-400" />
+            </span>
+            <span className="text-lg font-bold tracking-tight truncate">zMailR</span>
+          </span>
         </header>
 
         <AnnouncementModal />
@@ -122,8 +127,10 @@ const DashboardLayout: React.FC = () => {
             {maintenance.message}
           </div>
         )}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">
-          <Outlet />
+        <main className="dashboard-main relative flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">
+          <div className="relative z-[1]">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

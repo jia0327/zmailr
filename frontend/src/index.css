@@ -137,4 +137,54 @@
   background: hsl(var(--background));
   color: hsl(var(--foreground));
   border-color: hsl(var(--border));
+}
+
+/* Login page — CSS-only gradient shell (no backdrop-filter) */
+.login-shell {
+  background: hsl(var(--background));
+}
+
+.login-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 55% at 18% 38%, hsl(210 100% 50% / 0.1), transparent),
+    radial-gradient(ellipse 55% 45% at 82% 68%, hsl(260 80% 60% / 0.08), transparent);
+}
+
+.dark .login-shell::before {
+  background:
+    radial-gradient(ellipse 70% 55% at 15% 35%, hsl(200 100% 50% / 0.14), transparent),
+    radial-gradient(ellipse 55% 45% at 85% 72%, hsl(270 70% 55% / 0.1), transparent);
+}
+
+.login-hero {
+  background: linear-gradient(145deg, hsl(214 82% 96%) 0%, hsl(220 55% 91%) 100%);
+}
+
+.dark .login-hero {
+  background: linear-gradient(145deg, hsl(222 47% 13%) 0%, hsl(230 35% 9%) 100%);
+}
+
+/* Dashboard — same CSS-only glow as login, scoped to main pane */
+.dashboard-main {
+  background: hsl(var(--background));
+}
+
+.dashboard-main::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 65% 50% at 90% 15%, hsl(210 100% 50% / 0.07), transparent),
+    radial-gradient(ellipse 50% 40% at 10% 85%, hsl(260 80% 60% / 0.05), transparent);
+}
+
+.dark .dashboard-main::before {
+  background:
+    radial-gradient(ellipse 65% 50% at 90% 15%, hsl(200 100% 50% / 0.1), transparent),
+    radial-gradient(ellipse 50% 40% at 10% 85%, hsl(270 70% 55% / 0.07), transparent);
 } 

@@ -34,11 +34,11 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   };
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center rounded-md text-sm transition-colors min-h-10 ${
+    `flex items-center rounded-lg text-sm transition-colors min-h-10 ${
       collapsed ? 'md:justify-center md:px-2 md:py-2.5' : 'gap-3 px-3 py-2'
     } ${
       isActive
-        ? 'bg-primary/10 text-foreground font-medium'
+        ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300 font-medium'
         : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
     }`;
 
@@ -60,7 +60,10 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             collapsed ? 'md:justify-center justify-between gap-2 mb-3' : 'justify-between gap-2 mb-3'
           }`}
         >
-          <span className={`text-lg font-bold tracking-tight ${collapsed ? 'md:hidden' : ''}`}>
+          <span className={`flex items-center gap-2 text-lg font-bold tracking-tight ${collapsed ? 'md:hidden' : ''}`}>
+            <span className="w-7 h-7 rounded-lg bg-sky-500/15 flex items-center justify-center shrink-0">
+              <i className="fas fa-envelope text-xs text-sky-600 dark:text-sky-400" />
+            </span>
             zMailR
           </span>
           <button
@@ -84,7 +87,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         </div>
         <div className={`flex items-center ${collapsed ? 'md:justify-center gap-3' : 'gap-3'}`}>
           <div
-            className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-semibold shrink-0"
+            className="w-10 h-10 rounded-full bg-sky-500/15 ring-2 ring-sky-500/20 flex items-center justify-center text-sm font-semibold text-sky-700 dark:text-sky-300 shrink-0"
             title={user?.username}
           >
             {initial}
