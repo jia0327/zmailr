@@ -31,6 +31,7 @@ export {
 export const REGISTRATION_CODE_TTL_SEC = 3 * 60;
 export const REGISTRATION_MAX_VERIFY_ATTEMPTS = 5;
 export const REGISTRATION_MIN_PASSWORD_LENGTH = 8;
+export const REGISTRATION_DAILY_SEND_QUOTA = 10;
 
 export function validateRegistrationPassword(password: string): string | null {
   if (!password || password.length < REGISTRATION_MIN_PASSWORD_LENGTH) {
@@ -206,6 +207,7 @@ export async function verifyRegistrationCode(
     username: email,
     password: '__pending__',
     role: 'user',
+    dailySendQuota: REGISTRATION_DAILY_SEND_QUOTA,
   });
 
   await db
