@@ -1,6 +1,6 @@
 # API 参考
 
-> [API 概览](./api-overview.md) · [脚本接入](./scripting.md) · [错误码与限制](./errors.md) · [MCP 工具参考](./mcp-tools.md)
+> [API 概览](./api-overview.md) · [脚本接入](./scripting.md) · [错误码与限流](./errors.md) · [MCP 工具参考](./mcp-tools.md)
 
 逐端点参数、返回字段与 curl 示例。核心接口选型与典型流程 → [API 概览](./api-overview.md)。可运行代码模板 → [脚本接入](./scripting.md)。
 
@@ -11,11 +11,11 @@
 | 项 | 说明 |
 |----|------|
 | **Base URL** | <SiteOrigin />（无尾部 `/`） |
-| **鉴权** | `Authorization: Bearer <token>`；创建与 Scope → [认证与 Token](./user-auth.md) |
+| **鉴权** | `Authorization: Bearer <token>`；创建与 Scope → [认证说明](./user-auth.md) |
 | **Content-Type** | 带 Body 的请求使用 `application/json` |
 | **响应包络** | 成功：`{ "success": true, ... }`；失败：`{ "success": false, "error": "<code>", "message?": "<human>" }` |
 
-Token Scope 与 Bearer 鉴权 → [认证与 Token](./user-auth.md#token-scope)。统一错误码与速率限制 → [错误码与限制](./errors.md)。
+Token Scope 与 Bearer 鉴权 → [认证说明](./user-auth.md#token-scope)。统一错误码与速率限制 → [错误码与限流](./errors.md)。
 
 ### 路径参数 `address`
 
@@ -289,7 +289,7 @@ curl -X POST '{baseUrl}/api/lease' \
 | `404` | `邮箱不存在或已过期` | 邮箱无效 |
 | `403` | `无权访问该邮箱` | 非本人邮箱 |
 | `408` | `timeout` | 等待超时，可重试 |
-| `401` / `403` | 见 [错误码与限制](./errors.md) | 鉴权/scope |
+| `401` / `403` | 见 [错误码与限流](./errors.md) | 鉴权/scope |
 
 #### 完整调用示例
 
@@ -920,7 +920,7 @@ curl -X GET '{baseUrl}/api/user/quota' \
 
 ---
 
-典型调用流程 → [API 概览 · 典型调用流程](./api-overview.md#典型调用流程)。错误码与速率限制 → [错误码与限制](./errors.md)。MCP 工具参数 → [MCP 工具参考](./mcp-tools.md)。
+典型调用流程 → [API 概览 · 典型调用流程](./api-overview.md#典型调用流程)。错误码与速率限制 → [错误码与限流](./errors.md)。MCP 工具参数 → [MCP 工具参考](./mcp-tools.md)。
 
 ## OpenAPI
 

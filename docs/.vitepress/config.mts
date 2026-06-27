@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitepress';
 
-/** Published on /docs/ — script/MCP focused. Admin/deploy etc. remain in repo for GitHub only. */
+/** Published on /docs/ — Tencent Cloud-style tutorials + API/MCP reference. */
 const unpublished = [
   'admin-guide.md',
   'api-interactive.md',
@@ -15,7 +15,7 @@ const unpublished = [
 export default defineConfig({
   lang: 'zh-CN',
   title: 'zMailR 文档',
-  description: '临时邮箱与 OTP 自动化 — 快速开始、API、MCP',
+  description: '临时邮箱与 OTP 自动化 — 快速入门、API、MCP',
   base: '/docs/',
   outDir: '../frontend/public/docs',
   cleanUrls: true,
@@ -51,27 +51,36 @@ export default defineConfig({
 
     sidebar: [
       {
-        text: '入门',
+        text: '快速入门',
         items: [
-          { text: '快速开始', link: '/' },
-          { text: '认证与 Token', link: '/user-auth' },
-          { text: '错误码与限制', link: '/errors' },
+          { text: '文档首页', link: '/' },
+          { text: '产品概述', link: '/overview' },
+          { text: '5 分钟体验', link: '/quickstart-5min' },
+          { text: '创建 API 密钥', link: '/create-api-key' },
+          { text: '第一个脚本', link: '/first-script' },
         ],
       },
       {
-        text: 'API',
+        text: 'API 文档',
         items: [
           { text: 'API 概览', link: '/api-overview' },
-          { text: 'API 参考', link: '/api' },
+          { text: '认证说明', link: '/user-auth' },
           { text: '脚本接入', link: '/scripting' },
-          { text: 'OpenAPI', link: '../../openapi.json', target: '_blank' },
+          { text: 'API 参考', link: '/api' },
+          { text: '错误码与限流', link: '/errors' },
         ],
       },
       {
-        text: 'MCP',
+        text: 'MCP 文档',
         items: [
           { text: 'MCP 快速接入', link: '/mcp' },
           { text: 'MCP 工具参考', link: '/mcp-tools' },
+        ],
+      },
+      {
+        text: '参考',
+        items: [
+          { text: 'OpenAPI', link: '../../openapi.json', target: '_blank' },
         ],
       },
     ],

@@ -237,4 +237,13 @@ Brevo 出站发信。对应 `POST /api/send`。
 | `send_email` | `send` |
 | `get_quota` | 任意 |
 
-Scope 不足时 REST 返回 `403` + `缺少 xxx 权限`。详见 [认证与 Token](./user-auth.md#token-scope)。
+Scope 不足时 REST 返回 `403` + `缺少 xxx 权限`。详见 [认证说明](./user-auth.md#token-scope)。
+
+---
+
+## 下一步
+
+| 目标 | 文档 |
+|------|------|
+| 配置 Cursor | [MCP 快速接入](./mcp.md) |
+| REST 端点详情 | [API 参考](./api.md) |

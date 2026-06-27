@@ -1,8 +1,10 @@
 # 脚本接入
 
-> [快速开始](./) · [API 概览](./api-overview.md) · [错误码与限制](./errors.md)
+> [第一个脚本](./first-script.md) · [API 概览](./api-overview.md) · [错误码与限流](./errors.md)
 
-Python、Node.js、curl 模板与环境变量约定。接口语义见 [API 参考](./api.md)。
+Python、Node.js、curl **可复用模板**与环境变量约定。若尚未跑通首次调用，请先完成 [第一个脚本](./first-script.md)。
+
+接口语义见 [API 参考](./api.md)。
 
 ---
 
@@ -15,7 +17,7 @@ export ZMAILR_BASE_URL="https://your-domain"   # 本实例：<SiteOrigin />
 export ZMAILR_TOKEN="your-bearer-token"
 ```
 
-Token 创建与 Scope → [认证与 Token](./user-auth.md)。
+Token 创建与 Scope → [创建 API 密钥](./create-api-key.md)。
 
 ---
 
@@ -178,12 +180,14 @@ elif not r.ok:
     raise RuntimeError(r.json())
 ```
 
-完整错误表与限流规则 → [错误码与限制](./errors.md)。
+完整错误表与限流规则 → [错误码与限流](./errors.md)。
 
 ---
 
-## 相关文档
+## 下一步
 
-- [API 概览](./api-overview.md) — 选型与核心接口
-- [API 参考](./api.md) — 逐端点参数与返回
-- [MCP 快速接入](./mcp.md) — Agent 无需手写 HTTP
+| 目标 | 文档 |
+|------|------|
+| 查全部端点 | [API 参考](./api.md) |
+| 401 / 429 处理 | [错误码与限流](./errors.md) |
+| Cursor 免手写 HTTP | [MCP 快速接入](./mcp.md) |

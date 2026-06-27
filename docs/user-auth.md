@@ -1,35 +1,10 @@
-# 认证与 Token
+# 认证说明
 
-> [快速开始](./) · [API 参考](./api.md) · [MCP 快速接入](./mcp.md)
+> [创建 API 密钥](./create-api-key.md) · [API 参考](./api.md) · [错误码与限流](./errors.md)
 
 zMailR **不支持匿名 API**。脚本、CI、MCP 均通过 **Bearer Token** 调用程序化接口；Web Dashboard 使用 Session Cookie。
 
----
-
-## 创建 API Token
-
-1. <SiteLink to="/login">登录</SiteLink>（演示账号 `guest` / `guest`）
-2. 打开 <SiteLink to="/dashboard/api-keys">API 密钥</SiteLink> → 新建 Token
-3. 勾选所需 **Scope**（收 OTP 至少 **`lease` + `mail`**）
-4. 复制明文 Token（**只显示一次**）
-
-也可通过 API 创建（需已登录 Session）：
-
-```http
-POST /api/user/tokens
-Cookie: zmail_user_session=...
-
-{"name": "my-script", "expiresInDays": 30, "scopes": ["lease", "mail", "send"]}
-```
-
-### Token 格式与限制
-
-| 项 | 说明 |
-|----|------|
-| 格式 | `zmr_` 前缀 + 64 位十六进制（旧版无前缀 Token 过期前仍可用） |
-| 存储 | 服务端仅存 SHA-256 哈希；明文仅在创建时返回 |
-| 数量 | 每位用户最多 **3 个** Token |
-| 用量 | 列表含 `last_used_at`（API 使用时最多每小时更新） |
+创建 Token 的图文步骤 → [创建 API 密钥](./create-api-key.md)
 
 ---
 
@@ -63,7 +38,27 @@ Base URL：<SiteOrigin />（无尾部 `/`）。
 | 出站发信测试 | 再加 `send` |
 | 仅查配额 | 任意已登录 Token |
 
-Scope 不足时返回 `403` + `缺少 xxx 权限` → [错误码与限制](./errors.md)。
+Scope 不足时返回 `403` + `缺少 xxx 权限` → [错误码与限流](./errors.md)
+
+---
+
+## Token 格式与限制
+
+| 项 | 说明 |
+|----|------|
+| 格式 | `zmr_` 前缀 + 64 位十六进制（旧版无前缀 Token 过期前仍可用） |
+| 存储 | 服务端仅存 SHA-256 哈希；明文仅在创建时返回 |
+| 数量 | 每位用户最多 **3 个** Token |
+| 用量 | 列表含 `last_used_at`（API 使用时最多每小时更新） |
+
+也可通过 API 创建（需已登录 Session）：
+
+```http
+POST /api/user/tokens
+Cookie: zmail_user_session=...
+
+{"name": "my-script", "expiresInDays": 30, "scopes": ["lease", "mail", "send"]}
+```
 
 ---
 
@@ -76,19 +71,7 @@ GET /api/user/quota
 Authorization: Bearer <user-token>
 ```
 
-有限配额响应示例：
-
-```json
-{
-  "success": true,
-  "dailySendQuota": 50,
-  "sentToday": 10,
-  "remaining": 40,
-  "unlimited": false
-}
-```
-
-配额与速率限制详情 → [错误码与限制](./errors.md)。
+配额与速率限制详情 → [错误码与限流](./errors.md)
 
 ---
 
@@ -124,12 +107,14 @@ MCP 通过环境变量传入同一 Bearer Token：
 | `ZMAILR_BASE_URL` | 实例根 URL |
 | `ZMAILR_TOKEN` | Bearer Token |
 
-配置步骤 → [MCP 快速接入](./mcp.md)。
+配置步骤 → [MCP 快速接入](./mcp.md)
 
 ---
 
-## 相关文档
+## 下一步
 
-- [错误码与限制](./errors.md) — 401/403 处理与限流
-- [脚本接入](./scripting.md) — 环境变量与代码模板
-- [API 概览](./api-overview.md) — 接口选型
+| 目标 | 文档 |
+|------|------|
+| 写自动化脚本 | [第一个脚本](./first-script.md) |
+| 完整代码模板 | [脚本接入](./scripting.md) |
+| 查 REST 端点 | [API 参考](./api.md) |

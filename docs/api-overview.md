@@ -1,6 +1,6 @@
 # API 概览
 
-> [快速开始](./) · [API 参考](./api.md) · [脚本接入](./scripting.md) · [MCP](./mcp.md)
+> [产品概述](./overview.md) · [API 参考](./api.md) · [第一个脚本](./first-script.md)
 
 面向 **脚本与自动化**：说明核心接口做什么、何时用哪个、REST 长轮询 vs 即时查询的区别。逐条参数与返回字段见 [API 参考](./api.md)。
 
@@ -64,9 +64,9 @@ POST /api/lease  →  目标站点填写 email  →  GET /api/mail 或循环 lat
 | 项 | 说明 |
 |----|------|
 | **Base URL** | <SiteOrigin />（无尾部 `/`） |
-| **鉴权** | `Authorization: Bearer <token>`；创建方式 → [认证与 Token](./user-auth.md) |
+| **鉴权** | `Authorization: Bearer <token>`；创建方式 → [认证说明](./user-auth.md) |
 | **Content-Type** | 带 Body 的请求使用 `application/json` |
-| **响应包络** | 成功：`{ "success": true, ... }`；失败见 [错误码与限制](./errors.md) |
+| **响应包络** | 成功：`{ "success": true, ... }`；失败见 [错误码与限流](./errors.md) |
 
 ### Token Scope 速查
 
@@ -76,7 +76,7 @@ POST /api/lease  →  目标站点填写 email  →  GET /api/mail 或循环 lat
 | `mail` | 读信、邮箱列表/删除、`GET /api/mail` 等 |
 | `send` | `POST /api/send` |
 
-收 OTP 至少勾选 **`lease` + `mail`**。详情 → [认证与 Token](./user-auth.md#token-scope)。
+收 OTP 至少勾选 **`lease` + `mail`**。详情 → [认证说明 · Token Scope](./user-auth.md#token-scope)。
 
 ### 路径参数 `address`
 
@@ -113,3 +113,13 @@ curl -G '{baseUrl}/api/mail' \
 | 交互式文档 | <SiteLink to="/api-docs">/api-docs</SiteLink> |
 
 构建时由 `scripts/generate-openapi.ts` 生成；字段 Schema 以 OpenAPI 为准。
+
+---
+
+## 下一步
+
+| 目标 | 文档 |
+|------|------|
+| 写第一个脚本 | [第一个脚本](./first-script.md) |
+| 逐端点参数 | [API 参考](./api.md) |
+| Agent 接入 | [MCP 快速接入](./mcp.md) |
