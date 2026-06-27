@@ -5,19 +5,30 @@ import './custom.css';
 const VP_THEME_KEY = 'vitepress-theme-appearance';
 const APP_THEME_KEY = 'theme';
 
-function syncThemeKeys() {
+type ThemeMode = 'dark' | 'light';
+
+function resolveTheme(): ThemeMode {
   const appTheme = localStorage.getItem(APP_THEME_KEY);
   if (appTheme === 'dark' || appTheme === 'light') {
-    localStorage.setItem(VP_THEME_KEY, appTheme);
-    return;
+    return appTheme;
   }
   const vpTheme = localStorage.getItem(VP_THEME_KEY);
   if (vpTheme === 'dark' || vpTheme === 'light') {
-    localStorage.setItem(APP_THEME_KEY, vpTheme);
-    return;
+    return vpTheme;
   }
-  localStorage.setItem(APP_THEME_KEY, 'dark');
-  localStorage.setItem(VP_THEME_KEY, 'dark');
+  return 'dark';
+}
+
+function applyTheme(mode: ThemeMode) {
+  const root = document.documentElement;
+  root.classList.remove('dark', 'light');
+  root.classList.add(mode);
+  localStorage.setItem(APP_THEME_KEY, mode);
+  localStorage.setItem(VP_THEME_KEY, mode);
+}
+
+function syncThemeKeys() {
+  applyTheme(resolveTheme());
 }
 
 export default {

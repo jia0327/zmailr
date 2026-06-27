@@ -1,14 +1,26 @@
+/* Brand colors — shared */
 :root {
   --vp-c-brand-1: #0284c7;
   --vp-c-brand-2: #0ea5e9;
   --vp-c-brand-3: #38bdf8;
   --vp-c-brand-soft: rgba(14, 165, 233, 0.12);
+}
 
-  --vp-c-bg: #f4f8fc;
+/* Light mode only — do NOT put these on :root or they leak into .dark */
+html:not(.dark) {
+  --vp-c-bg: #f8fafc;
   --vp-c-bg-soft: #f0f9ff;
-  --vp-c-bg-alt: #e0f2fe;
-  --vp-c-divider: #bae6fd;
-  --vp-c-gutter: #e0f2fe;
+  --vp-c-bg-alt: #e2e8f0;
+  --vp-c-divider: #cbd5e1;
+  --vp-c-gutter: #e2e8f0;
+
+  --vp-c-text-1: rgba(15, 23, 42, 0.92);
+  --vp-c-text-2: rgba(15, 23, 42, 0.72);
+  --vp-c-text-3: rgba(15, 23, 42, 0.52);
+
+  --vp-c-bg-elv: #ffffff;
+  --vp-c-bg-elv-up: #ffffff;
+  --vp-c-bg-elv-down: #f1f5f9;
 }
 
 .dark {
@@ -16,6 +28,20 @@
   --vp-c-brand-2: #0ea5e9;
   --vp-c-brand-3: #0284c7;
   --vp-c-brand-soft: rgba(14, 165, 233, 0.16);
+
+  --vp-c-bg: #0c0a09;
+  --vp-c-bg-soft: #1c1917;
+  --vp-c-bg-alt: #292524;
+  --vp-c-divider: #3f3f46;
+  --vp-c-gutter: #1c1917;
+
+  --vp-c-text-1: rgba(248, 250, 252, 0.95);
+  --vp-c-text-2: rgba(248, 250, 252, 0.72);
+  --vp-c-text-3: rgba(248, 250, 252, 0.52);
+
+  --vp-c-bg-elv: #1c1917;
+  --vp-c-bg-elv-up: #292524;
+  --vp-c-bg-elv-down: #0c0a09;
 }
 
 /* Subtle sky glow behind doc content in light mode */
@@ -26,8 +52,8 @@ html:not(.dark) .VPContent::before {
   pointer-events: none;
   z-index: -1;
   background:
-    radial-gradient(ellipse 60% 45% at 85% 10%, rgba(14, 165, 233, 0.14), transparent),
-    radial-gradient(ellipse 50% 40% at 10% 90%, rgba(168, 85, 247, 0.06), transparent);
+    radial-gradient(ellipse 60% 45% at 85% 10%, rgba(14, 165, 233, 0.1), transparent),
+    radial-gradient(ellipse 50% 40% at 10% 90%, rgba(168, 85, 247, 0.05), transparent);
 }
 
 /* Homepage hero tagline */
@@ -37,8 +63,13 @@ html:not(.dark) .VPContent::before {
   border-radius: 12px;
   background: linear-gradient(135deg, var(--vp-c-bg-soft) 0%, var(--vp-c-brand-soft) 100%);
   border: 1px solid var(--vp-c-divider);
+  color: var(--vp-c-text-1);
   line-height: 1.7;
   box-shadow: 0 4px 24px rgba(14, 165, 233, 0.08);
+}
+
+html:not(.dark) .zmailr-hero {
+  color: rgba(15, 23, 42, 0.9);
 }
 
 .dark .zmailr-hero {
@@ -56,8 +87,13 @@ html:not(.dark) .VPContent::before {
   border-radius: 12px;
   border-left: 4px solid var(--vp-c-brand-1);
   background: linear-gradient(90deg, var(--vp-c-brand-soft), var(--vp-c-bg-soft));
+  color: var(--vp-c-text-1);
   line-height: 1.7;
   box-shadow: 0 2px 12px rgba(14, 165, 233, 0.06);
+}
+
+html:not(.dark) .zmailr-callout {
+  color: rgba(15, 23, 42, 0.88);
 }
 
 .dark .zmailr-callout {

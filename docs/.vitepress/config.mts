@@ -22,7 +22,7 @@ export default defineConfig({
     [
       'script',
       {},
-      `(function(){try{var k='theme',v='vitepress-theme-appearance',a=localStorage.getItem(k);if(a==='dark'||a==='light'){localStorage.setItem(v,a);return}var p=localStorage.getItem(v);if(p==='dark'||p==='light'){localStorage.setItem(k,p);return}localStorage.setItem(k,'dark');localStorage.setItem(v,'dark')}catch(e){}})();`,
+      `(function(){try{var k='theme',v='vitepress-theme-appearance',a=localStorage.getItem(k),t=a;if(a!=='dark'&&a!=='light'){var p=localStorage.getItem(v);t=(p==='dark'||p==='light')?p:'dark';localStorage.setItem(k,t);localStorage.setItem(v,t)}document.documentElement.classList.remove('dark','light');document.documentElement.classList.add(t)}catch(e){}})();`,
     ],
   ],
   themeConfig: {
