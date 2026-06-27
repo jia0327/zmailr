@@ -25,6 +25,7 @@ export {
   DEFAULT_REGISTRATION_EMAIL_DOMAIN,
   buildRegistrationEmail,
   validateRegistrationLocalPart,
+  isAllowedRegistrationDomain,
 } from './registration-domains';
 
 export const REGISTRATION_CODE_TTL_SEC = 3 * 60;
