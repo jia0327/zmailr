@@ -1022,13 +1022,15 @@ app.post('/api/user/mailboxes', async (c) => {
     }
 
     const defaultDomain = await resolveDefaultMailDomain(c.env.DB, c.env);
-    let mailDomain = defaultDomain;
+    let mailDomain: string;
     if (body.domain != null && String(body.domain).trim()) {
       const domainCheck = await assertEnabledMailDomain(c.env.DB, c.env, String(body.domain));
       if (!domainCheck.ok) {
         return c.json({ success: false, error: domainCheck.error }, 400);
       }
       mailDomain = domainCheck.domain;
+    } else {
+      mailDomain = await resolveRandomMailDomain(c.env.DB, c.env);
     }
 
     const ip = getClientIp(c.req.raw);

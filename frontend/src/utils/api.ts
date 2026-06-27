@@ -9,6 +9,7 @@ export interface UserMailboxItem {
   id: string;
   address: string;
   email?: string;
+  mailDomain?: string | null;
   createdAt: number;
   expiresAt: number;
   ipAddress: string;

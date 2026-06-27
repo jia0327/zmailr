@@ -1,31 +1,27 @@
 import type { ApiEndpointDef } from './apiDebugEndpoints';
 import { getLastLease } from './apiLeaseSession';
 import { getUserMailboxes } from './api';
-import { getDefaultEmailDomain } from '../config';
+import { formatMailboxDisplayEmail, getMailboxDomain, getMailboxLocalPart } from './mailbox';
 
 export interface MailboxDefaults {
   localPart: string;
   fullEmail: string;
 }
 
-function fullAddress(localPart: string, domain: string, email?: string): string {
-  if (email?.includes('@')) return email;
-  return `${localPart}@${domain}`;
-}
-
 export async function resolveMailboxDefaults(
   userId: number,
   contextLocalPart?: string | null
 ): Promise<MailboxDefaults | null> {
-  const domain = await getDefaultEmailDomain();
   let localPart: string | null = contextLocalPart?.trim() || null;
+  let mailDomain: string | undefined;
   let email: string | undefined;
 
   if (!localPart) {
     const result = await getUserMailboxes();
     if (result.success && result.mailboxes.length > 0) {
       const first = result.mailboxes[0];
-      localPart = first.address;
+      localPart = getMailboxLocalPart(first.address);
+      mailDomain = getMailboxDomain(first);
       email = first.email;
     }
   }
@@ -33,16 +29,22 @@ export async function resolveMailboxDefaults(
   if (!localPart) {
     const lease = getLastLease(userId);
     if (lease) {
-      localPart = lease.address;
+      localPart = getMailboxLocalPart(lease.address);
       email = lease.email;
     }
   }
 
   if (!localPart) return null;
 
+  const fullEmail = formatMailboxDisplayEmail({
+    address: localPart,
+    mailDomain,
+    email,
+  });
+
   return {
     localPart,
-    fullEmail: fullAddress(localPart, domain, email),
+    fullEmail,
   };
 }
 

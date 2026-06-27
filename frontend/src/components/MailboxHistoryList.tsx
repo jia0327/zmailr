@@ -5,18 +5,23 @@ import {
   deleteMailbox as apiDeleteMailbox,
   UserMailboxItem,
 } from '../utils/api';
-import { getDefaultEmailDomain, DEFAULT_EMAIL_DOMAIN } from '../config';
 import { formatMailboxTimeLeft } from '../utils/mailboxTime';
 import ListPagination, { HISTORY_PAGE_SIZE } from './ListPagination';
+import {
+  formatMailboxDisplayEmail,
+  getMailboxLocalPart,
+  isSameMailbox,
+  mailboxIdentityKey,
+} from '../utils/mailbox';
 
 interface MailboxHistoryListProps {
-  activeAddress?: string;
+  activeMailbox?: Mailbox | null;
   onSelect: (mailbox: UserMailboxItem) => void;
-  onDeleted?: (address: string) => void;
+  onDeleted?: (mailbox: UserMailboxItem) => void;
 }
 
 const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
-  activeAddress,
+  activeMailbox,
   onSelect,
   onDeleted,
 }) => {
@@ -27,7 +32,6 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [domain, setDomain] = useState(DEFAULT_EMAIL_DOMAIN);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
 
@@ -51,10 +55,6 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
   };
 
   useEffect(() => {
-    getDefaultEmailDomain().then(setDomain).catch(() => {});
-  }, []);
-
-  useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(searchInput.trim());
       setPage(1);
@@ -69,30 +69,30 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
   const fmtTime = (ts: number) =>
     new Date(ts > 1e12 ? ts : ts * 1000).toLocaleString();
 
-  const toggleSelect = (address: string) => {
+  const toggleSelect = (key: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(address)) next.delete(address);
-      else next.add(address);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   };
 
-  const pageAddresses = mailboxes.map((m) => m.address);
+  const pageKeys = mailboxes.map((m) => mailboxIdentityKey(m));
   const allPageSelected =
-    pageAddresses.length > 0 && pageAddresses.every((address) => selected.has(address));
+    pageKeys.length > 0 && pageKeys.every((key) => selected.has(key));
 
   const toggleSelectAll = () => {
     if (allPageSelected) {
       setSelected((prev) => {
         const next = new Set(prev);
-        pageAddresses.forEach((address) => next.delete(address));
+        pageKeys.forEach((key) => next.delete(key));
         return next;
       });
     } else {
       setSelected((prev) => {
         const next = new Set(prev);
-        pageAddresses.forEach((address) => next.add(address));
+        pageKeys.forEach((key) => next.add(key));
         return next;
       });
     }
@@ -102,19 +102,21 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
     if (selected.size === 0) return;
     if (!confirm(t('history.confirmDeleteMailboxes', { count: selected.size }))) return;
     setBusy(true);
-    for (const address of selected) {
-      await apiDeleteMailbox(address);
-      onDeleted?.(address);
+    for (const mb of mailboxes) {
+      const key = mailboxIdentityKey(mb);
+      if (!selected.has(key)) continue;
+      await apiDeleteMailbox(getMailboxLocalPart(mb.address));
+      onDeleted?.(mb);
     }
     await load(page, search);
     setBusy(false);
   };
 
-  const handleDeleteOne = async (address: string) => {
+  const handleDeleteOne = async (mb: UserMailboxItem) => {
     if (!confirm(t('mailbox.confirmDeleteMailbox'))) return;
     setBusy(true);
-    await apiDeleteMailbox(address);
-    onDeleted?.(address);
+    await apiDeleteMailbox(getMailboxLocalPart(mb.address));
+    onDeleted?.(mb);
     await load(page, search);
     setBusy(false);
   };
@@ -174,19 +176,20 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
           </div>
           <div className="divide-y">
             {mailboxes.map((mb) => {
-              const full = mb.email || `${mb.address}@${domain}`;
-              const isActive = activeAddress === mb.address;
+              const key = mailboxIdentityKey(mb);
+              const full = formatMailboxDisplayEmail(mb);
+              const isActive = activeMailbox ? isSameMailbox(mb, activeMailbox) : false;
               return (
                 <div
-                  key={mb.id}
+                  key={key}
                   className={`px-4 py-3 grid sm:grid-cols-[auto_1fr_auto_auto] gap-2 items-center text-sm ${
                     isActive ? 'bg-primary/5' : 'hover:bg-muted/30'
                   }`}
                 >
                   <input
                     type="checkbox"
-                    checked={selected.has(mb.address)}
-                    onChange={() => toggleSelect(mb.address)}
+                    checked={selected.has(key)}
+                    onChange={() => toggleSelect(key)}
                     className="rounded"
                   />
                   <button
@@ -203,7 +206,7 @@ const MailboxHistoryList: React.FC<MailboxHistoryListProps> = ({
                       {formatMailboxTimeLeft(mb.expiresAt, t, { later: true })}
                     </span>
                     <button
-                      onClick={() => handleDeleteOne(mb.address)}
+                      onClick={() => handleDeleteOne(mb)}
                       disabled={busy}
                       className="text-muted-foreground hover:text-destructive p-2 min-w-8 min-h-8"
                       title={t('common.delete')}

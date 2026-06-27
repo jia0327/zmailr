@@ -5,6 +5,7 @@ import { formatMailboxEmail } from '../config';
 import MailboxSwitcher from './MailboxSwitcher';
 import { MailboxContext } from '../contexts/MailboxContext';
 import { copyTextToClipboard } from '../utils/clipboard';
+import { getMailboxLocalPart, pickRandomDomain } from '../utils/mailbox';
 
 interface HeaderMailboxProps {
   mailbox: Mailbox | null;
@@ -41,8 +42,9 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
 
   if (!mailbox || isLoading) return null;
 
+  const localPart = getMailboxLocalPart(mailbox.address);
   const fullAddress = formatMailboxEmail(
-    { ...mailbox, mailDomain: selectedDomain },
+    { ...mailbox, address: localPart, mailDomain: selectedDomain },
     domain
   );
 
@@ -53,8 +55,10 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
   };
 
   const handleRefreshMailbox = async () => {
+    const nextDomain =
+      domains.length > 1 ? pickRandomDomain(domains) : selectedDomain;
     setIsActionLoading(true);
-    const result = await createUserMailbox(undefined, selectedDomain);
+    const result = await createUserMailbox(undefined, nextDomain);
     setIsActionLoading(false);
 
     if (result.success && result.mailbox) {
@@ -69,13 +73,14 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
     e.preventDefault();
     setCustomAddressError(null);
 
-    if (!customAddress.trim()) {
+    const prefix = getMailboxLocalPart(customAddress.trim());
+    if (!prefix) {
       setCustomAddressError(t('mailbox.invalidAddress'));
       return;
     }
 
     setIsActionLoading(true);
-    const result = await createUserMailbox(customAddress.trim(), selectedDomain);
+    const result = await createUserMailbox(prefix, selectedDomain);
     setIsActionLoading(false);
 
     if (result.success && result.mailbox) {
@@ -105,7 +110,7 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
     const nextDomain = e.target.value;
     setSelectedDomain(nextDomain);
     setIsActionLoading(true);
-    const result = await updateUserMailboxDomain(mailbox.address, nextDomain);
+    const result = await updateUserMailboxDomain(localPart, nextDomain);
     setIsActionLoading(false);
     if (result.success && result.mailbox) {
       onMailboxChange(result.mailbox);
@@ -181,7 +186,7 @@ const HeaderMailbox: React.FC<HeaderMailboxProps> = ({
       <div className="flex flex-1 min-w-0 items-stretch border rounded-md bg-background overflow-hidden">
         <div className="flex-1 min-w-0 flex items-center px-3 py-2.5 overflow-hidden">
           <span className="font-mono text-base sm:text-lg font-medium truncate select-all">
-            {mailbox.address}@
+            {localPart}@
             <span className="relative inline-block">
               <select
                 value={selectedDomain}

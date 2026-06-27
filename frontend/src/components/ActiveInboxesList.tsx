@@ -1,23 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getUserMailboxes, deleteMailbox as apiDeleteMailbox, UserMailboxItem } from '../utils/api';
-import { getDefaultEmailDomain, DEFAULT_EMAIL_DOMAIN } from '../config';
+import {
+  formatMailboxDisplayEmail,
+  getMailboxLocalPart,
+  isSameMailbox,
+  userMailboxItemToMailbox,
+} from '../utils/mailbox';
 
 interface ActiveInboxesListProps {
-  activeAddress?: string;
+  activeMailbox?: Mailbox | null;
   onSelect: (mailbox: UserMailboxItem) => void;
   onRefresh?: () => void;
 }
 
 const ActiveInboxesList: React.FC<ActiveInboxesListProps> = ({
-  activeAddress,
+  activeMailbox,
   onSelect,
   onRefresh,
 }) => {
   const { t } = useTranslation();
   const [mailboxes, setMailboxes] = useState<UserMailboxItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [domain, setDomain] = useState(DEFAULT_EMAIL_DOMAIN);
 
   const load = async () => {
     setLoading(true);
@@ -28,7 +32,6 @@ const ActiveInboxesList: React.FC<ActiveInboxesListProps> = ({
 
   useEffect(() => {
     load();
-    getDefaultEmailDomain().then(setDomain).catch(() => {});
   }, []);
 
   const fmtExpiry = (expiresAt: number) => {
@@ -41,9 +44,9 @@ const ActiveInboxesList: React.FC<ActiveInboxesListProps> = ({
     return t('mailbox.expiresInMinutes', { minutes });
   };
 
-  const handleDelete = async (address: string) => {
+  const handleDelete = async (mb: UserMailboxItem) => {
     if (!confirm(t('mailbox.confirmDelete'))) return;
-    await apiDeleteMailbox(address);
+    await apiDeleteMailbox(getMailboxLocalPart(mb.address));
     await load();
     onRefresh?.();
   };
@@ -67,11 +70,13 @@ const ActiveInboxesList: React.FC<ActiveInboxesListProps> = ({
       ) : (
         <div className="divide-y max-h-64 overflow-y-auto">
           {mailboxes.map((mb) => {
-            const full = mb.email || `${mb.address}@${domain}`;
-            const isActive = activeAddress === mb.address;
+            const full = formatMailboxDisplayEmail(mb);
+            const isActive = activeMailbox
+              ? isSameMailbox(userMailboxItemToMailbox(mb), activeMailbox)
+              : false;
             return (
               <div
-                key={mb.id}
+                key={full}
                 className={`px-4 py-3 flex items-center gap-3 text-sm ${
                   isActive ? 'bg-primary/5' : 'hover:bg-muted/30'
                 }`}
@@ -84,7 +89,7 @@ const ActiveInboxesList: React.FC<ActiveInboxesListProps> = ({
                   <p className="text-xs text-muted-foreground mt-0.5">{fmtExpiry(mb.expiresAt)}</p>
                 </button>
                 <button
-                  onClick={() => handleDelete(mb.address)}
+                  onClick={() => handleDelete(mb)}
                   className="text-muted-foreground hover:text-destructive p-1"
                   title={t('common.delete')}
                 >

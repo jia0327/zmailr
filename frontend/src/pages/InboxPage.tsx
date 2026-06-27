@@ -8,6 +8,7 @@ import MailboxHistoryList from '../components/MailboxHistoryList';
 import { MailboxContext } from '../contexts/MailboxContext';
 import { getEmailDomains, getDefaultEmailDomain, EMAIL_DOMAINS, DEFAULT_EMAIL_DOMAIN } from '../config';
 import { UserMailboxItem } from '../utils/api';
+import { isSameMailbox, userMailboxItemToMailbox } from '../utils/mailbox';
 
 const InboxPage: React.FC = () => {
   const { t } = useTranslation();
@@ -53,18 +54,11 @@ const InboxPage: React.FC = () => {
   };
 
   const handleSelectHistoryMailbox = (mb: UserMailboxItem) => {
-    switchToMailbox({
-      id: mb.id,
-      address: mb.address,
-      createdAt: mb.createdAt,
-      expiresAt: mb.expiresAt,
-      ipAddress: mb.ipAddress,
-      lastAccessed: mb.lastAccessed,
-    });
+    switchToMailbox(userMailboxItemToMailbox(mb));
   };
 
-  const handleHistoryDeleted = (address: string) => {
-    if (mailbox?.address === address) {
+  const handleHistoryDeleted = (mb: UserMailboxItem) => {
+    if (mailbox && isSameMailbox(userMailboxItemToMailbox(mb), mailbox)) {
       createNewMailbox();
     }
   };
@@ -144,7 +138,7 @@ const InboxPage: React.FC = () => {
       />
 
       <MailboxHistoryList
-        activeAddress={mailbox?.address}
+        activeMailbox={mailbox}
         onSelect={handleSelectHistoryMailbox}
         onDeleted={handleHistoryDeleted}
       />

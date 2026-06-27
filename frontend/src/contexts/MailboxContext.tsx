@@ -7,10 +7,13 @@ import {
   removeMailboxFromLocalStorage,
   getEmails,
   deleteMailbox as apiDeleteMailbox,
-  UserMailboxItem,
 } from '../utils/api';
 import { useAuth } from './AuthContext';
 import { DEFAULT_AUTO_REFRESH, AUTO_REFRESH_INTERVAL, getDefaultEmailDomain, DEFAULT_EMAIL_DOMAIN } from '../config';
+import {
+  getMailboxLocalPart,
+  mailboxCacheKey,
+} from '../utils/mailbox';
 
 // 邮件详情缓存接口
 interface EmailCache {
@@ -196,7 +199,7 @@ export const MailboxProvider: React.FC<MailboxProviderProps> = ({ children }) =>
       setSuccessMessage(null);
 
       // 调用API删除邮箱
-      const result = await apiDeleteMailbox(mailbox.address);
+      const result = await apiDeleteMailbox(getMailboxLocalPart(mailbox.address));
 
       if (result.success) {
         // fix: 使用全局通知函数
@@ -310,9 +313,8 @@ export const MailboxProvider: React.FC<MailboxProviderProps> = ({ children }) =>
 
     // 保存到localStorage
     try {
-      const mailboxAddress = mailbox?.address;
-      if (mailboxAddress) {
-        const cacheKey = `emailCache_${mailboxAddress}`;
+      if (mailbox) {
+        const cacheKey = `emailCache_${mailboxCacheKey(mailbox)}`;
         const updatedCache = {
           ...emailCache,
           [emailId]: {
@@ -334,9 +336,8 @@ export const MailboxProvider: React.FC<MailboxProviderProps> = ({ children }) =>
 
     // 清除localStorage中的缓存
     try {
-      const mailboxAddress = mailbox?.address;
-      if (mailboxAddress) {
-        const cacheKey = `emailCache_${mailboxAddress}`;
+      if (mailbox) {
+        const cacheKey = `emailCache_${mailboxCacheKey(mailbox)}`;
         localStorage.removeItem(cacheKey);
       }
     } catch (error) {
@@ -349,7 +350,7 @@ export const MailboxProvider: React.FC<MailboxProviderProps> = ({ children }) =>
     if (!mailbox) return;
 
     try {
-      const cacheKey = `emailCache_${mailbox.address}`;
+      const cacheKey = `emailCache_${mailboxCacheKey(mailbox)}`;
       const cachedData = localStorage.getItem(cacheKey);
 
       if (cachedData) {
