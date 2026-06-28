@@ -515,6 +515,7 @@ export interface MailboxLatestEmailPreview {
   subject: string;
   extractedCode: string | null;
   receivedAt: number;
+  matchedRuleId: number | null;
 }
 
 export type MailboxListItem = Mailbox & {
@@ -567,7 +568,8 @@ export async function listMailboxesByUser(
   const latestEmailSelect = withLatestEmail
     ? `, (SELECT e.subject FROM emails e WHERE e.mailbox_id = m.id ORDER BY e.received_at DESC LIMIT 1) AS latest_email_subject
        , (SELECT e.extracted_code FROM emails e WHERE e.mailbox_id = m.id ORDER BY e.received_at DESC LIMIT 1) AS latest_email_extracted_code
-       , (SELECT e.received_at FROM emails e WHERE e.mailbox_id = m.id ORDER BY e.received_at DESC LIMIT 1) AS latest_email_received_at`
+       , (SELECT e.received_at FROM emails e WHERE e.mailbox_id = m.id ORDER BY e.received_at DESC LIMIT 1) AS latest_email_received_at
+       , (SELECT e.matched_rule_id FROM emails e WHERE e.mailbox_id = m.id ORDER BY e.received_at DESC LIMIT 1) AS latest_email_matched_rule_id`
     : '';
 
   const orderClause =
@@ -607,6 +609,7 @@ export async function listMailboxesByUser(
             subject: (record.latest_email_subject as string) ?? '',
             extractedCode: (record.latest_email_extracted_code as string | null) ?? null,
             receivedAt,
+            matchedRuleId: (record.latest_email_matched_rule_id as number | null) ?? null,
           },
         };
       })

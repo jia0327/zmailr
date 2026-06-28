@@ -9,6 +9,7 @@ export interface UserMailboxLatestEmail {
   subject: string;
   extractedCode: string | null;
   receivedAt: number;
+  matchedRuleId?: number | null;
 }
 
 export interface UserMailboxItem {
