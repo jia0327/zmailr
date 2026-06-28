@@ -96,14 +96,14 @@
 | `POST /api/auth/register/send-code`、`…/resend` | 同上前缀独立计数 + Turnstile（若启用） |
 | `POST /api/auth/password-reset/send-code`、`…/resend` | 同上 |
 | `POST /api/auth/register/verify`、`…/password-reset/verify` | 每 pending 记录最多 5 次验码；**无 Turnstile** |
-| `POST /{ADMIN_PATH}/login` | 同上（独立计数前缀 `admin-login`）；**无 Turnstile** |
+| `POST /{ADMIN_PATH}/login` | 同上（独立计数前缀 `admin-login`）；启用 Turnstile 时须带有效 token |
 
 ---
 
 ## Turnstile（人机验证）
 
 - 在管理后台 **系统设置** 配置 Site Key / Secret Key，或通过 Worker 环境变量 `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`（DB 优先）。
-- 启用后保护：**用户登录**、**注册/重置发码与重发**；验码步骤与**管理后台登录**不受 Turnstile 保护。
+- 启用后保护：**用户登录**、**管理后台登录**、**注册/重置发码与重发**；验码步骤不受 Turnstile 保护。
 - Secret Key 可存 D1 `system_settings`（管理后台保存）；生产更推荐仅通过 `wrangler secret` 注入。
 - 公钥经 `GET /api/config` 下发给 SPA；CSP 已允许 `https://challenges.cloudflare.com`（script + frame）。
 
@@ -161,7 +161,7 @@
 - 用户密码：PBKDF2-SHA256，10 万次迭代 + 随机 salt（常量时间比较）。**用户改密不会撤销已有 API Token**（与换账号不同；Token 仍有效直至过期或手动删除）。
 - 管理后台密码：同样 PBKDF2 哈希存储于 D1 `system_settings`；`ADMIN_PASSWORD` 环境变量仅在启动时同步哈希，改密后 bump `admin_session_version` 使旧 **管理 Cookie** 失效。
 - 用户 API Token：仅存 SHA-256 哈希；明文仅在创建时返回一次。
-- **Legacy 全局 API Token（`api_tokens` 表）已废弃**：启动时清除邮箱 `legacy_token_id` 并删除旧 Token；请使用 Dashboard **API 密钥**（`user_tokens`）。
+- **Legacy 全局 API Token（`api_tokens` 表）已移除**：启动时一次性清理旧表与 `legacy_token_id` 关联；请使用 Dashboard **API 密钥**（`user_tokens`）。
 - **管理后台**仅通过 `ADMIN_PASSWORD` + Session Cookie 认证，不再自动创建 `admin` 数据库用户。
 
 ---
@@ -193,7 +193,7 @@
 |-------------|------|------|
 | **api** | `/api/*`、`/openapi.json` | `default-src 'none'` |
 | **spa** | Dashboard 等 HTML（**不含** `/docs/*`） | `script-src 'self'` + Turnstile；`style-src 'unsafe-inline'` |
-| **admin** | 管理后台 HTML | `script-src 'self'`（外置 `admin.js`，无 inline script） |
+| **admin** | 管理后台 HTML | `script-src 'self'` + Turnstile；`style-src 'unsafe-inline'`（外置 `admin.js`，无 inline script） |
 | **none** | 静态 JS/CSS、VitePress `/docs/` | 仅基础头，无 CSP（文档站内联脚本） |
 
 管理后台脚本通过 `/{ADMIN_PATH}/admin.js` 加载；勿在 HTML 中恢复 inline `onclick` / `<script>`，否则 CSP 会拦截。
@@ -208,7 +208,7 @@
 | 前端 Token 缓存 | Dashboard 为「复制一次」将 Bearer 明文暂存于 `sessionStorage`；XSS 可读取，勿在不可信环境长期保留 |
 | 邮件 localStorage 缓存 | 前端可能缓存邮件正文与 `extractedCode`；共享设备存在泄露风险 |
 | 入站附件 | 入站 MIME 附件写入 R2/D1 前**无**与出站相同的 5MB 总量上限；恶意大附件可消耗存储 |
-| 维护模式 | `blockSend` 不拦截 `POST /api/user/sent/:id/resend`；仅 `blockLease` 时 Session 仍可通过 `POST /api/user/mailboxes` 创建邮箱 |
+| 维护模式 | `blockSend` 拦截 `POST /api/send`、`POST /api/user/send` 与 `POST /api/user/sent/:id/resend`；仅 `blockLease` 时 Session 仍可通过 `POST /api/user/mailboxes` 创建邮箱 |
 | 6 位邮箱 OTP | 注册/重置验码为 6 位数字 + 3 分钟 TTL；依赖 IP 限流与每 pending 5 次尝试 |
 | IP 限流 | 依赖 Cloudflare `CF-Connecting-IP`；非 CF 代理时未认证流量可能共用一个 unknown 桶 |
 | 演示账号 | 首次迁移自动创建 `guest/guest`；生产应删除或禁用 |

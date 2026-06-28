@@ -17,6 +17,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 .login-box h1{font-size:1.35rem;text-align:center;color:#f8fafc;font-weight:700}
 .login-box input{width:100%;padding:12px 16px;border:1px solid #3f3f46;border-radius:10px;background:#0c0a09;color:#e2e8f0;margin-bottom:16px;font-size:1rem}
 .login-box input:focus{outline:none;border-color:#0ea5e9;box-shadow:0 0 0 2px rgba(14,165,233,.25)}
+.login-turnstile{display:flex;justify-content:center;margin-bottom:16px;min-height:65px}
 .login-box button{width:100%;padding:12px;background:#0ea5e9;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(14,165,233,.25)}
 .login-box button:hover{background:#38bdf8}
 .error{color:#f87171;font-size:.875rem;margin-bottom:12px;display:none}
@@ -122,6 +123,7 @@ html.light .chart-empty{color:#94a3b8}
     </div>
     <div id="loginError" class="error"></div>
     <input type="password" id="passwordInput" placeholder="管理员密码" autocomplete="current-password">
+    <div id="turnstileLogin" class="login-turnstile"></div>
     <button data-action="doLogin">登录</button>
   </div>
 </div>

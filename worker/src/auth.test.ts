@@ -23,7 +23,6 @@ const orphanMailbox: Mailbox = {
   ...ownedMailbox,
   id: 'mb-orphan',
   userId: null,
-  legacyTokenId: 7,
 };
 
 const owner: User = {
@@ -75,7 +74,7 @@ describe('assertMailboxAccess', () => {
     );
   });
 
-  it('denies access to orphan legacy mailboxes', () => {
+  it('denies access to orphan mailboxes without user_id', () => {
     assert.equal(assertMailboxAccess(orphanMailbox, { auth: userAuth }), false);
     assert.equal(assertMailboxAccess(orphanMailbox, { user: owner }), false);
   });

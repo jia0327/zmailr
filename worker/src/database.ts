@@ -110,7 +110,6 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await db.exec(`CREATE TABLE IF NOT EXISTS emails (id TEXT PRIMARY KEY, mailbox_id TEXT NOT NULL, from_address TEXT NOT NULL, from_name TEXT, to_address TEXT NOT NULL, subject TEXT, text_content TEXT, html_content TEXT, received_at INTEGER NOT NULL, has_attachments BOOLEAN DEFAULT FALSE, is_read BOOLEAN DEFAULT FALSE, FOREIGN KEY (mailbox_id) REFERENCES mailboxes(id) ON DELETE CASCADE);`);
     await db.exec(`CREATE TABLE IF NOT EXISTS attachments (id TEXT PRIMARY KEY, email_id TEXT NOT NULL, filename TEXT NOT NULL, mime_type TEXT NOT NULL, content TEXT, size INTEGER NOT NULL, created_at INTEGER NOT NULL, is_large BOOLEAN DEFAULT FALSE, chunks_count INTEGER DEFAULT 0, FOREIGN KEY (email_id) REFERENCES emails(id) ON DELETE CASCADE);`);
     await db.exec(`CREATE TABLE IF NOT EXISTS attachment_chunks (id TEXT PRIMARY KEY, attachment_id TEXT NOT NULL, chunk_index INTEGER NOT NULL, content TEXT NOT NULL, FOREIGN KEY (attachment_id) REFERENCES attachments(id) ON DELETE CASCADE);`);
-    await db.exec(`CREATE TABLE IF NOT EXISTS api_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT UNIQUE NOT NULL, name TEXT, expires_at INTEGER NOT NULL, created_at INTEGER DEFAULT (unixepoch()));`);
     await db.exec(`CREATE TABLE IF NOT EXISTS extract_rules (id INTEGER PRIMARY KEY AUTOINCREMENT, domain TEXT NOT NULL DEFAULT '*', regex TEXT NOT NULL, priority INTEGER DEFAULT 0, enabled INTEGER DEFAULT 1, created_at INTEGER DEFAULT (unixepoch()));`);
     await db.exec(`CREATE TABLE IF NOT EXISTS sent_emails (id INTEGER PRIMARY KEY AUTOINCREMENT, to_email TEXT NOT NULL, subject TEXT NOT NULL, status TEXT DEFAULT 'sent', created_at INTEGER DEFAULT (unixepoch()));`);
     await db.exec(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'user', daily_send_quota INTEGER NOT NULL DEFAULT 50, rate_limit_per_min INTEGER DEFAULT 60, rate_limit_burst INTEGER, enabled INTEGER NOT NULL DEFAULT 1, created_at INTEGER DEFAULT (unixepoch()), last_login_at INTEGER);`);
@@ -156,9 +155,7 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await migrateAddColumn(db, 'users', 'session_version', 'INTEGER NOT NULL DEFAULT 0');
     await migrateAddColumn(db, 'users', 'max_user_tokens', `INTEGER NOT NULL DEFAULT ${DEFAULT_MAX_USER_TOKENS}`);
     await migrateGlobalMaxUserTokensToUsers(db);
-    await migrateAddColumn(db, 'mailboxes', 'legacy_token_id', 'INTEGER');
     await migrateAddColumn(db, 'mailboxes', 'lease_counted_date', 'TEXT');
-    await migratePlaintextApiTokens(db);
     await migrateAddColumn(db, 'attachments', 'r2_key', 'TEXT');
 
     // Phase 3: create indexes (after all columns exist)
@@ -171,7 +168,6 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_attachments_email_id ON attachments(email_id);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_attachment_chunks_attachment_id ON attachment_chunks(attachment_id);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_attachment_chunks_chunk_index ON attachment_chunks(chunk_index);`);
-    await db.exec(`CREATE INDEX IF NOT EXISTS idx_api_tokens_token ON api_tokens(token);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_extract_rules_domain ON extract_rules(domain);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_extract_rules_user_id ON extract_rules(user_id);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_sent_emails_created_at ON sent_emails(created_at);`);
@@ -195,7 +191,7 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_extract_rule_templates_author ON extract_rule_templates(author_user_id);`);
 
     await ensureAdminCredentials(db, adminPassword);
-    await migrateLegacyApiTokens(db);
+    await finalizeLegacyTokenRemoval(db);
     await deprecateSeededAdminUser(db);
     await seedGuestUser(db);
     await seedGlobalExtractRules(db);
@@ -208,43 +204,28 @@ export async function initializeDatabase(db: D1Database, adminPassword?: string)
   }
 }
 
-async function migrateLegacyApiTokens(db: D1Database): Promise<void> {
+/** One-time: remove deprecated global api_tokens table and mailbox legacy_token_id links. */
+async function finalizeLegacyTokenRemoval(db: D1Database): Promise<void> {
   const done = await getSystemSetting(db, 'legacy_token_migration_v1');
   if (done === 'done') return;
 
-  const pending = await db
-    .prepare(`SELECT COUNT(*) as c FROM mailboxes WHERE legacy_token_id IS NOT NULL`)
-    .first<{ c: number }>();
+  try {
+    await db
+      .prepare(`UPDATE mailboxes SET legacy_token_id = NULL WHERE legacy_token_id IS NOT NULL`)
+      .run();
+  } catch {
+    // legacy_token_id column may be absent on fresh schemas
+  }
 
-  await db
-    .prepare(`UPDATE mailboxes SET legacy_token_id = NULL WHERE legacy_token_id IS NOT NULL`)
-    .run();
-
-  const legacyTokens = await db.prepare(`SELECT COUNT(*) as c FROM api_tokens`).first<{ c: number }>();
-  await db.prepare(`DELETE FROM api_tokens`).run();
+  try {
+    await db.prepare(`DELETE FROM api_tokens`).run();
+    await db.exec(`DROP TABLE IF EXISTS api_tokens`);
+  } catch {
+    // api_tokens table may already be gone
+  }
 
   await setSystemSetting(db, 'legacy_token_migration_v1', 'done');
-  const tokenCount = legacyTokens?.c ?? 0;
-  const pendingCount = pending?.c ?? 0;
-  if (tokenCount > 0 || pendingCount > 0) {
-    console.log(
-      `Legacy Token 已废弃：删除 ${tokenCount} 个全局 Token，清除 ${pendingCount} 个邮箱 legacy 关联（请使用 Dashboard API 密钥）`
-    );
-  }
-}
-
-/**
- * One-time: hash legacy api_tokens rows still stored as plaintext (64-char hex = already hashed).
- */
-async function migratePlaintextApiTokens(db: D1Database): Promise<void> {
-  const rows = await db.prepare(`SELECT id, token FROM api_tokens`).all();
-  if (!rows.results) return;
-  for (const row of rows.results) {
-    const stored = row.token as string;
-    if (/^[a-f0-9]{64}$/i.test(stored)) continue;
-    const tokenHash = await hashToken(stored);
-    await db.prepare(`UPDATE api_tokens SET token = ? WHERE id = ?`).bind(tokenHash, row.id).run();
-  }
+  console.log('Legacy 全局 API Token 已清理（请使用 Dashboard API 密钥 user_tokens）');
 }
 
 /**
@@ -340,7 +321,7 @@ function parseScopes(raw: string): TokenScope[] {
 }
 
 const MAILBOX_COLUMNS =
-  'id, address, created_at, expires_at, ip_address, last_accessed, user_id, mail_domain, legacy_token_id, lease_counted_date';
+  'id, address, created_at, expires_at, ip_address, last_accessed, user_id, mail_domain, lease_counted_date';
 
 /**
  * 创建邮箱
@@ -358,12 +339,11 @@ export async function createMailbox(db: D1Database, params: CreateMailboxParams)
     ipAddress: params.ipAddress,
     lastAccessed: now,
     mailDomain: params.mailDomain ?? null,
-    legacyTokenId: params.legacyTokenId ?? null,
   };
   
   await db.prepare(
-    `INSERT INTO mailboxes (id, address, created_at, expires_at, ip_address, last_accessed, user_id, mail_domain, legacy_token_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO mailboxes (id, address, created_at, expires_at, ip_address, last_accessed, user_id, mail_domain)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     mailbox.id,
     mailbox.address,
@@ -372,8 +352,7 @@ export async function createMailbox(db: D1Database, params: CreateMailboxParams)
     mailbox.ipAddress,
     mailbox.lastAccessed,
     params.userId ?? null,
-    mailbox.mailDomain ?? null,
-    params.legacyTokenId ?? null
+    mailbox.mailDomain ?? null
   ).run();
   
   return mailbox;
@@ -395,7 +374,6 @@ function rowToMailbox(result: Record<string, unknown>, lastAccessed?: number): M
     lastAccessed: lastAccessed ?? (result.last_accessed as number),
     userId: (result.user_id as number | null) ?? null,
     mailDomain: (result.mail_domain as string | null) ?? null,
-    legacyTokenId: (result.legacy_token_id as number | null) ?? null,
   };
 }
 

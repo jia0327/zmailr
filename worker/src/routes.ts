@@ -104,7 +104,7 @@ import { matchCorsOrigin } from './cors';
 import { apiInternalError } from './http-response';
 import { runHealthChecks } from './health';
 import { applySecurityHeaders, resolveMainCspProfile } from './security-headers';
-import { resolveTurnstileSettings, verifyTurnstileToken } from './turnstile';
+import { resolveTurnstileSettings, assertTurnstileIfEnabled } from './turnstile';
 import {
   sendRegistrationVerificationCode,
   verifyRegistrationCode,
@@ -591,22 +591,9 @@ async function requireUserSession(c: any): Promise<Response | null> {
 }
 
 async function requireTurnstile(c: any, body: Record<string, unknown>): Promise<Response | null> {
-  const turnstile = await resolveTurnstileSettings(c.env.DB, c.env);
-  if (!turnstile.enabled || !turnstile.secretKey) {
-    return null;
-  }
-  const token =
-    body.turnstileToken != null
-      ? String(body.turnstileToken).trim()
-      : body['cf-turnstile-response'] != null
-        ? String(body['cf-turnstile-response']).trim()
-        : '';
-  if (!token) {
-    return c.json({ success: false, error: '请先完成人机验证' }, 400);
-  }
-  const verified = await verifyTurnstileToken(turnstile.secretKey, token, getClientIp(c.req.raw));
-  if (!verified.success) {
-    return c.json({ success: false, error: '人机验证无效或已过期，请重试' }, 400);
+  const result = await assertTurnstileIfEnabled(c.env.DB, c.env, c.req.raw, body);
+  if (!result.ok) {
+    return c.json({ success: false, error: result.error }, result.status);
   }
   return null;
 }

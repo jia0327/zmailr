@@ -53,6 +53,15 @@
 | [MCP 快速接入](./mcp.md) | Cursor / Claude 配置 |
 | [MCP 工具参考](./mcp-tools.md) | 11 个工具参数 |
 
+### 自托管部署
+
+| 文档 | 用途 |
+|------|------|
+| [部署指南](./deploy.md) | Cloudflare Workers 完整部署流程 |
+| [Brevo 发信配置](./brevo-setup.md) | 出站发信 DNS 与 API Key |
+| [安全说明](./security.md) | 生产环境安全与检查清单 |
+| [管理后台](./admin-guide.md) | 运维与用户管理 |
+
 ### 参考
 
 | 资源 | 链接 |
@@ -72,6 +81,22 @@
 | 收信但无 OTP | [验证码完整流程 · 步骤 3–5](./otp-workflow.md#步骤-3收到邮件但未获取到验证码) → [自定义提取规则](./extract-rules.md) |
 | Cursor 用户 | [创建 API 密钥](./create-api-key.md) → [MCP 快速接入](./mcp.md) |
 | 查某个接口 | [API 参考](./api.md) |
+| **自托管部署** | [部署指南](./deploy.md) → [Brevo 发信](./brevo-setup.md) → [安全说明](./security.md) |
+
+---
+
+## 自托管部署
+
+将 zMailR 部署到你自己的 Cloudflare 账户（Workers + D1 + R2）：
+
+| 文档 | 用途 |
+|------|------|
+| [部署指南](./deploy.md) | Fork、GitHub Secrets、CI 部署、Email Routing、验证清单 |
+| [Brevo 发信配置](./brevo-setup.md) | 出站 `/api/send` 的 DNS 与 API Key |
+| [安全说明](./security.md) | 鉴权模型、限流、生产检查清单 |
+| [管理后台](./admin-guide.md) | 用户/域名/维护模式/审计日志 |
+
+预计首次部署 **30～60 分钟**（含 DNS 生效等待）。
 
 ---
 

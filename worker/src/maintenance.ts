@@ -50,7 +50,11 @@ export function pathMatchesMaintenanceBlock(
     case 'lease':
       return path === '/api/lease';
     case 'send':
-      return path === '/api/send' || path === '/api/user/send';
+      return (
+        path === '/api/send' ||
+        path === '/api/user/send' ||
+        (path.startsWith('/api/user/sent/') && path.endsWith('/resend'))
+      );
     case 'mailboxCreate':
       return path === '/api/user/mailboxes' || path === '/api/lease';
     default:

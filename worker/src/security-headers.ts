@@ -18,9 +18,10 @@ const SPA_CSP = [
 
 const ADMIN_CSP = [
   "default-src 'self'",
-  "script-src 'self'",
+  "script-src 'self' https://challenges.cloudflare.com",
   "style-src 'unsafe-inline'",
   "connect-src 'self'",
+  "frame-src https://challenges.cloudflare.com",
   "img-src 'self' data:",
   "object-src 'none'",
   "base-uri 'self'",

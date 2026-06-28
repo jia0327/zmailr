@@ -123,8 +123,6 @@ export interface Mailbox {
   ipAddress: string;
   lastAccessed: number;
   userId?: number | null;
-  /** Legacy API token that leased this mailbox (when user_id IS NULL). */
-  legacyTokenId?: number | null;
   mailDomain?: string | null;
 }
 
@@ -134,7 +132,6 @@ export interface CreateMailboxParams {
   expiresInHours: number;
   ipAddress: string;
   userId?: number | null;
-  legacyTokenId?: number | null;
   mailDomain?: string | null;
 }
 

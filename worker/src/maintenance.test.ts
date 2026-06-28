@@ -16,6 +16,8 @@ describe('pathMatchesMaintenanceBlock', () => {
   it('blocks send routes', () => {
     assert.equal(pathMatchesMaintenanceBlock('/api/send', 'POST', 'send'), true);
     assert.equal(pathMatchesMaintenanceBlock('/api/user/send', 'POST', 'send'), true);
+    assert.equal(pathMatchesMaintenanceBlock('/api/user/sent/42/resend', 'POST', 'send'), true);
+    assert.equal(pathMatchesMaintenanceBlock('/api/user/sent/42', 'POST', 'send'), false);
   });
 
   it('blocks mailbox create routes', () => {

@@ -31,11 +31,12 @@ describe('applySecurityHeaders', () => {
     assert.match(csp, /frame-src https:\/\/challenges\.cloudflare\.com/);
   });
 
-  it('sets admin CSP with external script only', () => {
+  it('sets admin CSP with Turnstile origins', () => {
     const headers = new Headers();
     applySecurityHeaders(headers, 'admin');
     const csp = headers.get('Content-Security-Policy') ?? '';
-    assert.match(csp, /script-src 'self'/);
+    assert.match(csp, /script-src 'self' https:\/\/challenges\.cloudflare\.com/);
+    assert.match(csp, /frame-src https:\/\/challenges\.cloudflare\.com/);
     assert.doesNotMatch(csp, /script-src[^;]*unsafe-inline/);
     assert.match(csp, /style-src 'unsafe-inline'/);
   });

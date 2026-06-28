@@ -1,6 +1,11 @@
 import { describe, it, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import { isTurnstileConfigured, verifyTurnstileToken } from './turnstile';
+import {
+  isTurnstileConfigured,
+  verifyTurnstileToken,
+  extractTurnstileTokenFromBody,
+  assertTurnstileIfEnabled,
+} from './turnstile';
 
 describe('isTurnstileConfigured', () => {
   it('is false when keys missing', () => {
@@ -11,6 +16,29 @@ describe('isTurnstileConfigured', () => {
 
   it('is true when both keys set', () => {
     assert.equal(isTurnstileConfigured('site-key', 'secret-key'), true);
+  });
+});
+
+describe('extractTurnstileTokenFromBody', () => {
+  it('reads turnstileToken and cf-turnstile-response', () => {
+    assert.equal(extractTurnstileTokenFromBody({ turnstileToken: ' abc ' }), 'abc');
+    assert.equal(extractTurnstileTokenFromBody({ 'cf-turnstile-response': 'xyz' }), 'xyz');
+    assert.equal(extractTurnstileTokenFromBody({}), '');
+  });
+});
+
+describe('assertTurnstileIfEnabled', () => {
+  it('passes when Turnstile is disabled', async () => {
+    const db = {
+      prepare: () => ({
+        bind: () => ({
+          first: async () => null,
+        }),
+      }),
+    } as unknown as import('@cloudflare/workers-types').D1Database;
+
+    const result = await assertTurnstileIfEnabled(db, {}, new Request('https://x.test'), {});
+    assert.equal(result.ok, true);
   });
 });
 

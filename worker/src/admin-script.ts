@@ -1,9 +1,15 @@
 export function getAdminScript(apiBase: string, loginPath: string, logoutPath: string): string {
   return `const API='${apiBase}';
+let turnstileSiteKey=null;
+let turnstileWidgetId=null;
+async function loadTurnstileScript(){if(window.turnstile)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';s.async=true;s.onload=resolve;s.onerror=reject;document.head.appendChild(s)})}
+async function initAdminTurnstile(){try{const r=await fetch('/api/config');const d=await r.json();if(!d.success||!d.config||!d.config.turnstile||!d.config.turnstile.enabled||!d.config.turnstile.siteKey)return;turnstileSiteKey=d.config.turnstile.siteKey;await loadTurnstileScript();const el=document.getElementById('turnstileLogin');if(el&&window.turnstile){turnstileWidgetId=window.turnstile.render(el,{sitekey:turnstileSiteKey,theme:'dark'})}}catch(e){}}
+function getTurnstileToken(){if(!turnstileSiteKey||!window.turnstile||turnstileWidgetId==null)return '';return window.turnstile.getResponse(turnstileWidgetId)||''}
+function resetTurnstile(){if(window.turnstile&&turnstileWidgetId!=null)window.turnstile.reset(turnstileWidgetId)}
 async function api(path,opts={}){const r=await fetch(API+path,{...opts,credentials:'include',headers:{'Content-Type':'application/json',...(opts.headers||{})}});if(r.status===401){showLogin();throw new Error('未授权')}return r.json()}
 function showLogin(){document.getElementById('loginView').style.display='flex';document.getElementById('appView').style.display='none'}
 function showApp(){document.getElementById('loginView').style.display='none';document.getElementById('appView').style.display='block'}
-async function doLogin(){const pw=document.getElementById('passwordInput').value;const err=document.getElementById('loginError');err.style.display='none';try{const r=await fetch('${loginPath}',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({password:pw})});const d=await r.json();if(!d.success){err.textContent=d.error||'登录失败';err.style.display='block';return}showApp();loadAll()}catch(e){err.textContent='网络错误';err.style.display='block'}}
+async function doLogin(){const pw=document.getElementById('passwordInput').value;const err=document.getElementById('loginError');err.style.display='none';const body={password:pw};if(turnstileSiteKey){const ts=getTurnstileToken();if(!ts){err.textContent='请先完成人机验证';err.style.display='block';return}body.turnstileToken=ts}try{const r=await fetch('${loginPath}',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify(body)});const d=await r.json();if(!d.success){resetTurnstile();err.textContent=d.error||'登录失败';err.style.display='block';return}showApp();loadAll()}catch(e){resetTurnstile();err.textContent='网络错误';err.style.display='block'}}
 async function doLogout(){await fetch('${logoutPath}',{method:'POST',credentials:'include'});showLogin()}
 function switchTab(name){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+name));if(name==='users'){loadUsers();loadRegistration()}if(name==='domains')loadDomains();if(name==='announcements')loadAnnouncements();if(name==='rules'){window._templateFilter=window._templateFilter||'pending';loadRuleTemplates();loadRules()}if(name==='ratelimit')loadRateLimitStats();if(name==='settings')loadMaintenance();if(name==='audit')loadAuditLogs(1)}
 function setTemplateFilter(f){window._templateFilter=f;document.querySelectorAll('[data-tfilter]').forEach(b=>b.classList.toggle('active',b.dataset.tfilter===f));loadRuleTemplates()}
@@ -134,7 +140,7 @@ document.body.addEventListener('click',function(e){
   var el=e.target.closest('[data-action]');
   if(el)handleAction(el);
 });
-(async()=>{bindStaticEvents();try{const d=await api('/stats');if(d.success){showApp();loadAll()}}catch{showLogin()}})();
+(async()=>{bindStaticEvents();await initAdminTurnstile();try{const d=await api('/stats');if(d.success){showApp();loadAll()}}catch{showLogin()}})();
 document.getElementById('passwordInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 `;
 }

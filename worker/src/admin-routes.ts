@@ -68,6 +68,7 @@ import { fetchBrevoAccountIfConfigured } from './brevo-stats';
 import { ensureMailDomainsSeeded } from './mail-domains';
 import { applySecurityHeaders, resolveAdminCspProfile } from './security-headers';
 import { validateRegistrationPassword } from './registration';
+import { assertTurnstileIfEnabled } from './turnstile';
 
 async function globalIpRateLimitMiddleware(c: any, next: () => Promise<void>) {
   const rateKey = getGlobalIpRateLimitKey(c.req.header('CF-Connecting-IP'));
@@ -136,6 +137,10 @@ export function createAdminApp(): Hono<{ Bindings: Env }> {
         return c.json(rateLimitExceededBody(limitCheck.locked), 429, rateLimitHeaders(limitCheck));
       }
       const body = await c.req.json();
+      const turnstileCheck = await assertTurnstileIfEnabled(c.env.DB, c.env, c.req.raw, body);
+      if (!turnstileCheck.ok) {
+        return c.json({ success: false, error: turnstileCheck.error }, turnstileCheck.status);
+      }
       if (!(await verifyAdminPassword(c.env.DB, body.password))) {
         await recordLoginFailure(c.env.DB, ip, 'admin-login');
         return c.json({ success: false, error: '密码错误' }, 401);

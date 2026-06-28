@@ -1,6 +1,7 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import type { Env } from './types';
 import { getTurnstileSettings } from './database';
+import { getClientIp } from './rate-limit';
 
 const SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
@@ -29,6 +30,42 @@ export async function resolveTurnstileSettings(
     secretKey,
     enabled: explicitlyEnabled && configured,
   };
+}
+
+export function extractTurnstileTokenFromBody(body: Record<string, unknown>): string {
+  if (body.turnstileToken != null) {
+    return String(body.turnstileToken).trim();
+  }
+  if (body['cf-turnstile-response'] != null) {
+    return String(body['cf-turnstile-response']).trim();
+  }
+  return '';
+}
+
+export type TurnstileGateResult =
+  | { ok: true }
+  | { ok: false; status: number; error: string };
+
+/** When Turnstile is enabled, require a valid token; otherwise pass through. */
+export async function assertTurnstileIfEnabled(
+  db: D1Database,
+  env: Pick<Env, 'TURNSTILE_SITE_KEY' | 'TURNSTILE_SECRET_KEY'>,
+  request: Request,
+  body: Record<string, unknown>
+): Promise<TurnstileGateResult> {
+  const turnstile = await resolveTurnstileSettings(db, env);
+  if (!turnstile.enabled || !turnstile.secretKey) {
+    return { ok: true };
+  }
+  const token = extractTurnstileTokenFromBody(body);
+  if (!token) {
+    return { ok: false, status: 400, error: '请先完成人机验证' };
+  }
+  const verified = await verifyTurnstileToken(turnstile.secretKey, token, getClientIp(request));
+  if (!verified.success) {
+    return { ok: false, status: 400, error: '人机验证无效或已过期，请重试' };
+  }
+  return { ok: true };
 }
 
 export async function verifyTurnstileToken(

@@ -1,15 +1,7 @@
 import { defineConfig } from 'vitepress';
 
-/** Published on /docs/ — Tencent Cloud-style tutorials + API/MCP reference. */
-const unpublished = [
-  'admin-guide.md',
-  'backup.md',
-  'brevo-setup.md',
-  'deploy.md',
-  'mailsink-comparison.md',
-  'security.md',
-  'testing.md',
-];
+/** Published on /docs/ — tutorials + API/MCP + self-host deploy. */
+const unpublished = ['backup.md', 'mailsink-comparison.md', 'testing.md'];
 
 export default defineConfig({
   lang: 'zh-CN',
@@ -28,8 +20,6 @@ export default defineConfig({
     /^\/openapi\.json$/,
     /^\/\.\.\/\.\.\/openapi\.json$/,
     /^\.\/testing\.md$/,
-    /^\.\/admin-guide\.md$/,
-    /^\.\/deploy\.md$/,
   ],
   rewrites: {
     'README.md': 'index.md',
@@ -79,6 +69,15 @@ export default defineConfig({
         items: [
           { text: 'MCP 快速接入', link: '/mcp' },
           { text: 'MCP 工具参考', link: '/mcp-tools' },
+        ],
+      },
+      {
+        text: '自托管部署',
+        items: [
+          { text: '部署指南', link: '/deploy' },
+          { text: 'Brevo 发信配置', link: '/brevo-setup' },
+          { text: '安全说明', link: '/security' },
+          { text: '管理后台', link: '/admin-guide' },
         ],
       },
       {
