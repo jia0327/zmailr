@@ -7,6 +7,7 @@
 
 <p align="center">
   <a href="https://zmailr.onlydev.ccwu.cc/" target="_blank"><strong>🚀 在线体验</strong></a> ·
+  <a href="https://zmailr.onlydev.ccwu.cc/docs/" target="_blank"><strong>📚 文档</strong></a> ·
   <a href="./docs/screenshots/README.md"><strong>📸 效果图</strong></a> ·
   <a href="./README.en.md">English</a>
   <br>
@@ -85,15 +86,18 @@
 
 ## 🚀 快速开始
 
-**仅接收验证码（推荐）** — 无需 Brevo，约 30～45 分钟：
+完整图文教程见文档中心 👉 **[https://zmailr.onlydev.ccwu.cc/docs/](https://zmailr.onlydev.ccwu.cc/docs/)**
 
-1. Fork [cf-fork-div/zmailr](https://github.com/cf-fork-div/zmailr)，创建 D1 数据库
-2. 配置 GitHub Secrets：`CF_*`、`D1_*`、`VITE_EMAIL_DOMAIN`、`ADMIN_PASSWORD`、`SESSION_SECRET`、`ADMIN_PATH`（**`BREVO_API_KEY` 可跳过**）
-3. 推送 `main` → Actions 自动部署 Worker（**含前端 SPA，无需单独 Pages**）
-4. Email Routing：**Catch-all** → Worker `zmailr`（每个收信域名单独配置）
-5. 绑定自定义域名 → 登录 → 创建 API 密钥 → `POST /api/lease` / `GET /api/mail`
+| 你想… | 从这里开始 |
+| :--- | :--- |
+| **自托管部署**（推荐路径） | [部署指南](https://zmailr.onlydev.ccwu.cc/docs/deploy) — Fork、Secrets、CI、Email Routing、验证清单（约 30～60 分钟） |
+| 先体验再决定 | [5 分钟体验](https://zmailr.onlydev.ccwu.cc/docs/quickstart-5min) — 演示站登录 → 租邮箱 → 收 OTP |
+| 写脚本 / CI | [创建 API 密钥](https://zmailr.onlydev.ccwu.cc/docs/create-api-key) → [第一个脚本](https://zmailr.onlydev.ccwu.cc/docs/first-script) |
+| Cursor / Agent | [MCP 快速接入](https://zmailr.onlydev.ccwu.cc/docs/mcp) |
+| 有信无码 | [验证码完整流程](https://zmailr.onlydev.ccwu.cc/docs/otp-workflow) → [自定义提取规则](https://zmailr.onlydev.ccwu.cc/docs/extract-rules) |
+| 配置出站发信（可选） | [Brevo 发信配置](https://zmailr.onlydev.ccwu.cc/docs/brevo-setup) |
 
-需出站发信可配置 Brevo（`BREVO_API_KEY`），详见仓库 `docs/` 目录。
+> **仅收验证码？** 按 [部署指南](https://zmailr.onlydev.ccwu.cc/docs/deploy) 操作即可，**`BREVO_API_KEY` 可跳过**，进入 Receive-Only Mode。
 
 ---
 
@@ -116,7 +120,7 @@
 
 常用工具：`lease_mailbox` · `wait_for_mail` · `get_latest_code` · `list_emails`
 
-新站点须先在 Dashboard 配好提取规则（MCP 无写规则工具）。
+配置细节与 Token 创建 → [MCP 快速接入](https://zmailr.onlydev.ccwu.cc/docs/mcp) · 新站点须先在 Dashboard 配好提取规则（MCP 无写规则工具）
 
 ---
 
